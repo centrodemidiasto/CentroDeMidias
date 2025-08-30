@@ -89,11 +89,12 @@ export async function updateBookingStatus(bookingId: string, status: 'approved' 
 
         if (status === 'approved') {
             const date = Object.keys(bookingData.selectedSlots)[0];
-            const startTimeStr = bookingData.selectedSlots[date][0];
-            const endTimeStr = bookingData.selectedSlots[date][bookingData.selectedSlots[date].length - 1];
+            const times = bookingData.selectedSlots[date].sort();
+            const startTimeStr = times[0];
+            const lastTimeStr = times[times.length - 1];
             
             const startHour = parseInt(startTimeStr.split(':')[0]);
-            const endHour = parseInt(endTimeStr.split(':')[0]) + 1; // Assuming each slot is 1 hour
+            const endHour = parseInt(lastTimeStr.split(':')[0]) + 1; // Assuming each slot is 1 hour
 
             const event = {
                 summary: `Gravação: ${bookingData.fullName}`,
@@ -122,17 +123,23 @@ export async function updateBookingStatus(bookingId: string, status: 'approved' 
 
         } else if (status === 'rejected' && calendarEventId) {
              // If the booking is rejected and there was a calendar event, delete it
-            await calendar.events.delete({
-                calendarId,
-                eventId: calendarEventId,
-            });
+            try {
+                await calendar.events.delete({
+                    calendarId,
+                    eventId: calendarEventId,
+                });
+            } catch (err: any) {
+                // If the event is already deleted on Google Calendar, ignore the error.
+                if (err.code !== 410) {
+                    throw err; // Re-throw other errors
+                }
+            }
             // Optionally remove the event ID from Firestore
             await updateDoc(bookingRef, { calendarEventId: null });
         }
     } catch (error) {
         console.error("Error updating booking status or calendar event:", error);
-        // Revert status update on error to maintain consistency
-        // await updateDoc(bookingRef, { status: bookingData.status });
+        // We don't revert the status, but we throw an error to be handled by the client
         throw new Error("Falha ao atualizar o status do agendamento ou sincronizar com o Google Calendar.");
     }
 }
@@ -256,3 +263,5 @@ export async function handleAdminBookingRequest(
         return { success: false, message: "Ocorreu um erro inesperado. Tente novamente." };
     }
 }
+
+    
