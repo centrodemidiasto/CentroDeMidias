@@ -76,24 +76,38 @@ async function getManuallyBlockedSlots(): Promise<ManuallyBlockedSlot[]> {
 
 export default function SchedulingForm() {
   const today = startOfToday();
-  const firstBookableDate = addDays(today, MIN_BOOKING_NOTICE_DAYS);
+  const initialFirstBookableDate = addDays(today, MIN_BOOKING_NOTICE_DAYS);
 
-  const [currentDate, setCurrentDate] = useState(firstBookableDate);
+  const [currentDate, setCurrentDate] = useState(initialFirstBookableDate);
   const [selectedSlots, setSelectedSlots] = useState<SelectedSlots>({});
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [reservedBookings, setReservedBookings] = useState<ReservedBooking[]>([]);
   const [manuallyBlockedSlots, setManuallyBlockedSlots] = useState<ManuallyBlockedSlot[]>([]);
   const [loadingReserved, setLoadingReserved] = useState(true);
   const [user, setUser] = useState<User | null>(null);
+  const [isClient, setIsClient] = useState(false);
+
 
   const { toast } = useToast();
   
   useEffect(() => {
+    setIsClient(true);
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
     });
     return () => unsubscribe();
   }, []);
+
+  const firstBookableDate = user ? today : initialFirstBookableDate;
+
+  useEffect(() => {
+    // Adjust current date only if user status changes and the current view is no longer valid
+    if (user && isBefore(currentDate, today)) {
+        setCurrentDate(today);
+    } else if (!user && isBefore(currentDate, initialFirstBookableDate)) {
+        setCurrentDate(initialFirstBookableDate);
+    }
+  }, [user, currentDate, today, initialFirstBookableDate]);
   
   const fetchAllBookings = () => {
     setLoadingReserved(true);
@@ -116,15 +130,16 @@ export default function SchedulingForm() {
   }, [currentDate]);
   
   const isPreviousWeekButtonDisabled = useMemo(() => {
+    if (!isClient) return true; // Disable on server and during first render
     const firstDayOfCurrentWeek = startOfWeek(currentDate, { locale: ptBR });
     if (user) {
         // Admins can't go to a week that is entirely in the past
         const lastDayOfPreviousWeek = addDays(firstDayOfCurrentWeek, -1);
         return isBefore(lastDayOfPreviousWeek, today);
     }
-    const firstPossibleDay = startOfWeek(firstBookableDate, { locale: ptBR });
+    const firstPossibleDay = startOfWeek(initialFirstBookableDate, { locale: ptBR });
     return isBefore(firstDayOfCurrentWeek, firstPossibleDay);
-  }, [currentDate, firstBookableDate, user, today]);
+  }, [currentDate, initialFirstBookableDate, user, today, isClient]);
 
 
   const handleSlotSelect = (day: Date, time: string) => {
@@ -197,7 +212,7 @@ export default function SchedulingForm() {
       </CardHeader>
        <TooltipProvider delayDuration={100}>
         <CardContent>
-        {loadingReserved ? (
+        {loadingReserved || !isClient ? (
           <div className="flex items-center justify-center h-48">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
@@ -212,7 +227,7 @@ export default function SchedulingForm() {
                 }
                 
                 return (
-                <div key={day.toString()} className={cn("flex flex-col", isDayDisabled ? "bg-muted/50" : "bg-background")}>
+                <div key={day.toString()} className={cn("flex flex-col", isDayDisabled ? "bg-muted" : "bg-background")}>
                 <div className="text-center font-bold py-2 border-b font-headline capitalize">
                     {format(day, "EEE", { locale: ptBR })}
                     <div className="font-normal text-sm text-muted-foreground">{format(day, "d/MM")}</div>
