@@ -82,8 +82,8 @@ async function getApprovedBookings(): Promise<Booking[]> {
 
   // Additional client-side sort by time if needed, as Firestore can only order by one field in a range query
   bookings.sort((a, b) => {
-    const timeA = a.selectedSlots[a.bookingDate][0];
-    const timeB = b.selectedSlots[b.bookingDate][0];
+    const timeA = a.selectedSlots[a.bookingDate]?.[0] || '00:00';
+    const timeB = b.selectedSlots[b.bookingDate]?.[0] || '00:00';
     if (a.bookingDate < b.bookingDate) return -1;
     if (a.bookingDate > b.bookingDate) return 1;
     return timeA.localeCompare(timeB);
@@ -375,3 +375,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
