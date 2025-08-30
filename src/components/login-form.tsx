@@ -57,6 +57,15 @@ export default function LoginForm() {
       });
     }
   }
+  
+  const handleEmailChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const value = event.target.value;
+    if (value.endsWith('@')) {
+      form.setValue('email', value + 'seduc.to.gov.br');
+    } else {
+      form.setValue('email', value);
+    }
+  };
 
   return (
     <Card className="w-full max-w-sm">
@@ -74,7 +83,11 @@ export default function LoginForm() {
                     <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                        <Input placeholder="seu@email.com" {...field} />
+                        <Input 
+                          placeholder="email@seduc.to.gov.br" 
+                          {...field}
+                          onChange={handleEmailChange}
+                        />
                     </FormControl>
                     <FormMessage />
                     </FormItem>
