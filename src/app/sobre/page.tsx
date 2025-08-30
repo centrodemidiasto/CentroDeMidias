@@ -21,15 +21,15 @@ export default function SobrePage() {
               <CardHeader className="p-0 mb-4">
                 <CardTitle className="flex items-center gap-2 text-2xl font-headline">
                   <BookOpen className="w-6 h-6 text-primary" />
-                  Nossa História
+                  Sobre
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 <p className="text-muted-foreground font-body">
-                  O Centro de Mídias Educacionais do Tocantins foi fundado com a missão de inovar o processo de ensino e aprendizagem no estado. Desde o início, nosso foco tem sido a produção de conteúdo digital de alta qualidade, utilizando tecnologia de ponta para criar materiais didáticos que sejam tanto informativos quanto envolventes.
+                  Os Núcleos de Produção de Recursos Educacionais Digitais da Gerência de Mídias Educacionais e Acompanhamento aos Centros de Mídias – GMEACM, tem estrutura para gravação e transmissão de vídeo-aulas além de contribuir com a formação de docentes e suas interfaces para as inovações curriculares.
                 </p>
                 <p className="mt-4 text-muted-foreground font-body">
-                  Ao longo dos anos, expandimos nossas instalações e equipe para atender à crescente demanda por recursos audiovisuais na educação, tornando-nos uma referência em produção de mídia educacional na região.
+                  O Centro de Mídias Educacionais do Tocantins destina-se ao corpo  docente, discente e  técnico-administrativo da Seduc. O seu uso deve ser normatizado para garantir o fluxo de produção bem como a qualidade da produção audiovisual, e deve ser utilizado preferencialmente para atender às dimensões de ensino, pesquisa e extensão da Seduc.
                 </p>
               </CardContent>
             </div>
