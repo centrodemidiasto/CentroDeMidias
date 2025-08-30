@@ -10,9 +10,6 @@ export default function SobrePage() {
           <h1 className="text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl font-headline">
             Sobre o Centro de Mídias
           </h1>
-          <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground font-body">
-            Conheça nossa trajetória e o que fazemos para impulsionar a educação através da tecnologia.
-          </p>
         </div>
 
         <Card>
