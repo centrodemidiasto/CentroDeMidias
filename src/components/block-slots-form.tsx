@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import { collection, getDocs, query, where, writeBatch, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
+import AdminCalendarLegend from "./admin-calendar-legend";
 
 type SelectedSlots = {
   [key: string]: string[];
@@ -96,7 +97,9 @@ export default function BlockSlotsForm() {
 
   const isPreviousWeekButtonDisabled = useMemo(() => {
     const firstDayOfCurrentWeek = startOfWeek(currentDate, { locale: ptBR });
-    return isBefore(firstDayOfCurrentWeek, startOfWeek(today, { locale: ptBR }));
+    // Admins can't go to a week that is entirely in the past
+    const lastDayOfPreviousWeek = addDays(firstDayOfCurrentWeek, -1);
+    return isBefore(lastDayOfPreviousWeek, today);
   }, [currentDate, today]);
 
   const handleSlotSelect = (day: Date, time: string) => {
@@ -291,6 +294,7 @@ export default function BlockSlotsForm() {
             </div>
           )}
         </CardContent>
+        <AdminCalendarLegend />
       </TooltipProvider>
       {totalSelectedSlots > 0 && (
         <CardFooter className="flex-col items-start gap-4 pt-4">
