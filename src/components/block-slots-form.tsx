@@ -120,46 +120,60 @@ export default function BlockSlotsForm() {
 
   const handleSaveChanges = async () => {
     setIsSubmitting(true);
-    const slotsToBlock: SelectedSlots = {};
-    const slotsToUnblock: SelectedSlots = {};
+    try {
+        const slotsToBlock: SelectedSlots = {};
+        const slotsToUnblock: SelectedSlots = {};
 
-    for (const date in selectedSlots) {
-        slotsToBlock[date] = [];
-        slotsToUnblock[date] = [];
-        for (const time of selectedSlots[date]) {
-            const isAlreadyBlocked = manuallyBlockedSlots.some(b => b.date === date && b.times.includes(time));
-            if (isAlreadyBlocked) {
-                slotsToUnblock[date].push(time);
-            } else {
-                slotsToBlock[date].push(time);
+        for (const date in selectedSlots) {
+            slotsToBlock[date] = [];
+            slotsToUnblock[date] = [];
+            for (const time of selectedSlots[date]) {
+                const isAlreadyBlocked = manuallyBlockedSlots.some(b => b.date === date && b.times.includes(time));
+                if (isAlreadyBlocked) {
+                    slotsToUnblock[date].push(time);
+                } else {
+                    slotsToBlock[date].push(time);
+                }
             }
         }
-    }
+        
+        const promises = [];
+        const cleanSlotsToBlock = Object.fromEntries(Object.entries(slotsToBlock).filter(([_, v]) => v.length > 0));
+        const cleanSlotsToUnblock = Object.fromEntries(Object.entries(slotsToUnblock).filter(([_, v]) => v.length > 0));
 
-    const promises = [];
-    if (Object.values(slotsToBlock).some(t => t.length > 0)) {
-        promises.push(blockSlots(slotsToBlock));
-    }
-    if (Object.values(slotsToUnblock).some(t => t.length > 0)) {
-        promises.push(unblockSlots(slotsToUnblock));
-    }
-
-    const results = await Promise.all(promises);
-
-    results.forEach(result => {
-        if (result) {
-            toast({
-                title: result.success ? "Sucesso!" : "Erro",
-                description: result.message,
-                variant: result.success ? "default" : "destructive",
-            });
+        if (Object.keys(cleanSlotsToBlock).length > 0) {
+            promises.push(blockSlots(cleanSlotsToBlock));
         }
-    });
+        if (Object.keys(cleanSlotsToUnblock).length > 0) {
+            promises.push(unblockSlots(cleanSlotsToUnblock));
+        }
 
-    setSelectedSlots({});
-    fetchAllBookings();
-    setIsSubmitting(false);
+        const results = await Promise.all(promises);
+
+        results.forEach(result => {
+            if (result) {
+                toast({
+                    title: result.success ? "Sucesso!" : "Erro",
+                    description: result.message,
+                    variant: result.success ? "default" : "destructive",
+                });
+            }
+        });
+
+    } catch (error) {
+        console.error("Client-side error in handleSaveChanges:", error);
+        toast({
+            title: "Erro Inesperado",
+            description: "Ocorreu um erro ao processar sua solicitação. Tente novamente.",
+            variant: "destructive",
+        });
+    } finally {
+        setSelectedSlots({});
+        fetchAllBookings();
+        setIsSubmitting(false);
+    }
   }
+
 
   return (
     <>
