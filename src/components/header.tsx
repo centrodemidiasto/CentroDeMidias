@@ -24,7 +24,11 @@ export default function Header() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // This function will run on the client side.
     async function checkLoginStatus() {
+      // It's safe to assume verifySession can be called client-side
+      // if it only reads cookies and doesn't expose secrets.
+      // However, for robustness, let's keep it as is, but manage state carefully.
       const session = await verifySession();
       setIsLoggedIn(session.isLoggedIn);
       setLoading(false);

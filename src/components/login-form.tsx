@@ -39,16 +39,16 @@ export default function LoginForm() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setLoading(true);
     const result = await handleSignIn(values.password);
-    setLoading(false);
-
+    
     if (result.success) {
       toast({
         title: "Login bem-sucedido!",
         description: "Você será redirecionado para o painel.",
       });
-      router.push("/admin");
-      router.refresh(); // Forces a refresh to update server-side session checks
+      // Force a hard navigation to ensure the server reads the new cookie.
+      window.location.href = "/admin";
     } else {
+      setLoading(false);
       toast({
         title: "Erro de login",
         description: result.message,
