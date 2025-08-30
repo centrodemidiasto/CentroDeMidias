@@ -8,7 +8,7 @@ export default function Footer() {
         <div className="flex flex-col items-center gap-4 md:items-start">
           <Link href="/" className="flex items-center space-x-2">
             <Image 
-              src="/img/centrologo.png"
+              src="/img/centroicone.png"
               width={40}
               height={40}
               alt="Logotipo do Centro de Mídias Educacionais"
@@ -23,11 +23,6 @@ export default function Footer() {
             <p>Contato: centrodemidias@seduc.to.gov.br</p>
           </div>
         </div>
-        <p className="text-center text-sm text-muted-foreground md:text-right">
-          © {new Date().getFullYear()} Centro de Mídias Educacionais do Tocantins.
-          <br /> 
-          Todos os direitos reservados.
-        </p>
       </div>
     </footer>
   );
