@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -14,10 +15,12 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { handleSignIn } from "@/app/auth-actions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "@/lib/firebase";
+import { useRouter } from "next/navigation";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Por favor, insira um e-mail válido." }),
@@ -27,6 +30,7 @@ const formSchema = z.object({
 export default function LoginForm() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -38,22 +42,26 @@ export default function LoginForm() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setLoading(true);
-    const result = await handleSignIn(values.email, values.password);
-    
-    if (result.success) {
+    try {
+      await signInWithEmailAndPassword(auth, values.email, values.password);
       toast({
         title: "Login bem-sucedido!",
         description: "Você será redirecionado para o painel.",
       });
-      // Force a hard navigation to ensure the server reads the new cookie.
-      window.location.href = "/admin";
-    } else {
-      setLoading(false);
+      router.push("/admin");
+    } catch (error: any) {
+      let message = "Ocorreu um erro durante o login.";
+      if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
+        message = "E-mail ou senha inválidos.";
+      }
+      console.error("Sign-in error:", error);
       toast({
         title: "Erro de login",
-        description: result.message,
+        description: message,
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   }
 

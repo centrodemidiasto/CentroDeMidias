@@ -1,14 +1,18 @@
-import { verifySession } from "@/app/auth-actions";
-import { db } from "@/lib/firebase";
-import { collection, getDocs, query, where, orderBy } from "firebase/firestore";
-import { redirect } from "next/navigation";
+
+'use client';
+
+import { useEffect, useState } from 'react';
+import { onAuthStateChanged, User } from 'firebase/auth';
+import { auth, db } from '@/lib/firebase';
+import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
+import { useRouter } from 'next/navigation';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from '@/components/ui/card';
 import {
   Table,
   TableBody,
@@ -16,14 +20,15 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Loader2 } from 'lucide-react';
 
 async function getPendingBookings() {
   const bookingsRef = collection(db, "bookings");
   const q = query(
-    bookingsRef, 
+    bookingsRef,
     where("status", "==", "pending"),
     orderBy("createdAt", "desc")
   );
@@ -35,14 +40,37 @@ async function getPendingBookings() {
   return bookings;
 }
 
-export default async function DashboardPage() {
-  const session = await verifySession();
+export default function DashboardPage() {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [bookings, setBookings] = useState<any[]>([]);
+  const router = useRouter();
 
-  if (!session.isLoggedIn) {
-    redirect("/login");
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setUser(user);
+        getPendingBookings().then(setBookings);
+      } else {
+        router.push('/login');
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [router]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
+        <Loader2 className="h-16 w-16 animate-spin text-primary" />
+      </div>
+    );
   }
 
-  const bookings = await getPendingBookings();
+  if (!user) {
+    return null; // ou um esqueleto de página de login
+  }
 
   return (
     <div className="container mx-auto max-w-7xl px-4 py-12 md:px-6 md:py-16">
@@ -77,7 +105,7 @@ export default async function DashboardPage() {
                 {bookings.length > 0 ? (
                   bookings.map((booking: any) => {
                     const date = Object.keys(booking.selectedSlots)[0];
-                    const times = booking.selectedSlots[date].join(", ");
+                    const times = booking.selectedSlots[date].join(', ');
                     return (
                       <TableRow key={booking.id}>
                         <TableCell className="font-medium">{date}</TableCell>

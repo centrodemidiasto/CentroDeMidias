@@ -1,14 +1,17 @@
+
 "use client";
 
 import { Menu, X, LogIn, LogOut } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
-import { handleSignOut, verifySession } from "@/app/auth-actions";
+import { onAuthStateChanged, signOut, User } from "firebase/auth";
+import { auth } from "@/lib/firebase";
+import { useToast } from "@/hooks/use-toast";
 
 const navLinks = [
   { href: "/", label: "Início" },
@@ -19,20 +22,37 @@ const navLinks = [
 
 export default function Header() {
   const pathname = usePathname();
+  const router = useRouter();
+  const { toast } = useToast();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function checkLoginStatus() {
-      setLoading(true);
-      const { isLoggedIn } = await verifySession();
-      setIsLoggedIn(isLoggedIn);
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUser(user);
       setLoading(false);
-    }
-    checkLoginStatus();
-  }, [pathname]); // Re-check on path change
+    });
+    return () => unsubscribe();
+  }, []);
 
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+      toast({
+        title: "Logout bem-sucedido!",
+        description: "Você foi desconectado com segurança.",
+      });
+      router.push('/');
+    } catch (error) {
+      console.error("Erro ao fazer logout:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível fazer o logout. Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const NavLink = ({ href, label }: { href: string, label: string }) => (
     <Link
@@ -66,7 +86,7 @@ export default function Header() {
             {navLinks.map((link) => (
               <NavLink key={link.href} {...link} />
             ))}
-             {!loading && isLoggedIn && <NavLink href="/admin" label="Painel" />}
+             {!loading && user && <NavLink href="/admin" label="Painel" />}
           </nav>
         </div>
 
@@ -112,19 +132,17 @@ export default function Header() {
                   {navLinks.map((link) => (
                     <NavLink key={link.href} {...link} />
                   ))}
-                   {!loading && isLoggedIn && <NavLink href="/admin" label="Painel" />}
+                   {!loading && user && <NavLink href="/admin" label="Painel" />}
                 </div>
               </div>
             </SheetContent>
           </Sheet>
           <div className="flex items-center gap-2">
-            {loading ? null : isLoggedIn ? (
-               <form action={handleSignOut}>
-                <Button type="submit" variant="ghost" size="sm">
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Sair
-                </Button>
-              </form>
+            {loading ? null : user ? (
+               <Button onClick={handleSignOut} variant="ghost" size="sm">
+                <LogOut className="mr-2 h-4 w-4" />
+                Sair
+              </Button>
             ) : (
               <Button asChild variant="ghost" size="sm">
                 <Link href="/login">
