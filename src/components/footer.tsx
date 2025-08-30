@@ -8,7 +8,7 @@ export default function Footer() {
         <div className="flex flex-col items-center gap-4 md:items-start">
           <Link href="/" className="flex items-center space-x-2">
             <Image 
-              src="/img/centroicone.png"
+              src="/img/centrologo.png"
               width={40}
               height={40}
               alt="Logotipo do Centro de Mídias Educacionais"

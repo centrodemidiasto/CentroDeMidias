@@ -39,7 +39,7 @@ export default function Header() {
         <div className="mr-4 hidden md:flex">
           <Link href="/" className="mr-6 flex items-center space-x-2">
             <Image 
-              src="/img/centroicone.png"
+              src="/img/centrologo.png"
               width={32}
               height={32}
               alt="Logotipo do Centro de Mídias Educacionais"
@@ -69,7 +69,7 @@ export default function Header() {
             <div className="md:hidden flex items-center">
                 <Link href="/" className="flex items-center space-x-2">
                     <Image 
-                      src="/img/centroicone.png"
+                      src="/img/centrologo.png"
                       width={32}
                       height={32}
                       alt="Logotipo do Centro de Mídias Educacionais"
@@ -84,7 +84,7 @@ export default function Header() {
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 <Image 
-                  src="/img/centroicone.png"
+                  src="/img/centrologo.png"
                   width={24}
                   height={24}
                   alt="Logotipo do Centro de Mídias Educacionais"
