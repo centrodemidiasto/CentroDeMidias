@@ -26,6 +26,7 @@ import { db, auth } from "@/lib/firebase";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
+import CalendarLegend from "./calendar-legend";
 
 
 export type SelectedSlots = {
@@ -116,11 +117,14 @@ export default function SchedulingForm() {
   
   const isPreviousWeekButtonDisabled = useMemo(() => {
     const firstDayOfCurrentWeek = startOfWeek(currentDate, { locale: ptBR });
-    // Allow admins to go back in time, but not regular users
-    if (user) return false;
+    if (user) {
+        // Admins can't go to a week that is entirely in the past
+        const lastDayOfPreviousWeek = addDays(firstDayOfCurrentWeek, -1);
+        return isBefore(lastDayOfPreviousWeek, today);
+    }
     const firstPossibleDay = startOfWeek(firstBookableDate, { locale: ptBR });
     return isBefore(firstDayOfCurrentWeek, firstPossibleDay);
-  }, [currentDate, firstBookableDate, user]);
+  }, [currentDate, firstBookableDate, user, today]);
 
 
   const handleSlotSelect = (day: Date, time: string) => {
@@ -283,6 +287,7 @@ export default function SchedulingForm() {
             </div>
         )}
         </CardContent>
+        <CalendarLegend />
       </TooltipProvider>
       {totalSelectedSlots > 0 && (
         <CardFooter className="flex-col items-start gap-4 pt-4">
