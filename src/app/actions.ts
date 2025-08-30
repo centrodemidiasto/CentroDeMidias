@@ -20,7 +20,23 @@ const BookingDetailsSchema = z.object({
   participantCount: z.coerce.number().min(1, { message: "Informe o número de participantes." }),
   tableCount: z.coerce.number().min(0, "Mínimo 0.").max(3, "Máximo 3 mesas."),
   chairCount: z.coerce.number().min(0, "Mínimo 0.").max(10, "Máximo 10 cadeiras."),
+}).superRefine((data, ctx) => {
+    if (data.organizationType === 'interno' && (!data.department || data.department.trim().length === 0)) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Departamento é obrigatório para órgão interno.",
+            path: ["department"],
+        });
+    }
+    if (data.organizationType === 'externo' && (!data.externalOrganization || data.externalOrganization.trim().length === 0)) {
+         ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Nome do órgão é obrigatório.",
+            path: ["externalOrganization"],
+        });
+    }
 });
+
 
 type FormState = {
   success: boolean;
@@ -47,19 +63,11 @@ export async function handleBookingRequest(
   });
 
   if (!parsedData.success) {
-    const errorMessages = parsedData.error.errors.map(e => e.message).join(", ");
-    return { success: false, message: errorMessages };
+    const errorMessages = parsedData.error.errors.map(e => e.message).join("\n");
+    return { success: false, message: `Por favor, corrija os seguintes erros:\n${errorMessages}` };
   }
 
   const data = parsedData.data;
-
-  // Manual validation for conditional fields
-  if (data.organizationType === 'interno' && (!data.department || data.department.trim().length === 0)) {
-    return { success: false, message: "Departamento é obrigatório para órgão interno." };
-  }
-  if (data.organizationType === 'externo' && (!data.externalOrganization || data.externalOrganization.trim().length === 0)) {
-    return { success: false, message: "Nome do órgão é obrigatório." };
-  }
   
   if (!selectedSlots || Object.keys(selectedSlots).length === 0) {
     return { success: false, message: "Nenhum horário selecionado." };
@@ -99,4 +107,3 @@ export async function handleBookingRequest(
     return { success: false, message: "Ocorreu um erro inesperado. Tente novamente." };
   }
 }
-

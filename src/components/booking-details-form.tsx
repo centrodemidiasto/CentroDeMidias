@@ -33,7 +33,23 @@ const BookingDetailsSchema = z.object({
     participantCount: z.coerce.number().min(1, { message: "Informe o número de participantes." }),
     tableCount: z.coerce.number().min(0, "Mínimo 0.").max(3, "Máximo 3 mesas."),
     chairCount: z.coerce.number().min(0, "Mínimo 0.").max(10, "Máximo 10 cadeiras."),
-  });
+  }).superRefine((data, ctx) => {
+    if (data.organizationType === 'interno' && (!data.department || data.department.trim().length === 0)) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Departamento é obrigatório para órgão interno.",
+            path: ["department"],
+        });
+    }
+    if (data.organizationType === 'externo' && (!data.externalOrganization || data.externalOrganization.trim().length === 0)) {
+         ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Nome do órgão é obrigatório.",
+            path: ["externalOrganization"],
+        });
+    }
+});
+
 
 const bookingModalities = [
     { id: 'audio_video', label: 'Gravação de áudio e vídeo' },
@@ -98,7 +114,7 @@ export default function BookingDetailsForm({ selectedSlots, onBookingSuccess }: 
         if (state) {
             toast({
                 title: state.success ? 'Sucesso!' : 'Erro na Solicitação',
-                description: state.message,
+                description: <div className="whitespace-pre-wrap">{state.message}</div>,
                 variant: state.success ? 'default' : 'destructive',
             });
             if (state.success) {
