@@ -18,7 +18,7 @@ export default function CalendarLegend() {
         <div className="px-6 pb-4 flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
             <LegendItem colorClass="bg-background" label="Disponível" />
             <LegendItem colorClass="bg-primary" label="Selecionado" />
-            <LegendItem colorClass="bg-green-400" label="Confirmado" />
+            <LegendItem colorClass="bg-green-400" label="Já agendado" />
             <LegendItem colorClass="bg-accent/80" label="Aguardando Aprovação" />
             <LegendItem colorClass="bg-muted" label="Indisponível" />
         </div>
