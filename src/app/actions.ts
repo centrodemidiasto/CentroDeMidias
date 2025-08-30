@@ -50,6 +50,7 @@ export async function handleBookingRequest(
 ): Promise<FormState> {
   
   const rawFormData = Object.fromEntries(formData.entries());
+  console.log("Raw form data received:", rawFormData);
   
   const parsedData = BookingDetailsSchema.safeParse({
     fullName: formData.get("fullName"),
@@ -67,6 +68,7 @@ export async function handleBookingRequest(
 
 
   if (!parsedData.success) {
+    console.log("Zod validation failed:", parsedData.error.flatten());
     const errorMessages = parsedData.error.errors.map(e => `- ${e.message}`).join("\n");
     return { success: false, message: `Por favor, corrija os seguintes erros:\n${errorMessages}` };
   }
@@ -113,6 +115,7 @@ export async function handleBookingRequest(
 }
 
 export async function blockSlots(slotsToBlock: Record<string, string[]>): Promise<FormState> {
+    console.log("[Action: blockSlots] Received data:", JSON.stringify(slotsToBlock, null, 2));
     if (!slotsToBlock || Object.keys(slotsToBlock).length === 0) {
         return { success: false, message: 'Nenhum horário selecionado para bloquear.' };
     }
@@ -123,32 +126,34 @@ export async function blockSlots(slotsToBlock: Record<string, string[]>): Promis
 
         for (const date in slotsToBlock) {
             const times = slotsToBlock[date];
-            if (times.length > 0) {
+            if (times && times.length > 0) {
                  const q = query(blockedSlotsRef, where("date", "==", date));
                  const querySnapshot = await getDocs(q);
 
                  if (querySnapshot.empty) {
-                     // Create new document
+                     console.log(`[Action: blockSlots] No existing doc for date ${date}. Creating new one.`);
                      const newDocRef = doc(blockedSlotsRef);
                      batch.set(newDocRef, { date, times });
                  } else {
-                     // Update existing document
                      const docRef = querySnapshot.docs[0].ref;
                      const existingTimes = querySnapshot.docs[0].data().times || [];
                      const updatedTimes = [...new Set([...existingTimes, ...times])];
+                     console.log(`[Action: blockSlots] Existing doc for date ${date}. Updating times to:`, updatedTimes);
                      batch.update(docRef, { times: updatedTimes });
                  }
             }
         }
         await batch.commit();
+        console.log("[Action: blockSlots] Batch commit successful.");
         return { success: true, message: 'Horários bloqueados com sucesso!' };
     } catch (error) {
-        console.error("Error blocking slots: ", error);
+        console.error("[Action: blockSlots] Error caught:", error);
         return { success: false, message: 'Ocorreu um erro ao bloquear os horários.' };
     }
 }
 
 export async function unblockSlots(slotsToUnblock: Record<string, string[]>): Promise<FormState> {
+     console.log("[Action: unblockSlots] Received data:", JSON.stringify(slotsToUnblock, null, 2));
      if (!slotsToUnblock || Object.keys(slotsToUnblock).length === 0) {
         return { success: false, message: 'Nenhum horário selecionado para desbloquear.' };
     }
@@ -158,7 +163,7 @@ export async function unblockSlots(slotsToUnblock: Record<string, string[]>): Pr
 
          for (const date in slotsToUnblock) {
             const timesToUnblock = slotsToUnblock[date];
-            if (timesToUnblock.length > 0) {
+            if (timesToUnblock && timesToUnblock.length > 0) {
                  const q = query(blockedSlotsRef, where("date", "==", date));
                  const querySnapshot = await getDocs(q);
                  if (!querySnapshot.empty) {
@@ -168,19 +173,20 @@ export async function unblockSlots(slotsToUnblock: Record<string, string[]>): Pr
                      const updatedTimes = existingTimes.filter((time: string) => !timesToUnblock.includes(time));
                      
                      if (updatedTimes.length > 0) {
+                        console.log(`[Action: unblockSlots] Updating doc for date ${date}. New times:`, updatedTimes);
                         batch.update(docRef, { times: updatedTimes });
                      } else {
-                        // If no times are left, delete the document
+                        console.log(`[Action: unblockSlots] No times left for date ${date}. Deleting doc.`);
                         batch.delete(docRef);
                      }
                  }
             }
         }
         await batch.commit();
+        console.log("[Action: unblockSlots] Batch commit successful.");
         return { success: true, message: 'Horários desbloqueados com sucesso!' };
     } catch (error) {
-         console.error("Error unblocking slots: ", error);
+         console.error("[Action: unblockSlots] Error caught:", error);
         return { success: false, message: 'Ocorreu um erro ao desbloquear os horários.' };
     }
 }
-
