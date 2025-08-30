@@ -29,31 +29,33 @@ export type SelectedSlots = {
   [key: string]: string[];
 };
 
-type PendingBooking = {
+type ReservedBooking = {
     date: string;
     times: string[];
+    status: 'pending' | 'approved';
 }
 
 const timeSlots = Array.from({ length: 9 }, (_, i) => `${String(i + 9).padStart(2, "0")}:00`);
 const MIN_BOOKING_NOTICE_DAYS = 5;
 
 
-async function getPendingBookings(): Promise<PendingBooking[]> {
+async function getReservedBookings(): Promise<ReservedBooking[]> {
   const bookingsRef = collection(db, "bookings");
   const q = query(
     bookingsRef,
-    where("status", "==", "pending")
+    where("status", "in", ["pending", "approved"])
   );
   const querySnapshot = await getDocs(q);
-  const pendingSlots: PendingBooking[] = [];
+  const reservedSlots: ReservedBooking[] = [];
   querySnapshot.forEach((doc) => {
       const data = doc.data();
       const slots = data.selectedSlots as Record<string, string[]>;
+      const status = data.status as 'pending' | 'approved';
       for (const date in slots) {
-          pendingSlots.push({ date, times: slots[date] });
+          reservedSlots.push({ date, times: slots[date], status });
       }
   });
-  return pendingSlots;
+  return reservedSlots;
 }
 
 
@@ -64,17 +66,21 @@ export default function SchedulingForm() {
   const [currentDate, setCurrentDate] = useState(firstBookableDate);
   const [selectedSlots, setSelectedSlots] = useState<SelectedSlots>({});
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [pendingBookings, setPendingBookings] = useState<PendingBooking[]>([]);
-  const [loadingPending, setLoadingPending] = useState(true);
+  const [reservedBookings, setReservedBookings] = useState<ReservedBooking[]>([]);
+  const [loadingReserved, setLoadingReserved] = useState(true);
 
   const { toast } = useToast();
   
-  useEffect(() => {
-    setLoadingPending(true);
-    getPendingBookings().then(data => {
-        setPendingBookings(data);
-        setLoadingPending(false);
+  const fetchReservedBookings = () => {
+    setLoadingReserved(true);
+    getReservedBookings().then(data => {
+        setReservedBookings(data);
+        setLoadingReserved(false);
     });
+  }
+
+  useEffect(() => {
+    fetchReservedBookings();
   }, []);
 
 
@@ -133,9 +139,7 @@ export default function SchedulingForm() {
   const onBookingSuccess = () => {
     setSelectedSlots({});
     setIsModalOpen(false);
-     getPendingBookings().then(data => {
-        setPendingBookings(data);
-    });
+    fetchReservedBookings();
   }
 
   return (
@@ -155,7 +159,7 @@ export default function SchedulingForm() {
       </CardHeader>
        <TooltipProvider delayDuration={100}>
         <CardContent>
-        {loadingPending ? (
+        {loadingReserved ? (
           <div className="flex items-center justify-center h-48">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
@@ -163,8 +167,7 @@ export default function SchedulingForm() {
               <div className="grid grid-cols-1 md:grid-cols-5 gap-px bg-border overflow-hidden rounded-lg border">
               {weekDays.map(day => {
                   const isDayDisabled = isBefore(day, firstBookableDate);
-                  const dateKeyForPending = format(day, "yyyy-MM-dd");
-                  const pendingSlotsForDay = pendingBookings.find(b => b.date === dateKeyForPending)?.times || [];
+                  const dateKeyForReserved = format(day, "yyyy-MM-dd");
                   
                   return (
                   <div key={day.toString()} className={cn("flex flex-col", isDayDisabled ? "bg-muted/50" : "bg-background")}>
@@ -174,43 +177,51 @@ export default function SchedulingForm() {
                   </div>
                   <div className="flex flex-col p-1 gap-1">
                       {timeSlots.map(time => {
-                      const dateKey = format(day, "yyyy-MM-dd");
-                      const isSelected = selectedSlots[dateKey]?.includes(time);
-                      const isPending = pendingSlotsForDay.includes(time);
+                        const dateKey = format(day, "yyyy-MM-dd");
+                        const isSelected = selectedSlots[dateKey]?.includes(time);
+                        const reservedSlot = reservedBookings.find(b => b.date === dateKeyForReserved && b.times.includes(time));
+
+                        if (reservedSlot) {
+                            const isPending = reservedSlot.status === 'pending';
+                            const tooltipContent = isPending 
+                                ? "Agendamento pendente de aprovação"
+                                : "Agendamento já realizado e confirmado para este horário";
+                            const buttonColorClass = isPending 
+                                ? "bg-accent/80 hover:bg-accent/80 text-accent-foreground cursor-not-allowed"
+                                : "bg-green-200 hover:bg-green-200 text-green-800 cursor-not-allowed";
+
+                            return (
+                                <Tooltip key={time}>
+                                    <TooltipTrigger asChild>
+                                        <span tabIndex={0}>
+                                            <Button
+                                                variant="outline"
+                                                className={cn("h-8 w-full text-xs", buttonColorClass)}
+                                                disabled
+                                            >
+                                            {time}
+                                            </Button>
+                                        </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>{tooltipContent}</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            )
+                        }
                       
-                      if (isPending) {
                         return (
-                           <Tooltip key={time}>
-                             <TooltipTrigger asChild>
-                               <span tabIndex={0}>
-                                  <Button
-                                      variant="outline"
-                                      className="h-8 w-full text-xs bg-accent/80 hover:bg-accent/80 text-accent-foreground cursor-not-allowed"
-                                      disabled
-                                  >
-                                  {time}
-                                  </Button>
-                               </span>
-                             </TooltipTrigger>
-                             <TooltipContent>
-                                 <p>Agendamento pendente de aprovação</p>
-                             </TooltipContent>
-                           </Tooltip>
-                        )
-                      }
-                      
-                      return (
-                         <Button
-                            key={time}
-                            type="button"
-                            variant={isSelected ? "default" : "outline"}
-                            className={cn("h-8 text-xs", isSelected && "bg-primary hover:bg-primary/90")}
-                            onClick={() => handleSlotSelect(day, time)}
-                            disabled={isDayDisabled}
-                          >
-                          {time}
-                          </Button>
-                      );
+                           <Button
+                              key={time}
+                              type="button"
+                              variant={isSelected ? "default" : "outline"}
+                              className={cn("h-8 text-xs", isSelected && "bg-primary hover:bg-primary/90")}
+                              onClick={() => handleSlotSelect(day, time)}
+                              disabled={isDayDisabled}
+                            >
+                            {time}
+                            </Button>
+                        );
                       })}
                   </div>
                   </div>
@@ -242,3 +253,5 @@ export default function SchedulingForm() {
     </Card>
   );
 }
+
+    

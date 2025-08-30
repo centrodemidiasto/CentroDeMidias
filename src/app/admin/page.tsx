@@ -25,7 +25,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from '@/components/ui/button';
 import { Loader2, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, startOfToday, isAfter } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 interface Booking {
@@ -61,6 +61,27 @@ async function getPendingBookings(): Promise<Booking[]> {
   return bookings;
 }
 
+async function getApprovedBookings(): Promise<Booking[]> {
+  const bookingsRef = collection(db, "bookings");
+  const q = query(
+    bookingsRef,
+    where("status", "==", "approved"),
+    orderBy("createdAt", "desc")
+  );
+  const querySnapshot = await getDocs(q);
+  const bookings = querySnapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...doc.data(),
+  })) as Booking[];
+
+  // Filter out past bookings
+  const today = startOfToday();
+  return bookings.filter(booking => {
+    const bookingDate = parseISO(Object.keys(booking.selectedSlots)[0]);
+    return isAfter(bookingDate, today) || format(bookingDate, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd');
+  });
+}
+
 async function updateBookingStatus(id: string, status: 'approved' | 'rejected') {
     const bookingRef = doc(db, "bookings", id);
     await updateDoc(bookingRef, { status });
@@ -69,13 +90,19 @@ async function updateBookingStatus(id: string, status: 'approved' | 'rejected') 
 export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [pendingBookings, setPendingBookings] = useState<Booking[]>([]);
+  const [approvedBookings, setApprovedBookings] = useState<Booking[]>([]);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const router = useRouter();
   const { toast } = useToast();
 
   const fetchBookings = () => {
-    getPendingBookings().then(setBookings);
+    setLoading(true);
+    Promise.all([getPendingBookings(), getApprovedBookings()]).then(([pending, approved]) => {
+        setPendingBookings(pending);
+        setApprovedBookings(approved);
+        setLoading(false);
+    });
   };
   
   useEffect(() => {
@@ -86,7 +113,7 @@ export default function DashboardPage() {
       } else {
         router.push('/login');
       }
-      setLoading(false);
+      // setLoading(false) is now inside fetchBookings
     });
 
     return () => unsubscribe();
@@ -99,7 +126,7 @@ export default function DashboardPage() {
             title: "Sucesso!",
             description: `Agendamento ${status === 'approved' ? 'aprovado' : 'rejeitado'}.`,
         });
-        fetchBookings(); // Refresh the list
+        fetchBookings(); // Refresh both lists
     } catch (error) {
         toast({
             title: "Erro",
@@ -109,7 +136,7 @@ export default function DashboardPage() {
     }
   }
 
-  if (loading) {
+  if (loading && !user) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -130,7 +157,7 @@ export default function DashboardPage() {
 
   return (
     <div className="container mx-auto max-w-7xl px-4 py-12 md:px-6 md:py-16">
-      <div className="space-y-8">
+      <div className="space-y-12">
         <div className="text-center">
           <h1 className="text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl font-headline">
             Painel de Controle
@@ -148,53 +175,110 @@ export default function DashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Solicitante</TableHead>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Horários</TableHead>
-                  <TableHead>Modalidade</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {bookings.length > 0 ? (
-                  bookings.map((booking) => {
-                    const date = Object.keys(booking.selectedSlots)[0];
-                    const formattedDate = formatDateForDisplay(date);
-                    const times = booking.selectedSlots[date].join(', ');
-                    return (
-                      <TableRow key={booking.id}>
-                        <TableCell className="font-medium">{booking.fullName}<br/><span className="text-xs text-muted-foreground">{booking.email}</span></TableCell>
-                        <TableCell>{formattedDate}</TableCell>
-                        <TableCell>{times}</TableCell>
-                        <TableCell>{booking.bookingModalities}</TableCell>
-                        <TableCell className="text-right space-x-2">
-                           <Dialog>
-                            <DialogTrigger asChild>
-                               <Button variant="ghost" size="icon" onClick={() => setSelectedBooking(booking)}>
-                                <Info className="h-4 w-4" />
-                               </Button>
-                            </DialogTrigger>
-                           </Dialog>
-                          <Button variant="outline" size="sm" onClick={() => handleStatusUpdate(booking.id, 'approved')}>Aprovar</Button>
-                          <Button variant="destructive" size="sm" onClick={() => handleStatusUpdate(booking.id, 'rejected')}>Rejeitar</Button>
+            {loading ? (
+                 <div className="flex items-center justify-center h-40">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                 </div>
+            ) : (
+                <Table>
+                <TableHeader>
+                    <TableRow>
+                    <TableHead>Solicitante</TableHead>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Horários</TableHead>
+                    <TableHead>Modalidade</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {pendingBookings.length > 0 ? (
+                    pendingBookings.map((booking) => {
+                        const date = Object.keys(booking.selectedSlots)[0];
+                        const formattedDate = formatDateForDisplay(date);
+                        const times = booking.selectedSlots[date].join(', ');
+                        return (
+                        <TableRow key={booking.id}>
+                            <TableCell className="font-medium">{booking.fullName}<br/><span className="text-xs text-muted-foreground">{booking.email}</span></TableCell>
+                            <TableCell>{formattedDate}</TableCell>
+                            <TableCell>{times}</TableCell>
+                            <TableCell>{booking.bookingModalities}</TableCell>
+                            <TableCell className="text-right space-x-2">
+                               <Dialog>
+                                <DialogTrigger asChild>
+                                   <Button variant="ghost" size="icon" onClick={() => setSelectedBooking(booking)}>
+                                    <Info className="h-4 w-4" />
+                                   </Button>
+                                </DialogTrigger>
+                               </Dialog>
+                              <Button variant="outline" size="sm" onClick={() => handleStatusUpdate(booking.id, 'approved')}>Aprovar</Button>
+                              <Button variant="destructive" size="sm" onClick={() => handleStatusUpdate(booking.id, 'rejected')}>Rejeitar</Button>
+                            </TableCell>
+                        </TableRow>
+                        );
+                    })
+                    ) : (
+                    <TableRow>
+                        <TableCell colSpan={5} className="text-center">
+                        Nenhum agendamento pendente.
                         </TableCell>
-                      </TableRow>
-                    );
-                  })
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center">
-                      Nenhum agendamento pendente.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                    </TableRow>
+                    )}
+                </TableBody>
+                </Table>
+            )}
           </CardContent>
         </Card>
+
+        <div>
+            <Card>
+                <CardHeader>
+                    <CardTitle>Próximas Gravações</CardTitle>
+                    <CardDescription>
+                        Estes são os agendamentos confirmados para os próximos dias.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                     {loading ? (
+                        <div className="flex items-center justify-center h-40">
+                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        </div>
+                    ) : approvedBookings.length > 0 ? (
+                        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                            {approvedBookings.map((booking) => {
+                                const date = Object.keys(booking.selectedSlots)[0];
+                                const formattedDate = formatDateForDisplay(date);
+                                const times = booking.selectedSlots[date].join(', ');
+
+                                return (
+                                    <Card key={booking.id} className="flex flex-col">
+                                        <CardHeader className="pb-4">
+                                            <CardTitle className="text-xl font-headline">{booking.fullName}</CardTitle>
+                                            <CardDescription>{booking.organizationType === 'interno' ? booking.department : booking.externalOrganization}</CardDescription>
+                                        </CardHeader>
+                                        <CardContent className="flex-grow space-y-2 text-sm">
+                                            <p><strong>Data:</strong> {formattedDate}</p>
+                                            <p><strong>Horários:</strong> {times}</p>
+                                            <p><strong>Modalidade:</strong> {booking.bookingModalities}</p>
+                                        </CardContent>
+                                        <CardFooter>
+                                            <Dialog>
+                                                <DialogTrigger asChild>
+                                                    <Button variant="outline" className="w-full" onClick={() => setSelectedBooking(booking)}>
+                                                        <Info className="mr-2 h-4 w-4" /> Ver Detalhes
+                                                    </Button>
+                                                </DialogTrigger>
+                                            </Dialog>
+                                        </CardFooter>
+                                    </Card>
+                                );
+                            })}
+                        </div>
+                    ) : (
+                        <p className="text-center text-muted-foreground py-8">Nenhuma gravação confirmada para os próximos dias.</p>
+                    )}
+                </CardContent>
+            </Card>
+        </div>
       </div>
 
        {selectedBooking && (
@@ -203,7 +287,7 @@ export default function DashboardPage() {
                 <DialogHeader>
                     <DialogTitle className="font-headline">Detalhes do Agendamento</DialogTitle>
                 </DialogHeader>
-                <div className="grid gap-4 py-4 text-sm">
+                <div className="grid gap-4 py-4 text-sm max-h-[70vh] overflow-y-auto pr-4">
                     <div className="grid grid-cols-[150px_1fr] items-center gap-4">
                         <span className="font-semibold text-right">Solicitante:</span>
                         <span>{selectedBooking.fullName}</span>
@@ -269,3 +353,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
