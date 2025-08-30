@@ -39,30 +39,21 @@ export async function handleSignIn(
   password: string
 ): Promise<ActionState> {
   try {
-    // We can't use the client SDK directly here, but a custom token approach
-    // or admin SDK would be best. For this server-action flow, we will make
-    // an exception and use environment variables for a specific admin user.
-    // This simplifies the flow by not requiring client-side token generation.
-    if (
-      email === process.env.ADMIN_EMAIL &&
-      password === process.env.ADMIN_PASSWORD
-    ) {
-      const expires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
-      const sessionPayload = {
-        user: { email },
-        expires,
-      };
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
 
-      const session = await encrypt(sessionPayload);
+    const expires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    const sessionPayload = {
+      user: { email: user.email, uid: user.uid },
+      expires,
+    };
 
-      cookies().set("session", session, { expires, httpOnly: true });
+    const session = await encrypt(sessionPayload);
 
-      return { success: true, message: "Login realizado com sucesso." };
-    } else {
-      // Attempt to sign in with Firebase for other users if needed,
-      // but for now, we only allow the admin.
-      return { success: false, message: "E-mail ou senha inválidos." };
-    }
+    cookies().set("session", session, { expires, httpOnly: true });
+
+    return { success: true, message: "Login realizado com sucesso." };
+    
   } catch (error: any) {
     let message = "Ocorreu um erro durante o login.";
     if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
