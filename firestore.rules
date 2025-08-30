@@ -1,15 +1,14 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
     match /bookings/{bookingId} {
-      allow create, read: if true;
+      allow read, create: if true;
       allow update, delete: if request.auth != null;
     }
-
     match /blockedSlots/{slotId} {
       allow read: if true;
-      // Allow authenticated users (admins) to create, update, and delete blocked slots
       allow create, update, delete: if request.auth != null;
     }
   }

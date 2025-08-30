@@ -8,8 +8,6 @@ import {
   startOfWeek,
   eachDayOfInterval,
   isWeekend,
-  isBefore,
-  startOfToday,
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -17,10 +15,9 @@ import { CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, getDocs, query, where, writeBatch, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
-import { blockSlots, unblockSlots } from "@/app/actions";
 
 type SelectedSlots = {
   [key: string]: string[];
@@ -61,12 +58,11 @@ async function getReservedBookings(): Promise<ReservedBooking[]> {
 async function getManuallyBlockedSlots(): Promise<ManuallyBlockedSlot[]> {
     const blockedSlotsRef = collection(db, "blockedSlots");
     const querySnapshot = await getDocs(blockedSlotsRef);
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as ManuallyBlockedSlot);
+    return querySnapshot.docs.map(doc => ({ ...doc.data() }) as ManuallyBlockedSlot);
 }
 
 export default function BlockSlotsForm() {
-  const today = startOfToday();
-  const [currentDate, setCurrentDate] = useState(today);
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedSlots, setSelectedSlots] = useState<SelectedSlots>({});
   const [reservedBookings, setReservedBookings] = useState<ReservedBooking[]>([]);
   const [manuallyBlockedSlots, setManuallyBlockedSlots] = useState<ManuallyBlockedSlot[]>([]);
@@ -119,81 +115,59 @@ export default function BlockSlotsForm() {
   const totalSelectedSlots = Object.values(selectedSlots).reduce((acc, curr) => acc + curr.length, 0);
 
   const handleSaveChanges = async () => {
-    console.log("[Client] Initiating handleSaveChanges. Selected slots:", selectedSlots);
     setIsSubmitting(true);
     try {
-        const slotsToBlock: SelectedSlots = {};
-        const slotsToUnblock: SelectedSlots = {};
+      const batch = writeBatch(db);
+      const blockedSlotsRef = collection(db, 'blockedSlots');
+      const allBlockedDocs = await getDocs(blockedSlotsRef);
+      const blockedDocsMap = new Map(allBlockedDocs.docs.map(d => [d.data().date, d]));
 
-        for (const date in selectedSlots) {
-            slotsToBlock[date] = [];
-            slotsToUnblock[date] = [];
-            for (const time of selectedSlots[date]) {
-                const isAlreadyBlocked = manuallyBlockedSlots.some(b => b.date === date && b.times.includes(time));
-                if (isAlreadyBlocked) {
-                    slotsToUnblock[date].push(time);
-                } else {
-                    slotsToBlock[date].push(time);
-                }
+      for (const date in selectedSlots) {
+        for (const time of selectedSlots[date]) {
+          const isAlreadyBlocked = manuallyBlockedSlots.some(b => b.date === date && b.times.includes(time));
+          const docSnapshot = blockedDocsMap.get(date);
+
+          if (isAlreadyBlocked) { // Unblock logic
+            if (docSnapshot) {
+              const existingTimes = docSnapshot.data().times || [];
+              const updatedTimes = existingTimes.filter((t: string) => t !== time);
+              if (updatedTimes.length > 0) {
+                batch.update(docSnapshot.ref, { times: updatedTimes });
+              } else {
+                batch.delete(docSnapshot.ref);
+              }
             }
+          } else { // Block logic
+             if (docSnapshot) {
+               const existingTimes = docSnapshot.data().times || [];
+               const updatedTimes = [...new Set([...existingTimes, time])];
+               batch.update(docSnapshot.ref, { times: updatedTimes });
+             } else {
+               const newDocRef = doc(blockedSlotsRef);
+               batch.set(newDocRef, { date, times: [time] });
+             }
+          }
         }
-        
-        console.log("[Client] Slots to Block:", slotsToBlock);
-        console.log("[Client] Slots to Unblock:", slotsToUnblock);
+      }
 
-        const promises = [];
-        const cleanSlotsToBlock = Object.fromEntries(Object.entries(slotsToBlock).filter(([_, v]) => v.length > 0));
-        const cleanSlotsToUnblock = Object.fromEntries(Object.entries(slotsToUnblock).filter(([_, v]) => v.length > 0));
-        
-        console.log("[Client] Cleaned Slots to Block:", cleanSlotsToBlock);
-        console.log("[Client] Cleaned Slots to Unblock:", cleanSlotsToUnblock);
+      await batch.commit();
 
-
-        if (Object.keys(cleanSlotsToBlock).length > 0) {
-            console.log("[Client] Pushing blockSlots to promises.");
-            promises.push(blockSlots(cleanSlotsToBlock));
-        }
-        if (Object.keys(cleanSlotsToUnblock).length > 0) {
-            console.log("[Client] Pushing unblockSlots to promises.");
-            promises.push(unblockSlots(cleanSlotsToUnblock));
-        }
-
-        if (promises.length === 0) {
-          console.log("[Client] No changes to save.");
-          toast({
-            title: "Nenhuma alteração",
-            description: "Nenhum novo horário foi selecionado para bloquear ou desbloquear.",
-          });
-          setIsSubmitting(false);
-          return;
-        }
-
-        console.log(`[Client] Executing ${promises.length} promises.`);
-        const results = await Promise.all(promises);
-        console.log("[Client] Promise results:", results);
-
-        results.forEach(result => {
-            if (result) {
-                toast({
-                    title: result.success ? "Sucesso!" : "Erro",
-                    description: result.message,
-                    variant: result.success ? "default" : "destructive",
-                });
-            }
-        });
+      toast({
+        title: "Sucesso!",
+        description: "As alterações nos horários foram salvas.",
+      });
 
     } catch (error) {
-        console.error("[Client] Error in handleSaveChanges:", error);
-        toast({
-            title: "Erro Inesperado",
-            description: "Ocorreu um erro ao processar sua solicitação no cliente. Verifique o console.",
-            variant: "destructive",
-        });
+      console.error("[Client] Error in handleSaveChanges:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível salvar as alterações. Verifique as permissões do Firestore.",
+        variant: "destructive",
+      });
     } finally {
-        setSelectedSlots({});
-        fetchAllBookings();
-        setIsSubmitting(false);
-        console.log("[Client] handleSaveChanges finished.");
+      setSelectedSlots({});
+      fetchAllBookings();
+      setIsSubmitting(false);
     }
   }
 
