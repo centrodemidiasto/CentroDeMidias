@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
+import { collection, getDocs, query, where, orderBy, doc, updateDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import {
   Card,
@@ -24,8 +24,21 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
-async function getPendingBookings() {
+interface Booking {
+  id: string;
+  fullName: string;
+  email: string;
+  selectedSlots: Record<string, string[]>;
+  bookingModalities: string[];
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: any;
+}
+
+async function getPendingBookings(): Promise<Booking[]> {
   const bookingsRef = collection(db, "bookings");
   const q = query(
     bookingsRef,
@@ -36,21 +49,31 @@ async function getPendingBookings() {
   const bookings = querySnapshot.docs.map((doc) => ({
     id: doc.id,
     ...doc.data(),
-  }));
+  })) as Booking[];
   return bookings;
+}
+
+async function updateBookingStatus(id: string, status: 'approved' | 'rejected') {
+    const bookingRef = doc(db, "bookings", id);
+    await updateDoc(bookingRef, { status });
 }
 
 export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [bookings, setBookings] = useState<any[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
   const router = useRouter();
+  const { toast } = useToast();
 
+  const fetchBookings = () => {
+    getPendingBookings().then(setBookings);
+  };
+  
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         setUser(user);
-        getPendingBookings().then(setBookings);
+        fetchBookings();
       } else {
         router.push('/login');
       }
@@ -59,6 +82,24 @@ export default function DashboardPage() {
 
     return () => unsubscribe();
   }, [router]);
+
+  const handleStatusUpdate = async (id: string, status: 'approved' | 'rejected') => {
+    try {
+        await updateBookingStatus(id, status);
+        toast({
+            title: "Sucesso!",
+            description: `Agendamento ${status === 'approved' ? 'aprovado' : 'rejeitado'}.`,
+        });
+        fetchBookings(); // Refresh the list
+    } catch (error) {
+        toast({
+            title: "Erro",
+            description: "Não foi possível atualizar o status do agendamento.",
+            variant: "destructive",
+        });
+    }
+  }
+
 
   if (loading) {
     return (
@@ -95,34 +136,35 @@ export default function DashboardPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Solicitante</TableHead>
                   <TableHead>Data</TableHead>
                   <TableHead>Horários</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>Modalidade</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {bookings.length > 0 ? (
-                  bookings.map((booking: any) => {
+                  bookings.map((booking) => {
                     const date = Object.keys(booking.selectedSlots)[0];
+                    const formattedDate = format(new Date(date), "dd 'de' MMMM, yyyy", { locale: ptBR });
                     const times = booking.selectedSlots[date].join(', ');
                     return (
                       <TableRow key={booking.id}>
-                        <TableCell className="font-medium">{date}</TableCell>
+                        <TableCell className="font-medium">{booking.fullName}<br/><span className="text-xs text-muted-foreground">{booking.email}</span></TableCell>
+                        <TableCell>{formattedDate}</TableCell>
                         <TableCell>{times}</TableCell>
-                        <TableCell>
-                          <Badge variant="secondary">{booking.status}</Badge>
-                        </TableCell>
+                        <TableCell>{booking.bookingModalities.join(', ')}</TableCell>
                         <TableCell className="text-right space-x-2">
-                          <Button variant="outline" size="sm">Aprovar</Button>
-                          <Button variant="destructive" size="sm">Rejeitar</Button>
+                          <Button variant="outline" size="sm" onClick={() => handleStatusUpdate(booking.id, 'approved')}>Aprovar</Button>
+                          <Button variant="destructive" size="sm" onClick={() => handleStatusUpdate(booking.id, 'rejected')}>Rejeitar</Button>
                         </TableCell>
                       </TableRow>
                     );
                   })
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center">
+                    <TableCell colSpan={5} className="text-center">
                       Nenhum agendamento pendente.
                     </TableCell>
                   </TableRow>

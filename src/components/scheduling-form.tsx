@@ -1,8 +1,7 @@
+
 "use client";
 
-import { useState, useMemo, useEffect, useActionState } from "react";
-import { useFormStatus } from "react-dom";
-import { handleBookingRequest } from "@/app/actions";
+import { useState, useMemo } from "react";
 import {
   addDays,
   format,
@@ -15,39 +14,24 @@ import {
 import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import BookingDetailsForm from "./booking-details-form";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
 
-type SelectedSlots = {
+export type SelectedSlots = {
   [key: string]: string[];
 };
 
 const timeSlots = Array.from({ length: 9 }, (_, i) => `${String(i + 9).padStart(2, "0")}:00`);
 const MIN_BOOKING_NOTICE_DAYS = 5;
 
-const initialState = null;
-
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" disabled={pending} className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
-      {pending ? (
-        <>
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Validando...
-        </>
-      ) : (
-        "Confirmar Agendamento"
-      )}
-    </Button>
-  );
-}
-
 export default function SchedulingForm() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedSlots, setSelectedSlots] = useState<SelectedSlots>({});
-  const [state, formAction] = useActionState(handleBookingRequest, initialState);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   const { toast } = useToast();
 
   const today = startOfToday();
@@ -103,78 +87,79 @@ export default function SchedulingForm() {
   };
   
   const totalSelectedSlots = Object.values(selectedSlots).reduce((acc, curr) => acc + curr.length, 0);
-
-  useEffect(() => {
-    if (state?.message) {
-      toast({
-        title: state.success ? "Sucesso!" : "Erro de Validação",
-        description: state.message,
-        variant: state.success ? "default" : "destructive",
-      });
-      if (state.success) {
-        setSelectedSlots({});
-      }
-    }
-  }, [state, toast]);
+  
+  const onBookingSuccess = () => {
+    setSelectedSlots({});
+    setIsModalOpen(false);
+  }
 
   return (
     <Card>
-      <form action={formAction}>
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <Button variant="outline" size="icon" onClick={() => changeWeek(-1)} disabled={isPreviousWeekButtonDisabled}>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <h2 className="text-lg font-bold text-center font-headline">
-              {format(weekDays[0], "d 'de' MMMM", { locale: ptBR })} - {format(weekDays[weekDays.length - 1], "d 'de' MMMM 'de' yyyy", { locale: ptBR })}
-            </h2>
-            <Button variant="outline" size="icon" onClick={() => changeWeek(1)}>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-px bg-border overflow-hidden rounded-lg border">
-            {weekDays.map(day => {
-              const isDayDisabled = isBefore(day, firstBookableDate);
-              return (
-              <div key={day.toString()} className={cn("flex flex-col", isDayDisabled ? "bg-muted/50" : "bg-background")}>
-                <div className="text-center font-bold py-2 border-b font-headline capitalize">
-                  {format(day, "EEE", { locale: ptBR })}
-                  <div className="font-normal text-sm text-muted-foreground">{format(day, "d/MM")}</div>
-                </div>
-                <div className="flex flex-col p-1 gap-1">
-                  {timeSlots.map(time => {
-                    const dateKey = format(day, "yyyy-MM-dd");
-                    const isSelected = selectedSlots[dateKey]?.includes(time);
-                    return (
-                      <Button
-                        key={time}
-                        type="button"
-                        variant={isSelected ? "default" : "outline"}
-                        className={cn("h-8 text-xs", isSelected && "bg-primary hover:bg-primary/90")}
-                        onClick={() => handleSlotSelect(day, time)}
-                        disabled={isDayDisabled}
-                      >
-                        {time}
-                      </Button>
-                    );
-                  })}
-                </div>
+      <CardHeader>
+        <div className="flex justify-between items-center">
+          <Button variant="outline" size="icon" onClick={() => changeWeek(-1)} disabled={isPreviousWeekButtonDisabled}>
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <h2 className="text-lg font-bold text-center font-headline">
+            {format(weekDays[0], "d 'de' MMMM", { locale: ptBR })} - {format(weekDays[weekDays.length - 1], "d 'de' MMMM 'de' yyyy", { locale: ptBR })}
+          </h2>
+          <Button variant="outline" size="icon" onClick={() => changeWeek(1)}>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-px bg-border overflow-hidden rounded-lg border">
+          {weekDays.map(day => {
+            const isDayDisabled = isBefore(day, firstBookableDate);
+            return (
+            <div key={day.toString()} className={cn("flex flex-col", isDayDisabled ? "bg-muted/50" : "bg-background")}>
+              <div className="text-center font-bold py-2 border-b font-headline capitalize">
+                {format(day, "EEE", { locale: ptBR })}
+                <div className="font-normal text-sm text-muted-foreground">{format(day, "d/MM")}</div>
               </div>
-            )})}
-          </div>
-          <input type="hidden" name="selectedSlots" value={JSON.stringify(selectedSlots)} />
-        </CardContent>
-        {totalSelectedSlots > 0 && (
-          <CardFooter className="flex-col items-start gap-4 pt-4">
-             <div className="text-sm text-muted-foreground">
-              {totalSelectedSlots} horário(s) selecionado(s).
+              <div className="flex flex-col p-1 gap-1">
+                {timeSlots.map(time => {
+                  const dateKey = format(day, "yyyy-MM-dd");
+                  const isSelected = selectedSlots[dateKey]?.includes(time);
+                  return (
+                    <Button
+                      key={time}
+                      type="button"
+                      variant={isSelected ? "default" : "outline"}
+                      className={cn("h-8 text-xs", isSelected && "bg-primary hover:bg-primary/90")}
+                      onClick={() => handleSlotSelect(day, time)}
+                      disabled={isDayDisabled}
+                    >
+                      {time}
+                    </Button>
+                  );
+                })}
+              </div>
             </div>
-            <SubmitButton />
-          </CardFooter>
-        )}
-      </form>
+          )})}
+        </div>
+      </CardContent>
+      {totalSelectedSlots > 0 && (
+        <CardFooter className="flex-col items-start gap-4 pt-4">
+           <div className="text-sm text-muted-foreground">
+            {totalSelectedSlots} horário(s) selecionado(s).
+          </div>
+          <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+            <DialogTrigger asChild>
+              <Button className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
+                Continuar Agendamento
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[625px]">
+              <DialogHeader>
+                <DialogTitle className="font-headline">Informações para o agendamento</DialogTitle>
+              </DialogHeader>
+              <BookingDetailsForm selectedSlots={selectedSlots} onBookingSuccess={onBookingSuccess}/>
+            </DialogContent>
+          </Dialog>
+        </CardFooter>
+      )}
     </Card>
   );
 }
