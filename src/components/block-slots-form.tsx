@@ -27,68 +27,43 @@ type SelectedSlots = {
   [key: string]: string[];
 };
 
-type ReservedBooking = {
+export type ReservedBooking = {
     date: string;
     times: string[];
     status: 'pending' | 'approved';
 }
 
-type ManuallyBlockedSlot = {
+export type ManuallyBlockedSlot = {
     id: string; // Document ID from Firestore
     date: string;
     times: string[];
 }
 
+interface BlockSlotsFormProps {
+    initialReservedBookings: ReservedBooking[];
+    initialManuallyBlockedSlots: ManuallyBlockedSlot[];
+}
+
+
 const timeSlots = Array.from({ length: 9 }, (_, i) => `${String(i + 9).padStart(2, "0")}:00`);
 
-async function getReservedBookings(): Promise<ReservedBooking[]> {
-  const bookingsRef = collection(db, "bookings");
-  const q = query(
-    bookingsRef,
-    where("status", "in", ["pending", "approved"])
-  );
-  const querySnapshot = await getDocs(q);
-  const reservedSlots: ReservedBooking[] = [];
-  querySnapshot.forEach((doc) => {
-      const data = doc.data();
-      const slots = data.selectedSlots as Record<string, string[]>;
-      const status = data.status as 'pending' | 'approved';
-      for (const date in slots) {
-          reservedSlots.push({ date, times: slots[date], status });
-      }
-  });
-  return reservedSlots;
-}
 
-async function getManuallyBlockedSlots(): Promise<ManuallyBlockedSlot[]> {
-    const blockedSlotsRef = collection(db, "blockedSlots");
-    const querySnapshot = await getDocs(blockedSlotsRef);
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as ManuallyBlockedSlot);
-}
-
-export default function BlockSlotsForm() {
+export default function BlockSlotsForm({ initialReservedBookings, initialManuallyBlockedSlots }: BlockSlotsFormProps) {
   const today = startOfToday();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedSlots, setSelectedSlots] = useState<SelectedSlots>({});
-  const [reservedBookings, setReservedBookings] = useState<ReservedBooking[]>([]);
-  const [manuallyBlockedSlots, setManuallyBlockedSlots] = useState<ManuallyBlockedSlot[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [reservedBookings, setReservedBookings] = useState<ReservedBooking[]>(initialReservedBookings);
+  const [manuallyBlockedSlots, setManuallyBlockedSlots] = useState<ManuallyBlockedSlot[]>(initialManuallyBlockedSlots);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { toast } = useToast();
   
-  const fetchAllBookings = () => {
-    setLoading(true);
-    Promise.all([getReservedBookings(), getManuallyBlockedSlots()]).then(([reserved, manuallyBlocked]) => {
-        setReservedBookings(reserved);
-        setManuallyBlockedSlots(manuallyBlocked);
-        setLoading(false);
-    });
+  const fetchManuallyBlockedSlots = async () => {
+    const blockedSlotsRef = collection(db, "blockedSlots");
+    const querySnapshot = await getDocs(blockedSlotsRef);
+    const newBlockedSlots = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as ManuallyBlockedSlot);
+    setManuallyBlockedSlots(newBlockedSlots);
   }
-
-  useEffect(() => {
-    fetchAllBookings();
-  }, []);
 
   const weekDays = useMemo(() => {
     const start = startOfWeek(currentDate, { locale: ptBR });
@@ -174,7 +149,7 @@ export default function BlockSlotsForm() {
           }
         } else if (finalTimes.length > 0) {
           // Create a new document if it doesn't exist and there are times to block
-          batch.set(doc(blockedSlotsRef), { date, times: finalTimes });
+          batch.set(doc(collection(db, "blockedSlots")), { date, times: finalTimes });
         }
       }
 
@@ -194,7 +169,7 @@ export default function BlockSlotsForm() {
       });
     } finally {
       setSelectedSlots({});
-      fetchAllBookings();
+      await fetchManuallyBlockedSlots();
       setIsSubmitting(false);
     }
   }
@@ -217,11 +192,6 @@ export default function BlockSlotsForm() {
       </CardHeader>
       <TooltipProvider delayDuration={100}>
         <CardContent>
-          {loading ? (
-            <div className="flex items-center justify-center h-48">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : (
             <div className="grid grid-cols-1 md:grid-cols-5 gap-px bg-border overflow-hidden rounded-lg border">
               {weekDays.map(day => {
                 const dateKeyForReserved = format(day, "yyyy-MM-dd");
@@ -321,7 +291,6 @@ export default function BlockSlotsForm() {
                 );
               })}
             </div>
-          )}
         </CardContent>
         <AdminCalendarLegend />
       </TooltipProvider>
@@ -342,3 +311,5 @@ export default function BlockSlotsForm() {
     </>
   );
 }
+
+    

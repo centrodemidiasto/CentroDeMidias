@@ -22,13 +22,15 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
 import { Loader2, Info, XCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO, startOfToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import BlockSlotsForm from '@/components/block-slots-form';
+import BlockSlotsForm, { ReservedBooking, ManuallyBlockedSlot } from '@/components/block-slots-form';
+
 
 interface Booking {
   id: string;
@@ -92,6 +94,30 @@ async function getApprovedBookings(): Promise<Booking[]> {
   return bookings;
 }
 
+async function getReservedBookingsForBlocking(): Promise<ReservedBooking[]> {
+  const bookingsRef = collection(db, "bookings");
+  const q = query(
+    bookingsRef,
+    where("status", "in", ["pending", "approved"])
+  );
+  const querySnapshot = await getDocs(q);
+  const reservedSlots: ReservedBooking[] = [];
+  querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      const slots = data.selectedSlots as Record<string, string[]>;
+      const status = data.status as 'pending' | 'approved';
+      for (const date in slots) {
+          reservedSlots.push({ date, times: slots[date], status });
+      }
+  });
+  return reservedSlots;
+}
+
+async function getManuallyBlockedSlots(): Promise<ManuallyBlockedSlot[]> {
+    const blockedSlotsRef = collection(db, "blockedSlots");
+    const querySnapshot = await getDocs(blockedSlotsRef);
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as ManuallyBlockedSlot);
+}
 
 async function updateBookingStatus(id: string, status: 'approved' | 'rejected') {
     const bookingRef = doc(db, "bookings", id);
@@ -100,27 +126,62 @@ async function updateBookingStatus(id: string, status: 'approved' | 'rejected') 
 
 export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
+  
+  // States for each section's data
   const [pendingBookings, setPendingBookings] = useState<Booking[]>([]);
-  const [approvedBookings, setApprovedBookings] = useState<Booking[]>([]);
+  const [approvedBookings, setApprovedBookings] = useState<Booking[] | null>(null);
+  const [blockSlotsData, setBlockSlotsData] = useState<{ reserved: ReservedBooking[], manual: ManuallyBlockedSlot[] } | null>(null);
+  
+  // States for loading indicators for each section
+  const [loadingPending, setLoadingPending] = useState(true);
+  const [loadingApproved, setLoadingApproved] = useState(false);
+  const [loadingBlockSlots, setLoadingBlockSlots] = useState(false);
+  
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const router = useRouter();
   const { toast } = useToast();
 
-  const fetchBookings = () => {
-    setLoading(true);
-    Promise.all([getPendingBookings(), getApprovedBookings()]).then(([pending, approved]) => {
-        setPendingBookings(pending);
-        setApprovedBookings(approved);
-        setLoading(false);
+  const fetchPendingBookings = () => {
+    setLoadingPending(true);
+    getPendingBookings().then(data => {
+        setPendingBookings(data);
+        setLoadingPending(false);
+        setInitialLoading(false);
     });
   };
-  
+
+  const fetchApprovedBookings = () => {
+    if (approvedBookings) return; // Don't refetch
+    setLoadingApproved(true);
+    getApprovedBookings().then(data => {
+        setApprovedBookings(data);
+        setLoadingApproved(false);
+    });
+  };
+
+  const fetchBlockSlotsData = () => {
+    if (blockSlotsData) return; // Don't refetch
+    setLoadingBlockSlots(true);
+    Promise.all([getReservedBookingsForBlocking(), getManuallyBlockedSlots()]).then(([reserved, manual]) => {
+        setBlockSlotsData({ reserved, manual });
+        setLoadingBlockSlots(false);
+    });
+  };
+
+  const handleAccordionChange = (value: string) => {
+    if (value === "approved" && !approvedBookings) {
+      fetchApprovedBookings();
+    } else if (value === "block-slots" && !blockSlotsData) {
+      fetchBlockSlotsData();
+    }
+  };
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         setUser(user);
-        fetchBookings();
+        fetchPendingBookings();
       } else {
         router.push('/login');
       }
@@ -136,7 +197,11 @@ export default function DashboardPage() {
             title: "Sucesso!",
             description: `Agendamento ${status === 'approved' ? 'aprovado' : 'cancelado'}.`,
         });
-        fetchBookings(); 
+        // Refetch relevant data after update
+        fetchPendingBookings();
+        if (approvedBookings) {
+            fetchApprovedBookings();
+        }
     } catch (error) {
         toast({
             title: "Erro",
@@ -146,7 +211,7 @@ export default function DashboardPage() {
     }
   }
 
-  if (loading && !user) {
+  if (initialLoading && !user) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -184,7 +249,7 @@ export default function DashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {loading ? (
+            {loadingPending ? (
                  <div className="flex items-center justify-center h-40">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                  </div>
@@ -238,69 +303,90 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card>
-            <CardHeader>
-                <CardTitle>Próximas Gravações</CardTitle>
-                <CardDescription>
-                    Estes são os agendamentos confirmados para os próximos dias.
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                 {loading ? (
-                    <div className="flex items-center justify-center h-40">
-                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    </div>
-                ) : approvedBookings.length > 0 ? (
-                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                        {approvedBookings.map((booking) => {
-                            const date = Object.keys(booking.selectedSlots)[0];
-                            const formattedDate = formatDateForDisplay(date);
-                            const times = booking.selectedSlots[date].join(', ');
+        <Accordion type="single" collapsible onValueChange={handleAccordionChange}>
+            <AccordionItem value="approved">
+                <Card>
+                    <AccordionTrigger className="p-6">
+                        <div className="text-left">
+                            <CardTitle>Próximas Gravações</CardTitle>
+                            <CardDescription>Estes são os agendamentos confirmados para os próximos dias.</CardDescription>
+                        </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                        <CardContent>
+                            {loadingApproved ? (
+                                <div className="flex items-center justify-center h-40">
+                                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                                </div>
+                            ) : approvedBookings && approvedBookings.length > 0 ? (
+                                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 pt-6">
+                                    {approvedBookings.map((booking) => {
+                                        const date = Object.keys(booking.selectedSlots)[0];
+                                        const formattedDate = formatDateForDisplay(date);
+                                        const times = booking.selectedSlots[date].join(', ');
 
-                            return (
-                                <Card key={booking.id} className="flex flex-col">
-                                    <CardHeader className="pb-4">
-                                        <CardTitle className="text-xl font-headline">{booking.fullName}</CardTitle>
-                                        <CardDescription>{booking.organizationType === 'interno' ? booking.department : booking.externalOrganization}</CardDescription>
-                                    </CardHeader>
-                                    <CardContent className="flex-grow space-y-2 text-sm">
-                                        <p><strong>Data:</strong> {formattedDate}</p>
-                                        <p><strong>Horários:</strong> {times}</p>
-                                        <p><strong>Modalidade:</strong> {booking.bookingModalities}</p>
-                                    </CardContent>
-                                    <CardFooter className="flex gap-2">
-                                        <Dialog>
-                                            <DialogTrigger asChild>
-                                                <Button variant="outline" className="w-full" onClick={() => setSelectedBooking(booking)}>
-                                                    <Info className="mr-2 h-4 w-4" /> Ver Detalhes
-                                                </Button>
-                                            </DialogTrigger>
-                                        </Dialog>
-                                         <Button variant="destructive" className="w-full" onClick={() => handleStatusUpdate(booking.id, 'rejected')}>
-                                            <XCircle className="mr-2 h-4 w-4" /> Cancelar
-                                        </Button>
-                                    </CardFooter>
-                                </Card>
-                            );
-                        })}
-                    </div>
-                ) : (
-                    <p className="text-center text-muted-foreground py-8">Nenhuma gravação confirmada para os próximos dias.</p>
-                )}
-            </CardContent>
-        </Card>
-
-        <Card>
-            <CardHeader>
-                <CardTitle>Bloquear Horários</CardTitle>
-                <CardDescription>
-                    Selecione os horários no calendário abaixo para bloquear ou desbloquear manualmente.
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <BlockSlotsForm />
-            </CardContent>
-        </Card>
+                                        return (
+                                            <Card key={booking.id} className="flex flex-col">
+                                                <CardHeader className="pb-4">
+                                                    <CardTitle className="text-xl font-headline">{booking.fullName}</CardTitle>
+                                                    <CardDescription>{booking.organizationType === 'interno' ? booking.department : booking.externalOrganization}</CardDescription>
+                                                </CardHeader>
+                                                <CardContent className="flex-grow space-y-2 text-sm">
+                                                    <p><strong>Data:</strong> {formattedDate}</p>
+                                                    <p><strong>Horários:</strong> {times}</p>
+                                                    <p><strong>Modalidade:</strong> {booking.bookingModalities}</p>
+                                                </CardContent>
+                                                <CardFooter className="flex gap-2">
+                                                    <Dialog>
+                                                        <DialogTrigger asChild>
+                                                            <Button variant="outline" className="w-full" onClick={() => setSelectedBooking(booking)}>
+                                                                <Info className="mr-2 h-4 w-4" /> Ver Detalhes
+                                                            </Button>
+                                                        </DialogTrigger>
+                                                    </Dialog>
+                                                     <Button variant="destructive" className="w-full" onClick={() => handleStatusUpdate(booking.id, 'rejected')}>
+                                                        <XCircle className="mr-2 h-4 w-4" /> Cancelar
+                                                    </Button>
+                                                </CardFooter>
+                                            </Card>
+                                        );
+                                    })}
+                                </div>
+                            ) : (
+                                <p className="text-center text-muted-foreground py-8">Nenhuma gravação confirmada para os próximos dias.</p>
+                            )}
+                        </CardContent>
+                    </AccordionContent>
+                </Card>
+            </AccordionItem>
+            <AccordionItem value="block-slots">
+                 <Card>
+                    <AccordionTrigger className="p-6">
+                       <div className="text-left">
+                            <CardTitle>Bloquear Horários</CardTitle>
+                            <CardDescription>Selecione os horários no calendário abaixo para bloquear ou desbloquear manualmente.</CardDescription>
+                        </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                        <CardContent>
+                           {loadingBlockSlots ? (
+                                 <div className="flex items-center justify-center h-40">
+                                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                                 </div>
+                            ) : blockSlotsData ? (
+                                <BlockSlotsForm 
+                                    initialReservedBookings={blockSlotsData.reserved}
+                                    initialManuallyBlockedSlots={blockSlotsData.manual}
+                                />
+                            ) : (
+                                // This case should ideally not be hit if the accordion triggers the load
+                                <div className="text-center text-muted-foreground py-8">Clique para carregar o calendário.</div>
+                            )}
+                        </CardContent>
+                    </AccordionContent>
+                </Card>
+            </AccordionItem>
+        </Accordion>
       </div>
 
        {selectedBooking && (
