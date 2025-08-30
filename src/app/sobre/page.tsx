@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookOpen, Activity } from "lucide-react";
+import { BookOpen, Activity, Video, RadioTower } from "lucide-react";
 import Image from "next/image";
 
 export default function SobrePage() {
@@ -61,15 +61,31 @@ export default function SobrePage() {
                         Atividades Desenvolvidas
                         </CardTitle>
                     </CardHeader>
-                    <CardContent className="p-0">
-                        <ul className="space-y-3 text-muted-foreground font-body list-disc list-inside">
-                            <li>Produção e gravação de videoaulas para todas as etapas da educação básica.</li>
-                            <li>Transmissões ao vivo de eventos educacionais, seminários e palestras.</li>
-                            <li>Desenvolvimento de podcasts e outros materiais em áudio.</li>
-                            <li>Capacitação de professores para o uso de tecnologias digitais em sala de aula.</li>
-                            <li>Criação de animações e objetos de aprendizagem interativos.</li>
-                            <li>Suporte técnico e pedagógico para projetos de mídia nas escolas da rede estadual.</li>
-                        </ul>
+                    <CardContent className="p-0 space-y-4">
+                      <p className="text-muted-foreground font-body">
+                        As atividades audiovisuais desenvolvidas no centro de mídias são em forma de gravações e lives, que deverão ser especificadas pelo interessado no ato do agendamento.
+                      </p>
+                      
+                      <div className="space-y-4">
+                        <div>
+                          <h3 className="font-semibold font-headline flex items-center gap-2 mb-1">
+                            <Video className="w-5 h-5 text-accent" />
+                            Gravação
+                          </h3>
+                          <p className="text-sm text-muted-foreground font-body">
+                            As gravações realizadas no centro de mídias educacionais são produzidas por equipamentos e softwares de última geração, em um estúdio muito confortável e equipado onde todo o trabalho é realizado por uma equipe totalmente qualificada e preparada para os diversos formatos de gravações.
+                          </p>
+                        </div>
+                        <div>
+                          <h3 className="font-semibold font-headline flex items-center gap-2 mb-1">
+                            <RadioTower className="w-5 h-5 text-accent" />
+                            Transmissões ao vivo (Live)
+                          </h3>
+                          <p className="text-sm text-muted-foreground font-body">
+                           As lives realizadas e transmitidas pelo centro de mídias educacionais são realizadas com equipamentos e softwares de última geração, em um estúdio muito confortável e equipado onde todo o trabalho é realizado por uma equipe totalmente qualificada e preparada para as diversas formas de transmissão online.
+                          </p>
+                        </div>
+                      </div>
                     </CardContent>
                 </div>
           </div>
