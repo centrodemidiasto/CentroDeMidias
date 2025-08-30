@@ -11,14 +11,16 @@ export default function DashboardPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // Redirect only if loading is complete and there's no user.
+    // Apenas redireciona se o carregamento estiver concluído e não houver usuário.
+    // Esta é a verificação de segurança final.
     if (!loading && !user) {
       console.log("Redirecting to /login from admin page (no user after loading)");
       router.push("/login");
     }
   }, [user, loading, router]);
 
-  // Shows a loader while the authentication state is being checked.
+  // Enquanto o status de autenticação estiver sendo verificado, exiba um loader.
+  // Isso impede que a verificação no useEffect seja executada prematuramente.
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -27,13 +29,13 @@ export default function DashboardPage() {
     );
   }
 
-  // If after loading there is no user, render nothing,
-  // as the redirect effect will handle it.
+  // Se, após o carregamento, não houver usuário, o useEffect acima fará o redirecionamento.
+  // Retornar nulo aqui evita a renderização do painel para usuários não autorizados.
   if (!user) {
     return null;
   }
 
-  // If we got here, the user is loaded and authenticated.
+  // Se chegamos aqui, o usuário está carregado e autenticado.
   return (
     <div className="container mx-auto max-w-7xl px-4 py-12 md:px-6 md:py-16">
       <div className="space-y-8">
