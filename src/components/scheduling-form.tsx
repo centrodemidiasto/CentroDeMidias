@@ -56,11 +56,32 @@ export default function SchedulingForm() {
 
   const handleSlotSelect = (day: Date, time: string) => {
     const dateKey = format(day, "yyyy-MM-dd");
-    setSelectedSlots(prev => {
+    const selectedDays = Object.keys(selectedSlots).filter(
+      (key) => selectedSlots[key].length > 0
+    );
+  
+    if (selectedDays.length > 0 && !selectedDays.includes(dateKey)) {
+      toast({
+        title: "Atenção",
+        description: "Você só pode selecionar horários para o mesmo dia. Para agendar em outro dia, finalize ou limpe a seleção atual.",
+        variant: "destructive",
+      });
+      return;
+    }
+  
+    setSelectedSlots((prev) => {
       const daySlots = prev[dateKey] ? [...prev[dateKey]] : [];
       if (daySlots.includes(time)) {
-        return { ...prev, [dateKey]: daySlots.filter(t => t !== time) };
+        // Deselect slot
+        const newDaySlots = daySlots.filter((t) => t !== time);
+        const newSlots = { ...prev, [dateKey]: newDaySlots };
+        // If no slots are selected for this day, remove the date key
+        if (newDaySlots.length === 0) {
+          delete newSlots[dateKey];
+        }
+        return newSlots;
       } else {
+        // Select slot
         return { ...prev, [dateKey]: [...daySlots, time] };
       }
     });
