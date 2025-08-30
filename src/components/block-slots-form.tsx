@@ -34,6 +34,7 @@ type ReservedBooking = {
 }
 
 type ManuallyBlockedSlot = {
+    id: string; // Document ID from Firestore
     date: string;
     times: string[];
 }
@@ -62,7 +63,7 @@ async function getReservedBookings(): Promise<ReservedBooking[]> {
 async function getManuallyBlockedSlots(): Promise<ManuallyBlockedSlot[]> {
     const blockedSlotsRef = collection(db, "blockedSlots");
     const querySnapshot = await getDocs(blockedSlotsRef);
-    return querySnapshot.docs.map(doc => ({ ...doc.data() }) as ManuallyBlockedSlot);
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as ManuallyBlockedSlot);
 }
 
 export default function BlockSlotsForm() {
@@ -91,13 +92,11 @@ export default function BlockSlotsForm() {
 
   const weekDays = useMemo(() => {
     const start = startOfWeek(currentDate, { locale: ptBR });
-    const end = addDays(start, 6);
-    return eachDayOfInterval({ start, end }).filter(day => !isWeekend(day));
+    return eachDayOfInterval({ start, end: addDays(start, 4) });
   }, [currentDate]);
 
   const isPreviousWeekButtonDisabled = useMemo(() => {
     const firstDayOfCurrentWeek = startOfWeek(currentDate, { locale: ptBR });
-    // Admins can't go to a week that is entirely in the past
     const lastDayOfPreviousWeek = addDays(firstDayOfCurrentWeek, -1);
     return isBefore(lastDayOfPreviousWeek, today);
   }, [currentDate, today]);
@@ -131,34 +130,51 @@ export default function BlockSlotsForm() {
     try {
       const batch = writeBatch(db);
       const blockedSlotsRef = collection(db, 'blockedSlots');
-      const allBlockedDocs = await getDocs(blockedSlotsRef);
-      const blockedDocsMap = new Map(allBlockedDocs.docs.map(d => [d.data().date, d]));
+      
+      const changesByDate: Record<string, { toBlock: string[], toUnblock: string[] }> = {};
 
+      // 1. Aggregate all selections into changes per date
       for (const date in selectedSlots) {
+        changesByDate[date] = { toBlock: [], toUnblock: [] };
         for (const time of selectedSlots[date]) {
-          const isAlreadyBlocked = manuallyBlockedSlots.some(b => b.date === date && b.times.includes(time));
-          const docSnapshot = blockedDocsMap.get(date);
-
-          if (isAlreadyBlocked) { // Unblock logic
-            if (docSnapshot) {
-              const existingTimes = docSnapshot.data().times || [];
-              const updatedTimes = existingTimes.filter((t: string) => t !== time);
-              if (updatedTimes.length > 0) {
-                batch.update(docSnapshot.ref, { times: updatedTimes });
-              } else {
-                batch.delete(docSnapshot.ref);
-              }
-            }
-          } else { // Block logic
-             if (docSnapshot) {
-               const existingTimes = docSnapshot.data().times || [];
-               const updatedTimes = [...new Set([...existingTimes, time])];
-               batch.update(docSnapshot.ref, { times: updatedTimes });
-             } else {
-               const newDocRef = doc(blockedSlotsRef);
-               batch.set(newDocRef, { date, times: [time] });
-             }
+          const isCurrentlyBlocked = manuallyBlockedSlots.some(b => b.date === date && b.times.includes(time));
+          if (isCurrentlyBlocked) {
+            changesByDate[date].toUnblock.push(time);
+          } else {
+            changesByDate[date].toBlock.push(time);
           }
+        }
+      }
+
+      // 2. Process each date's changes and apply to the batch
+      for (const date in changesByDate) {
+        const { toBlock, toUnblock } = changesByDate[date];
+        const existingDoc = manuallyBlockedSlots.find(d => d.date === date);
+        const existingTimes = existingDoc?.times || [];
+        
+        // Calculate the final list of times for the document
+        let finalTimes = [...existingTimes];
+        
+        // Add new blocks
+        finalTimes.push(...toBlock);
+
+        // Remove unblocks
+        finalTimes = finalTimes.filter(time => !toUnblock.includes(time));
+        
+        // Remove duplicates
+        finalTimes = [...new Set(finalTimes)].sort();
+
+        if (existingDoc) {
+          if (finalTimes.length > 0) {
+            // Update the document
+            batch.update(doc(blockedSlotsRef, existingDoc.id), { times: finalTimes });
+          } else {
+            // Delete the document if no times are left
+            batch.delete(doc(blockedSlotsRef, existingDoc.id));
+          }
+        } else if (finalTimes.length > 0) {
+          // Create a new document if it doesn't exist and there are times to block
+          batch.set(doc(blockedSlotsRef), { date, times: finalTimes });
         }
       }
 
@@ -173,7 +189,7 @@ export default function BlockSlotsForm() {
       console.error("[Client] Error in handleSaveChanges:", error);
       toast({
         title: "Erro",
-        description: "Não foi possível salvar as alterações. Verifique as permissões do Firestore.",
+        description: "Não foi possível salvar as alterações. Tente novamente.",
         variant: "destructive",
       });
     } finally {
@@ -212,7 +228,7 @@ export default function BlockSlotsForm() {
                 const isPastDay = isBefore(day, today);
 
                 return (
-                  <div key={day.toString()} className={cn("flex flex-col", isPastDay ? "bg-muted/50" : "bg-background")}>
+                  <div key={day.toString()} className={cn("flex flex-col", isPastDay ? "bg-muted" : "bg-background")}>
                     <div className="text-center font-bold py-2 border-b font-headline capitalize">
                       {format(day, "EEE", { locale: ptBR })}
                       <div className="font-normal text-sm text-muted-foreground">{format(day, "d/MM")}</div>
@@ -242,6 +258,19 @@ export default function BlockSlotsForm() {
                             tooltipContent = "Bloqueado pela equipe. Clique para selecionar/desbloquear.";
                         }
                         
+                        if (isPastDay && !reservedSlot) { // Check for isPastDay and if there's no reservation
+                           return (
+                              <Button
+                                key={time}
+                                variant="outline"
+                                className="h-8 w-full text-xs bg-muted cursor-not-allowed"
+                                disabled
+                              >
+                                {time}
+                              </Button>
+                           );
+                        }
+
                         if (isDisabled) {
                              return (
                                 <div key={time}>
