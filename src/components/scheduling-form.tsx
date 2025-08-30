@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
-import { useFormState, useFormStatus } from "react-dom";
+import { useState, useMemo, useEffect, useActionState } from "react";
+import { useFormStatus } from "react-dom";
 import { handleBookingRequest } from "@/app/actions";
 import {
   addDays,
@@ -45,7 +45,7 @@ function SubmitButton() {
 export default function SchedulingForm() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedSlots, setSelectedSlots] = useState<SelectedSlots>({});
-  const [state, formAction] = useFormState(handleBookingRequest, initialState);
+  const [state, formAction] = useActionState(handleBookingRequest, initialState);
   const { toast } = useToast();
 
   const weekDays = useMemo(() => {
