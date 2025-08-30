@@ -2,7 +2,6 @@
 'use client';
 
 import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useState } from 'react';
 import { useFormStatus } from 'react-dom';
@@ -16,36 +15,21 @@ import { useToast } from '@/hooks/use-toast';
 import { handleBookingRequest } from '@/app/actions';
 import { SelectedSlots } from './scheduling-form';
 
+// The schema is now only used for type inference on the client
 const BookingDetailsSchema = z.object({
-    fullName: z.string().min(3, { message: "Nome completo é obrigatório." }),
-    email: z.string().email({ message: "E-mail inválido." }),
-    phone: z.string().min(15, { message: "Telefone inválido." }),
-    organizationType: z.enum(["interno", "externo"], {
-      errorMap: () => ({ message: "Selecione o tipo de órgão." }),
-    }),
+    fullName: z.string(),
+    email: z.string(),
+    phone: z.string(),
+    organizationType: z.enum(["interno", "externo"]),
     department: z.string().optional(),
     externalOrganization: z.string().optional(),
-    bookingModalities: z.string({ required_error: "Selecione uma modalidade." }),
+    bookingModalities: z.string(),
     requiredMaterials: z.string().optional(),
-    participantCount: z.coerce.number().min(1, { message: "Informe o número de participantes." }),
-    tableCount: z.coerce.number().min(0, "Mínimo 0.").max(3, "Máximo 3 mesas."),
-    chairCount: z.coerce.number().min(0, "Mínimo 0.").max(10, "Máximo 10 cadeiras."),
-  }).superRefine((data, ctx) => {
-    if (data.organizationType === 'interno' && (!data.department || data.department.trim().length === 0)) {
-        ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: "Departamento é obrigatório para órgão interno.",
-            path: ["department"],
-        });
-    }
-    if (data.organizationType === 'externo' && (!data.externalOrganization || data.externalOrganization.trim().length === 0)) {
-         ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: "Nome do órgão é obrigatório.",
-            path: ["externalOrganization"],
-        });
-    }
+    participantCount: z.coerce.number(),
+    tableCount: z.coerce.number(),
+    chairCount: z.coerce.number(),
 });
+
 
 const bookingModalities = [
     { id: 'audio_video', label: 'Gravação de áudio e vídeo' },
@@ -84,30 +68,11 @@ interface BookingDetailsFormProps {
 }
 
 export default function BookingDetailsForm({ selectedSlots, onBookingSuccess }: BookingDetailsFormProps) {
-    const [_, setFormState] = useState<{ success: boolean; message: string; } | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const { toast } = useToast();
     
-    const formAction = async (formData: FormData) => {
-        const result = await handleBookingRequest(selectedSlots, null, formData);
-        
-        if (result && result.message) {
-            const variant = result.success ? 'default' : 'destructive';
-            toast({
-                title: result.success ? 'Sucesso!' : 'Erro na Solicitação',
-                description: <div className="whitespace-pre-wrap">{result.message}</div>,
-                variant: variant,
-            });
-             if (result.success) {
-                form.reset();
-                onBookingSuccess();
-            } else {
-                setFormState(result);
-            }
-        }
-    };
-    
     const form = useForm<z.infer<typeof BookingDetailsSchema>>({
-        resolver: zodResolver(BookingDetailsSchema),
+        // resolver: zodResolver(BookingDetailsSchema), // Removed resolver to prevent client-side validation
         defaultValues: {
             fullName: '',
             email: '',
@@ -123,16 +88,38 @@ export default function BookingDetailsForm({ selectedSlots, onBookingSuccess }: 
         },
     });
 
-    const organizationType = form.watch('organizationType');
+    const formAction = async (data: z.infer<typeof BookingDetailsSchema>) => {
+        setIsSubmitting(true);
+        const formData = new FormData();
+        Object.entries(data).forEach(([key, value]) => {
+            if (value !== undefined && value !== null) {
+                formData.append(key, String(value));
+            }
+        });
 
-    const handleFormChange = () => {
-        setFormState(null);
-    }
+        const result = await handleBookingRequest(selectedSlots, null, formData);
+        
+        if (result && result.message) {
+            const variant = result.success ? 'default' : 'destructive';
+            toast({
+                title: result.success ? 'Sucesso!' : 'Erro na Solicitação',
+                description: <div className="whitespace-pre-wrap">{result.message}</div>,
+                variant: variant,
+            });
+             if (result.success) {
+                form.reset();
+                onBookingSuccess();
+            }
+        }
+        setIsSubmitting(false);
+    };
+    
+    const organizationType = form.watch('organizationType');
 
     return (
         <Form {...form}>
-            <form action={formAction} onChange={handleFormChange} className="space-y-4 max-h-[70vh] overflow-y-auto pr-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <form onSubmit={form.handleSubmit(formAction)} className="space-y-4 max-h-[70vh] overflow-y-auto pr-4">
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
                         control={form.control}
                         name="fullName"
@@ -333,10 +320,18 @@ export default function BookingDetailsForm({ selectedSlots, onBookingSuccess }: 
                 </div>
                 
                 <div className="pt-4">
-                    <SubmitButton />
+                     <Button type="submit" disabled={isSubmitting} className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
+                        {isSubmitting ? (
+                            <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Enviando Solicitação...
+                            </>
+                        ) : (
+                            'Finalizar Agendamento'
+                        )}
+                    </Button>
                 </div>
             </form>
         </Form>
     );
-
-    
+}
