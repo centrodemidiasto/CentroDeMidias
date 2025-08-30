@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
-import { Loader2, Info } from 'lucide-react';
+import { Loader2, Info, XCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO, startOfToday, isAfter } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -125,7 +125,7 @@ export default function DashboardPage() {
         await updateBookingStatus(id, status);
         toast({
             title: "Sucesso!",
-            description: `Agendamento ${status === 'approved' ? 'aprovado' : 'rejeitado'}.`,
+            description: `Agendamento ${status === 'approved' ? 'aprovado' : 'cancelado'}.`,
         });
         fetchBookings(); 
     } catch (error) {
@@ -259,7 +259,7 @@ export default function DashboardPage() {
                                         <p><strong>Horários:</strong> {times}</p>
                                         <p><strong>Modalidade:</strong> {booking.bookingModalities}</p>
                                     </CardContent>
-                                    <CardFooter>
+                                    <CardFooter className="flex gap-2">
                                         <Dialog>
                                             <DialogTrigger asChild>
                                                 <Button variant="outline" className="w-full" onClick={() => setSelectedBooking(booking)}>
@@ -267,6 +267,9 @@ export default function DashboardPage() {
                                                 </Button>
                                             </DialogTrigger>
                                         </Dialog>
+                                         <Button variant="destructive" className="w-full" onClick={() => handleStatusUpdate(booking.id, 'rejected')}>
+                                            <XCircle className="mr-2 h-4 w-4" /> Cancelar
+                                        </Button>
                                     </CardFooter>
                                 </Card>
                             );
