@@ -3,7 +3,7 @@
 
 import { validateBookingRequest } from "@/ai/flows/validate-booking-request";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, getDocs, query, where, writeBatch, doc } from "firebase/firestore";
 import { z } from "zod";
 
 const BookingDetailsSchema = z.object({
@@ -50,10 +50,7 @@ export async function handleBookingRequest(
 ): Promise<FormState> {
   
   const rawFormData = Object.fromEntries(formData.entries());
-  console.log("=========================================");
-  console.log("Raw Form Data Received:", rawFormData);
-  console.log("=========================================");
-
+  
   const parsedData = BookingDetailsSchema.safeParse({
     fullName: formData.get("fullName"),
     email: formData.get("email"),
@@ -67,10 +64,6 @@ export async function handleBookingRequest(
     tableCount: formData.get("tableCount"),
     chairCount: formData.get("chairCount"),
   });
-
-  console.log("=========================================");
-  console.log("Zod Parsed Data Result:", JSON.stringify(parsedData, null, 2));
-  console.log("=========================================");
 
 
   if (!parsedData.success) {
@@ -118,3 +111,76 @@ export async function handleBookingRequest(
     return { success: false, message: "Ocorreu um erro inesperado. Tente novamente." };
   }
 }
+
+export async function blockSlots(slotsToBlock: Record<string, string[]>): Promise<FormState> {
+    if (!slotsToBlock || Object.keys(slotsToBlock).length === 0) {
+        return { success: false, message: 'Nenhum horário selecionado para bloquear.' };
+    }
+
+    try {
+        const batch = writeBatch(db);
+        const blockedSlotsRef = collection(db, 'blockedSlots');
+
+        for (const date in slotsToBlock) {
+            const times = slotsToBlock[date];
+            if (times.length > 0) {
+                 const q = query(blockedSlotsRef, where("date", "==", date));
+                 const querySnapshot = await getDocs(q);
+
+                 if (querySnapshot.empty) {
+                     // Create new document
+                     const newDocRef = doc(blockedSlotsRef);
+                     batch.set(newDocRef, { date, times });
+                 } else {
+                     // Update existing document
+                     const docRef = querySnapshot.docs[0].ref;
+                     const existingTimes = querySnapshot.docs[0].data().times || [];
+                     const updatedTimes = [...new Set([...existingTimes, ...times])];
+                     batch.update(docRef, { times: updatedTimes });
+                 }
+            }
+        }
+        await batch.commit();
+        return { success: true, message: 'Horários bloqueados com sucesso!' };
+    } catch (error) {
+        console.error("Error blocking slots: ", error);
+        return { success: false, message: 'Ocorreu um erro ao bloquear os horários.' };
+    }
+}
+
+export async function unblockSlots(slotsToUnblock: Record<string, string[]>): Promise<FormState> {
+     if (!slotsToUnblock || Object.keys(slotsToUnblock).length === 0) {
+        return { success: false, message: 'Nenhum horário selecionado para desbloquear.' };
+    }
+    try {
+        const batch = writeBatch(db);
+        const blockedSlotsRef = collection(db, 'blockedSlots');
+
+         for (const date in slotsToUnblock) {
+            const timesToUnblock = slotsToUnblock[date];
+            if (timesToUnblock.length > 0) {
+                 const q = query(blockedSlotsRef, where("date", "==", date));
+                 const querySnapshot = await getDocs(q);
+                 if (!querySnapshot.empty) {
+                     const docSnapshot = querySnapshot.docs[0];
+                     const docRef = docSnapshot.ref;
+                     const existingTimes = docSnapshot.data().times || [];
+                     const updatedTimes = existingTimes.filter((time: string) => !timesToUnblock.includes(time));
+                     
+                     if (updatedTimes.length > 0) {
+                        batch.update(docRef, { times: updatedTimes });
+                     } else {
+                        // If no times are left, delete the document
+                        batch.delete(docRef);
+                     }
+                 }
+            }
+        }
+        await batch.commit();
+        return { success: true, message: 'Horários desbloqueados com sucesso!' };
+    } catch (error) {
+         console.error("Error unblocking slots: ", error);
+        return { success: false, message: 'Ocorreu um erro ao desbloquear os horários.' };
+    }
+}
+

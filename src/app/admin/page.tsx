@@ -28,6 +28,7 @@ import { Loader2, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO, startOfToday, isAfter } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import BlockSlotsForm from '@/components/block-slots-form';
 
 interface Booking {
   id: string;
@@ -114,7 +115,6 @@ export default function DashboardPage() {
       } else {
         router.push('/login');
       }
-      // setLoading(false) is now inside fetchBookings
     });
 
     return () => unsubscribe();
@@ -127,7 +127,7 @@ export default function DashboardPage() {
             title: "Sucesso!",
             description: `Agendamento ${status === 'approved' ? 'aprovado' : 'rejeitado'}.`,
         });
-        fetchBookings(); // Refresh both lists
+        fetchBookings(); 
     } catch (error) {
         toast({
             title: "Erro",
@@ -150,7 +150,6 @@ export default function DashboardPage() {
   }
   
   const formatDateForDisplay = (dateString: string) => {
-      // Parse the date string as ISO (e.g., '2024-09-04') which treats it as local timezone
       const date = parseISO(dateString);
       return format(date, "dd 'de' MMMM, yyyy", { locale: ptBR });
   };
@@ -230,56 +229,66 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <div>
-            <Card>
-                <CardHeader>
-                    <CardTitle>Próximas Gravações</CardTitle>
-                    <CardDescription>
-                        Estes são os agendamentos confirmados para os próximos dias.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                     {loading ? (
-                        <div className="flex items-center justify-center h-40">
-                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                        </div>
-                    ) : approvedBookings.length > 0 ? (
-                        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                            {approvedBookings.map((booking) => {
-                                const date = Object.keys(booking.selectedSlots)[0];
-                                const formattedDate = formatDateForDisplay(date);
-                                const times = booking.selectedSlots[date].join(', ');
+        <Card>
+            <CardHeader>
+                <CardTitle>Próximas Gravações</CardTitle>
+                <CardDescription>
+                    Estes são os agendamentos confirmados para os próximos dias.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                 {loading ? (
+                    <div className="flex items-center justify-center h-40">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    </div>
+                ) : approvedBookings.length > 0 ? (
+                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                        {approvedBookings.map((booking) => {
+                            const date = Object.keys(booking.selectedSlots)[0];
+                            const formattedDate = formatDateForDisplay(date);
+                            const times = booking.selectedSlots[date].join(', ');
 
-                                return (
-                                    <Card key={booking.id} className="flex flex-col">
-                                        <CardHeader className="pb-4">
-                                            <CardTitle className="text-xl font-headline">{booking.fullName}</CardTitle>
-                                            <CardDescription>{booking.organizationType === 'interno' ? booking.department : booking.externalOrganization}</CardDescription>
-                                        </CardHeader>
-                                        <CardContent className="flex-grow space-y-2 text-sm">
-                                            <p><strong>Data:</strong> {formattedDate}</p>
-                                            <p><strong>Horários:</strong> {times}</p>
-                                            <p><strong>Modalidade:</strong> {booking.bookingModalities}</p>
-                                        </CardContent>
-                                        <CardFooter>
-                                            <Dialog>
-                                                <DialogTrigger asChild>
-                                                    <Button variant="outline" className="w-full" onClick={() => setSelectedBooking(booking)}>
-                                                        <Info className="mr-2 h-4 w-4" /> Ver Detalhes
-                                                    </Button>
-                                                </DialogTrigger>
-                                            </Dialog>
-                                        </CardFooter>
-                                    </Card>
-                                );
-                            })}
-                        </div>
-                    ) : (
-                        <p className="text-center text-muted-foreground py-8">Nenhuma gravação confirmada para os próximos dias.</p>
-                    )}
-                </CardContent>
-            </Card>
-        </div>
+                            return (
+                                <Card key={booking.id} className="flex flex-col">
+                                    <CardHeader className="pb-4">
+                                        <CardTitle className="text-xl font-headline">{booking.fullName}</CardTitle>
+                                        <CardDescription>{booking.organizationType === 'interno' ? booking.department : booking.externalOrganization}</CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="flex-grow space-y-2 text-sm">
+                                        <p><strong>Data:</strong> {formattedDate}</p>
+                                        <p><strong>Horários:</strong> {times}</p>
+                                        <p><strong>Modalidade:</strong> {booking.bookingModalities}</p>
+                                    </CardContent>
+                                    <CardFooter>
+                                        <Dialog>
+                                            <DialogTrigger asChild>
+                                                <Button variant="outline" className="w-full" onClick={() => setSelectedBooking(booking)}>
+                                                    <Info className="mr-2 h-4 w-4" /> Ver Detalhes
+                                                </Button>
+                                            </DialogTrigger>
+                                        </Dialog>
+                                    </CardFooter>
+                                </Card>
+                            );
+                        })}
+                    </div>
+                ) : (
+                    <p className="text-center text-muted-foreground py-8">Nenhuma gravação confirmada para os próximos dias.</p>
+                )}
+            </CardContent>
+        </Card>
+
+        <Card>
+            <CardHeader>
+                <CardTitle>Bloquear Horários</CardTitle>
+                <CardDescription>
+                    Selecione os horários no calendário abaixo para bloquear ou desbloquear manualmente.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <BlockSlotsForm />
+            </CardContent>
+        </Card>
       </div>
 
        {selectedBooking && (
@@ -354,5 +363,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    

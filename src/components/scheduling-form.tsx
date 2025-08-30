@@ -35,6 +35,11 @@ type ReservedBooking = {
     status: 'pending' | 'approved';
 }
 
+type ManuallyBlockedSlot = {
+    date: string;
+    times: string[];
+}
+
 const timeSlots = Array.from({ length: 9 }, (_, i) => `${String(i + 9).padStart(2, "0")}:00`);
 const MIN_BOOKING_NOTICE_DAYS = 5;
 
@@ -58,6 +63,12 @@ async function getReservedBookings(): Promise<ReservedBooking[]> {
   return reservedSlots;
 }
 
+async function getManuallyBlockedSlots(): Promise<ManuallyBlockedSlot[]> {
+    const blockedSlotsRef = collection(db, "blockedSlots");
+    const querySnapshot = await getDocs(blockedSlotsRef);
+    return querySnapshot.docs.map(doc => doc.data() as ManuallyBlockedSlot);
+}
+
 
 export default function SchedulingForm() {
   const today = startOfToday();
@@ -67,20 +78,22 @@ export default function SchedulingForm() {
   const [selectedSlots, setSelectedSlots] = useState<SelectedSlots>({});
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [reservedBookings, setReservedBookings] = useState<ReservedBooking[]>([]);
+  const [manuallyBlockedSlots, setManuallyBlockedSlots] = useState<ManuallyBlockedSlot[]>([]);
   const [loadingReserved, setLoadingReserved] = useState(true);
 
   const { toast } = useToast();
   
-  const fetchReservedBookings = () => {
+  const fetchAllBookings = () => {
     setLoadingReserved(true);
-    getReservedBookings().then(data => {
-        setReservedBookings(data);
+    Promise.all([getReservedBookings(), getManuallyBlockedSlots()]).then(([reserved, manuallyBlocked]) => {
+        setReservedBookings(reserved);
+        setManuallyBlockedSlots(manuallyBlocked);
         setLoadingReserved(false);
     });
   }
 
   useEffect(() => {
-    fetchReservedBookings();
+    fetchAllBookings();
   }, []);
 
 
@@ -115,16 +128,13 @@ export default function SchedulingForm() {
     setSelectedSlots((prev) => {
       const daySlots = prev[dateKey] ? [...prev[dateKey]] : [];
       if (daySlots.includes(time)) {
-        // Deselect slot
         const newDaySlots = daySlots.filter((t) => t !== time);
         const newSlots = { ...prev, [dateKey]: newDaySlots };
-        // If no slots are selected for this day, remove the date key
         if (newDaySlots.length === 0) {
           delete newSlots[dateKey];
         }
         return newSlots;
       } else {
-        // Select slot
         return { ...prev, [dateKey]: [...daySlots, time] };
       }
     });
@@ -139,7 +149,7 @@ export default function SchedulingForm() {
   const onBookingSuccess = () => {
     setSelectedSlots({});
     setIsModalOpen(false);
-    fetchReservedBookings();
+    fetchAllBookings();
   }
 
   return (
@@ -164,69 +174,95 @@ export default function SchedulingForm() {
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : (
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-px bg-border overflow-hidden rounded-lg border">
-              {weekDays.map(day => {
-                  const isDayDisabled = isBefore(day, firstBookableDate);
-                  const dateKeyForReserved = format(day, "yyyy-MM-dd");
-                  
-                  return (
-                  <div key={day.toString()} className={cn("flex flex-col", isDayDisabled ? "bg-muted/50" : "bg-background")}>
-                  <div className="text-center font-bold py-2 border-b font-headline capitalize">
-                      {format(day, "EEE", { locale: ptBR })}
-                      <div className="font-normal text-sm text-muted-foreground">{format(day, "d/MM")}</div>
-                  </div>
-                  <div className="flex flex-col p-1 gap-1">
-                      {timeSlots.map(time => {
-                        const dateKey = format(day, "yyyy-MM-dd");
-                        const isSelected = selectedSlots[dateKey]?.includes(time);
-                        const reservedSlot = reservedBookings.find(b => b.date === dateKeyForReserved && b.times.includes(time));
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-px bg-border overflow-hidden rounded-lg border">
+            {weekDays.map(day => {
+                const isDayDisabled = isBefore(day, firstBookableDate);
+                const dateKeyForReserved = format(day, "yyyy-MM-dd");
+                
+                return (
+                <div key={day.toString()} className={cn("flex flex-col", isDayDisabled ? "bg-muted/50" : "bg-background")}>
+                <div className="text-center font-bold py-2 border-b font-headline capitalize">
+                    {format(day, "EEE", { locale: ptBR })}
+                    <div className="font-normal text-sm text-muted-foreground">{format(day, "d/MM")}</div>
+                </div>
+                <div className="flex flex-col p-1 gap-1">
+                    {timeSlots.map(time => {
+                      const dateKey = format(day, "yyyy-MM-dd");
+                      const isSelected = selectedSlots[dateKey]?.includes(time);
+                      const reservedSlot = reservedBookings.find(b => b.date === dateKeyForReserved && b.times.includes(time));
+                      const manuallyBlocked = manuallyBlockedSlots.find(b => b.date === dateKeyForReserved && b.times.includes(time));
 
-                        if (reservedSlot) {
-                            const isPending = reservedSlot.status === 'pending';
-                            const tooltipContent = isPending 
-                                ? "Agendamento pendente de aprovação"
-                                : "Agendamento já realizado e confirmado para este horário";
-                            const buttonColorClass = isPending 
-                                ? "bg-accent/80 hover:bg-accent/80 text-accent-foreground cursor-not-allowed"
-                                : "bg-green-200 hover:bg-green-200 text-green-800 cursor-not-allowed";
+                      if (manuallyBlocked) {
+                           return (
+                                <div key={time}>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <span tabIndex={0}>
+                                                <Button
+                                                    variant="outline"
+                                                    className="h-8 w-full text-xs bg-destructive/80 hover:bg-destructive/80 text-destructive-foreground cursor-not-allowed"
+                                                    disabled
+                                                >
+                                                    {time}
+                                                </Button>
+                                            </span>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>Equipe Centro de Mídias</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </div>
+                            );
+                      }
 
-                            return (
-                                <Tooltip key={time}>
-                                    <TooltipTrigger asChild>
-                                        <span tabIndex={0}>
-                                            <Button
-                                                variant="outline"
-                                                className={cn("h-8 w-full text-xs", buttonColorClass)}
-                                                disabled
-                                            >
-                                            {time}
-                                            </Button>
-                                        </span>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        <p>{tooltipContent}</p>
-                                    </TooltipContent>
-                                </Tooltip>
-                            )
-                        }
-                      
-                        return (
-                           <Button
-                              key={time}
-                              type="button"
-                              variant={isSelected ? "default" : "outline"}
-                              className={cn("h-8 text-xs", isSelected && "bg-primary hover:bg-primary/90")}
-                              onClick={() => handleSlotSelect(day, time)}
-                              disabled={isDayDisabled}
-                            >
-                            {time}
-                            </Button>
-                        );
-                      })}
-                  </div>
-                  </div>
-              )})}
-              </div>
+                      if (reservedSlot) {
+                          const isPending = reservedSlot.status === 'pending';
+                          const tooltipContent = isPending 
+                              ? "Agendamento pendente de aprovação"
+                              : "Agendamento já realizado e confirmado para este horário";
+                          const buttonColorClass = isPending 
+                              ? "bg-accent/80 hover:bg-accent/80 text-accent-foreground cursor-not-allowed"
+                              : "bg-green-400 hover:bg-green-400 text-green-900 cursor-not-allowed";
+
+                          return (
+                              <div key={time}>
+                                  <Tooltip>
+                                      <TooltipTrigger asChild>
+                                          <span tabIndex={0}>
+                                              <Button
+                                                  variant="outline"
+                                                  className={cn("h-8 w-full text-xs", buttonColorClass)}
+                                                  disabled
+                                              >
+                                              {time}
+                                              </Button>
+                                          </span>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                          <p>{tooltipContent}</p>
+                                      </TooltipContent>
+                                  </Tooltip>
+                              </div>
+                          )
+                      }
+                    
+                      return (
+                         <Button
+                            key={time}
+                            type="button"
+                            variant={isSelected ? "default" : "outline"}
+                            className={cn("h-8 text-xs", isSelected && "bg-primary hover:bg-primary/90")}
+                            onClick={() => handleSlotSelect(day, time)}
+                            disabled={isDayDisabled}
+                          >
+                          {time}
+                          </Button>
+                      );
+                    })}
+                </div>
+                </div>
+            )})}
+            </div>
         )}
         </CardContent>
       </TooltipProvider>
@@ -253,5 +289,3 @@ export default function SchedulingForm() {
     </Card>
   );
 }
-
-    
