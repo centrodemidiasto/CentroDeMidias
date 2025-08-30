@@ -1,7 +1,35 @@
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { verifySession } from "@/app/auth-actions";
+import { db } from "@/lib/firebase";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { redirect } from "next/navigation";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+
+async function getPendingBookings() {
+  const bookingsRef = collection(db, "bookings");
+  const q = query(bookingsRef, where("status", "==", "pending"));
+  const querySnapshot = await getDocs(q);
+  const bookings = querySnapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...doc.data(),
+  }));
+  return bookings;
+}
 
 export default async function DashboardPage() {
   const session = await verifySession();
@@ -9,6 +37,8 @@ export default async function DashboardPage() {
   if (!session.isLoggedIn) {
     redirect("/login");
   }
+
+  const bookings = await getPendingBookings();
 
   return (
     <div className="container mx-auto max-w-7xl px-4 py-12 md:px-6 md:py-16">
@@ -24,12 +54,49 @@ export default async function DashboardPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Bem-vindo(a)!</CardTitle>
+            <CardTitle>Agendamentos Pendentes</CardTitle>
+            <CardDescription>
+              Aprove ou rejeite as solicitações de agendamento.
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <p>
-              Em breve, aqui você poderá visualizar, aprovar, rejeitar e bloquear agendamentos.
-            </p>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Data</TableHead>
+                  <TableHead>Horários</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {bookings.length > 0 ? (
+                  bookings.map((booking: any) => {
+                    const date = Object.keys(booking.selectedSlots)[0];
+                    const times = booking.selectedSlots[date].join(", ");
+                    return (
+                      <TableRow key={booking.id}>
+                        <TableCell className="font-medium">{date}</TableCell>
+                        <TableCell>{times}</TableCell>
+                        <TableCell>
+                          <Badge variant="secondary">{booking.status}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right space-x-2">
+                          <Button variant="outline" size="sm">Aprovar</Button>
+                          <Button variant="destructive" size="sm">Rejeitar</Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center">
+                      Nenhum agendamento pendente.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
       </div>
