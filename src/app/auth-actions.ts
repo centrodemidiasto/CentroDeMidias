@@ -39,15 +39,10 @@ export async function handleSignIn(
   password: string
 ): Promise<ActionState> {
   try {
-    // This part runs on the server, but signInWithEmailAndPassword runs on the client.
-    // We cannot directly call the client-side Firebase SDK here.
-    // The correct approach is to get the user's ID token on the client, send it to a server action/route,
-    // and then the server verifies it and creates a session cookie.
-
-    // For this simplified server-action only flow, we'll assume a direct check.
-    // This is NOT the standard Firebase pattern and has limitations. A full solution would involve a client-side call first.
-    // Let's create a session based on the ADMIN_EMAIL and ADMIN_PASSWORD for simplicity, as we can't use the client SDK here.
-
+    // We can't use the client SDK directly here, but a custom token approach
+    // or admin SDK would be best. For this server-action flow, we will make
+    // an exception and use environment variables for a specific admin user.
+    // This simplifies the flow by not requiring client-side token generation.
     if (
       email === process.env.ADMIN_EMAIL &&
       password === process.env.ADMIN_PASSWORD
@@ -64,11 +59,17 @@ export async function handleSignIn(
 
       return { success: true, message: "Login realizado com sucesso." };
     } else {
-       return { success: false, message: "E-mail ou senha inválidos." };
+      // Attempt to sign in with Firebase for other users if needed,
+      // but for now, we only allow the admin.
+      return { success: false, message: "E-mail ou senha inválidos." };
     }
   } catch (error: any) {
+    let message = "Ocorreu um erro durante o login.";
+    if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
+      message = "E-mail ou senha inválidos.";
+    }
     console.error("Sign-in error:", error);
-    return { success: false, message: "Ocorreu um erro durante o login." };
+    return { success: false, message: message };
   }
 }
 
