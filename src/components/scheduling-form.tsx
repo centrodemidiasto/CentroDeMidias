@@ -152,67 +152,71 @@ export default function SchedulingForm() {
           </Button>
         </div>
       </CardHeader>
-      <CardContent>
-      {loadingPending ? (
-         <div className="flex items-center justify-center h-48">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-         </div>
-      ) : (
-        <TooltipProvider delayDuration={100}>
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-px bg-border overflow-hidden rounded-lg border">
-            {weekDays.map(day => {
-                const isDayDisabled = isBefore(day, firstBookableDate);
-                const dateKeyForPending = format(day, "yyyy-MM-dd");
-                const pendingSlotsForDay = pendingBookings.find(b => b.date === dateKeyForPending)?.times || [];
-                
-                return (
-                <div key={day.toString()} className={cn("flex flex-col", isDayDisabled ? "bg-muted/50" : "bg-background")}>
-                <div className="text-center font-bold py-2 border-b font-headline capitalize">
-                    {format(day, "EEE", { locale: ptBR })}
-                    <div className="font-normal text-sm text-muted-foreground">{format(day, "d/MM")}</div>
-                </div>
-                <div className="flex flex-col p-1 gap-1">
-                    {timeSlots.map(time => {
-                    const dateKey = format(day, "yyyy-MM-dd");
-                    const isSelected = selectedSlots[dateKey]?.includes(time);
-                    const isPending = pendingSlotsForDay.includes(time);
-
-                    const button = (
-                        <Button
-                        key={time}
-                        type="button"
-                        variant={isSelected ? "default" : "outline"}
-                        className={cn("h-8 text-xs", 
-                            isSelected && "bg-primary hover:bg-primary/90",
-                            isPending && "bg-accent/80 hover:bg-accent/90 text-accent-foreground cursor-not-allowed"
-                        )}
-                        onClick={() => handleSlotSelect(day, time)}
-                        disabled={isDayDisabled || isPending}
-                        >
-                        {time}
-                        </Button>
-                    );
-                    
-                    if (isPending) {
+       <TooltipProvider delayDuration={100}>
+        <CardContent>
+        {loadingPending ? (
+          <div className="flex items-center justify-center h-48">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : (
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-px bg-border overflow-hidden rounded-lg border">
+              {weekDays.map(day => {
+                  const isDayDisabled = isBefore(day, firstBookableDate);
+                  const dateKeyForPending = format(day, "yyyy-MM-dd");
+                  const pendingSlotsForDay = pendingBookings.find(b => b.date === dateKeyForPending)?.times || [];
+                  
+                  return (
+                  <div key={day.toString()} className={cn("flex flex-col", isDayDisabled ? "bg-muted/50" : "bg-background")}>
+                  <div className="text-center font-bold py-2 border-b font-headline capitalize">
+                      {format(day, "EEE", { locale: ptBR })}
+                      <div className="font-normal text-sm text-muted-foreground">{format(day, "d/MM")}</div>
+                  </div>
+                  <div className="flex flex-col p-1 gap-1">
+                      {timeSlots.map(time => {
+                      const dateKey = format(day, "yyyy-MM-dd");
+                      const isSelected = selectedSlots[dateKey]?.includes(time);
+                      const isPending = pendingSlotsForDay.includes(time);
+                      
+                      if (isPending) {
                         return (
-                            <Tooltip key={time}>
-                                <TooltipTrigger asChild>{button}</TooltipTrigger>
+                           <Tooltip key={time}>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="h-8 text-xs bg-accent/80 hover:bg-accent/90 text-accent-foreground cursor-not-allowed"
+                                        disabled
+                                    >
+                                    {time}
+                                    </Button>
+                                </TooltipTrigger>
                                 <TooltipContent>
                                     <p>Agendamento pendente de aprovação</p>
                                 </TooltipContent>
-                            </Tooltip>
+                           </Tooltip>
                         )
-                    }
-                    
-                    return button;
-                    })}
-                </div>
-                </div>
-            )})}
-            </div>
-        </TooltipProvider>
-      )}
-      </CardContent>
+                      }
+                      
+                      return (
+                         <Button
+                            key={time}
+                            type="button"
+                            variant={isSelected ? "default" : "outline"}
+                            className={cn("h-8 text-xs", isSelected && "bg-primary hover:bg-primary/90")}
+                            onClick={() => handleSlotSelect(day, time)}
+                            disabled={isDayDisabled}
+                          >
+                          {time}
+                          </Button>
+                      );
+                      })}
+                  </div>
+                  </div>
+              )})}
+              </div>
+        )}
+        </CardContent>
+      </TooltipProvider>
       {totalSelectedSlots > 0 && (
         <CardFooter className="flex-col items-start gap-4 pt-4">
            <div className="text-sm text-muted-foreground">
