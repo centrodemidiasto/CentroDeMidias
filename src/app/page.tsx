@@ -30,12 +30,12 @@ export default function Home() {
                 </div>
               </div>
               <Image
-                src="https://picsum.photos/600/400"
+                src="/img/centrologo.png"
                 width={600}
                 height={400}
                 alt="Hero"
                 data-ai-hint="media studio"
-                className="mx-auto aspect-video overflow-hidden rounded-xl object-cover sm:w-full lg:order-last"
+                className="mx-auto aspect-video overflow-hidden rounded-xl object-contain sm:w-full lg:order-last"
               />
             </div>
           </div>
