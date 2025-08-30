@@ -5,6 +5,7 @@ import { format, parseISO, startOfToday, isAfter, isToday, isTomorrow } from 'da
 import { ptBR } from 'date-fns/locale';
 import { Clock, User, Building, Video } from "lucide-react";
 import CurrentTime from "@/components/current-time";
+import Image from "next/image";
 
 interface Booking {
   id: string;
@@ -80,11 +81,19 @@ export default async function HorariosPage() {
 
   return (
     <div className="bg-gray-900 text-white min-h-screen p-8 font-sans">
-      <header className="text-center mb-12">
+      <header className="text-center mb-12 flex flex-col items-center">
         <h1 className="text-6xl font-bold tracking-tight text-blue-300">
           Próximas Gravações
         </h1>
-        <p className="text-2xl text-gray-400 mt-2">Centro de Mídias Educacionais - TO</p>
+        <div className="mt-4">
+            <Image
+                src="/img/centrologo.png"
+                width={300}
+                height={100}
+                alt="Logotipo do Centro de Mídias Educacionais"
+                className="object-contain"
+            />
+        </div>
       </header>
 
       <main>
@@ -109,7 +118,7 @@ export default async function HorariosPage() {
                                 <div className="mt-6 flex items-center gap-3 text-2xl text-gray-300">
                                    <Video className="w-8 h-8 text-orange-400"/>
                                    <span>{booking.bookingModalities}</span>
-                                </div>
+                                 </div>
                             </div>
                             <div className="text-right flex flex-col justify-center items-end">
                                 <p className="text-3xl font-semibold capitalize text-orange-400">{formattedDate}</p>
