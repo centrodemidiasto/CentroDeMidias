@@ -5,7 +5,7 @@ import Header from "@/components/header";
 import Footer from "@/components/footer";
 
 export const metadata: Metadata = {
-  title: "Agenda CME",
+  title: "Centro de Mídias Educacionais - TO",
   description: "Agendamento de horários do Centro de Mídias Educacionais do Tocantins.",
 };
 

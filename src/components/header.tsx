@@ -39,7 +39,7 @@ export default function Header() {
           <Link href="/" className="mr-6 flex items-center space-x-2">
             <Film className="h-6 w-6 text-primary" />
             <span className="hidden font-bold sm:inline-block font-headline">
-              Agenda CME
+              Centro de Mídias Educacionais - TO
             </span>
           </Link>
           <nav className="flex items-center space-x-6 text-sm font-medium">
@@ -63,7 +63,7 @@ export default function Header() {
             <div className="md:hidden flex items-center">
                 <Link href="/" className="flex items-center space-x-2">
                     <Film className="h-6 w-6 text-primary" />
-                    <span className="font-bold font-headline">Agenda CME</span>
+                    <span className="font-bold font-headline">Centro de Mídias Educacionais - TO</span>
                 </Link>
             </div>
             <SheetContent side="left" className="pr-0">
@@ -73,7 +73,7 @@ export default function Header() {
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 <Film className="mr-2 h-4 w-4" />
-                <span className="font-bold">Agenda CME</span>
+                <span className="font-bold">Centro de Mídias Educacionais - TO</span>
               </Link>
               <div className="my-4 h-[calc(100vh-8rem)] pb-10 pl-6">
                 <div className="flex flex-col space-y-3">
