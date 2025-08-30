@@ -63,7 +63,7 @@ export async function handleBookingRequest(
   });
 
   if (!parsedData.success) {
-    const errorMessages = parsedData.error.errors.map(e => e.message).join("\n");
+    const errorMessages = parsedData.error.errors.map(e => `- ${e.message}`).join("\n");
     return { success: false, message: `Por favor, corrija os seguintes erros:\n${errorMessages}` };
   }
 

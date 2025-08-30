@@ -28,14 +28,14 @@ const timeSlots = Array.from({ length: 9 }, (_, i) => `${String(i + 9).padStart(
 const MIN_BOOKING_NOTICE_DAYS = 5;
 
 export default function SchedulingForm() {
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const today = startOfToday();
+  const firstBookableDate = addDays(today, MIN_BOOKING_NOTICE_DAYS);
+
+  const [currentDate, setCurrentDate] = useState(firstBookableDate);
   const [selectedSlots, setSelectedSlots] = useState<SelectedSlots>({});
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const { toast } = useToast();
-
-  const today = startOfToday();
-  const firstBookableDate = addDays(today, MIN_BOOKING_NOTICE_DAYS);
 
   const weekDays = useMemo(() => {
     const start = startOfWeek(currentDate, { locale: ptBR });
@@ -45,7 +45,7 @@ export default function SchedulingForm() {
   
   const isPreviousWeekButtonDisabled = useMemo(() => {
     const firstDayOfCurrentWeek = startOfWeek(currentDate, { locale: ptBR });
-    return isBefore(firstDayOfCurrentWeek, firstBookableDate);
+    return isBefore(firstDayOfCurrentWeek, startOfWeek(firstBookableDate, { locale: ptBR }));
   }, [currentDate, firstBookableDate]);
 
 

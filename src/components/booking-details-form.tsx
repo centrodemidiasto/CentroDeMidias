@@ -17,8 +17,6 @@ import { useToast } from '@/hooks/use-toast';
 import { handleBookingRequest } from '@/app/actions';
 import { SelectedSlots } from './scheduling-form';
 
-const initialState = null;
-
 const BookingDetailsSchema = z.object({
     fullName: z.string().min(3, { message: "Nome completo é obrigatório." }),
     email: z.string().email({ message: "E-mail inválido." }),
@@ -49,7 +47,6 @@ const BookingDetailsSchema = z.object({
         });
     }
 });
-
 
 const bookingModalities = [
     { id: 'audio_video', label: 'Gravação de áudio e vídeo' },
@@ -88,8 +85,8 @@ interface BookingDetailsFormProps {
 }
 
 export default function BookingDetailsForm({ selectedSlots, onBookingSuccess }: BookingDetailsFormProps) {
-    const { toast } = useToast();
-    const [state, formAction] = useActionState(handleBookingRequest.bind(null, selectedSlots), initialState);
+    const { toast, dismiss } = useToast();
+    const [state, formAction, isPending] = useActionState(handleBookingRequest.bind(null, selectedSlots), null);
 
     const form = useForm<z.infer<typeof BookingDetailsSchema>>({
         resolver: zodResolver(BookingDetailsSchema),
@@ -112,10 +109,11 @@ export default function BookingDetailsForm({ selectedSlots, onBookingSuccess }: 
 
     useEffect(() => {
         if (state) {
+            const variant = state.success ? 'default' : 'destructive';
             toast({
                 title: state.success ? 'Sucesso!' : 'Erro na Solicitação',
                 description: <div className="whitespace-pre-wrap">{state.message}</div>,
-                variant: state.success ? 'default' : 'destructive',
+                variant: variant,
             });
             if (state.success) {
                 form.reset();
@@ -123,10 +121,14 @@ export default function BookingDetailsForm({ selectedSlots, onBookingSuccess }: 
             }
         }
     }, [state, toast, form, onBookingSuccess]);
+    
+    const handleFormChange = () => {
+        dismiss();
+    }
 
     return (
         <Form {...form}>
-            <form action={formAction} className="space-y-4 max-h-[70vh] overflow-y-auto pr-4">
+            <form action={formAction} onChange={handleFormChange} className="space-y-4 max-h-[70vh] overflow-y-auto pr-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
                         control={form.control}
@@ -187,18 +189,19 @@ export default function BookingDetailsForm({ selectedSlots, onBookingSuccess }: 
                                     onValueChange={field.onChange}
                                     defaultValue={field.value}
                                     className="flex space-x-4"
+                                    name={field.name}
                                 >
                                     <FormItem className="flex items-center space-x-2 space-y-0">
                                         <FormControl>
-                                            <RadioGroupItem value="interno" />
+                                            <RadioGroupItem value="interno" id="interno" />
                                         </FormControl>
-                                        <FormLabel className="font-normal">Interno (SEDUC)</FormLabel>
+                                        <FormLabel htmlFor="interno" className="font-normal">Interno (SEDUC)</FormLabel>
                                     </FormItem>
                                     <FormItem className="flex items-center space-x-2 space-y-0">
                                         <FormControl>
-                                            <RadioGroupItem value="externo" />
+                                            <RadioGroupItem value="externo" id="externo" />
                                         </FormControl>
-                                        <FormLabel className="font-normal">Externo</FormLabel>
+                                        <FormLabel htmlFor="externo" className="font-normal">Externo</FormLabel>
                                     </FormItem>
                                 </RadioGroup>
                             </FormControl>
@@ -262,13 +265,13 @@ export default function BookingDetailsForm({ selectedSlots, onBookingSuccess }: 
                                                     <Checkbox
                                                         checked={field.value?.includes(item.label)}
                                                         onCheckedChange={(checked) => {
-                                                            return checked
-                                                                ? field.onChange([...(field.value || []), item.label])
-                                                                : field.onChange(
-                                                                    field.value?.filter(
-                                                                        (value) => value !== item.label
-                                                                    )
-                                                                )
+                                                            const newValue = checked
+                                                                ? [...(field.value || []), item.label]
+                                                                : field.value?.filter(
+                                                                      (value) => value !== item.label
+                                                                  );
+                                                            field.onChange(newValue);
+                                                            return checked;
                                                         }}
                                                     />
                                                 </FormControl>
