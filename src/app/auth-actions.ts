@@ -24,7 +24,7 @@ export async function handleSignOut(): Promise<ActionState> {
         await signOut(auth);
         console.log("Sign-out successful.");
         return { success: true, message: "Logout realizado com sucesso." };
-    } catch (error: any)
+    } catch (error: any) {
         console.error("Sign-out error:", error.message);
         return { success: false, message: "Erro ao fazer logout." };
     }
