@@ -11,12 +11,15 @@ export default function DashboardPage() {
   const router = useRouter();
 
   useEffect(() => {
+    // Apenas redireciona se o carregamento estiver concluído e não houver usuário.
     if (!loading && !user) {
       router.push("/login");
     }
   }, [user, loading, router]);
 
-  if (loading || !user) {
+  // Exibe o loader enquanto o estado de autenticação está sendo verificado.
+  // Se o usuário não estiver logado após o carregamento, o useEffect acima fará o redirecionamento.
+  if (loading) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -24,6 +27,13 @@ export default function DashboardPage() {
     );
   }
 
+  // Se, após o carregamento, não houver usuário, não renderiza nada,
+  // pois o redirecionamento está prestes a acontecer.
+  if (!user) {
+    return null;
+  }
+
+  // Se chegou até aqui, o usuário está carregado e autenticado.
   return (
     <div className="container mx-auto max-w-7xl px-4 py-12 md:px-6 md:py-16">
       <div className="space-y-8">
