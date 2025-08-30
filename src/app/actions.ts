@@ -6,7 +6,7 @@ import { db } from "@/lib/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { z } from "zod";
 
-const baseSchema = z.object({
+const BookingDetailsSchema = z.object({
   fullName: z.string().min(3, { message: "Nome completo é obrigatório." }),
   email: z.string().email({ message: "E-mail inválido." }),
   phone: z.string().min(15, { message: "Telefone inválido." }),
@@ -21,24 +21,6 @@ const baseSchema = z.object({
   tableCount: z.coerce.number().min(0, "Mínimo 0.").max(3, "Máximo 3 mesas."),
   chairCount: z.coerce.number().min(0, "Mínimo 0.").max(10, "Máximo 10 cadeiras."),
 });
-
-export const BookingDetailsSchema = baseSchema.superRefine((data, ctx) => {
-    if (data.organizationType === 'interno' && (!data.department || data.department.trim().length === 0)) {
-        ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: "Departamento é obrigatório para órgão interno.",
-            path: ["department"],
-        });
-    }
-    if (data.organizationType === 'externo' && (!data.externalOrganization || data.externalOrganization.trim().length === 0)) {
-        ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: "Nome do órgão é obrigatório.",
-            path: ["externalOrganization"],
-        });
-    }
-});
-
 
 type FormState = {
   success: boolean;
@@ -68,6 +50,16 @@ export async function handleBookingRequest(
     const errorMessages = parsedData.error.errors.map(e => e.message).join(", ");
     return { success: false, message: errorMessages };
   }
+
+  const data = parsedData.data;
+
+  // Manual validation for conditional fields
+  if (data.organizationType === 'interno' && (!data.department || data.department.trim().length === 0)) {
+    return { success: false, message: "Departamento é obrigatório para órgão interno." };
+  }
+  if (data.organizationType === 'externo' && (!data.externalOrganization || data.externalOrganization.trim().length === 0)) {
+    return { success: false, message: "Nome do órgão é obrigatório." };
+  }
   
   if (!selectedSlots || Object.keys(selectedSlots).length === 0) {
     return { success: false, message: "Nenhum horário selecionado." };
@@ -93,7 +85,7 @@ export async function handleBookingRequest(
 
     if (result.isValid) {
       await addDoc(collection(db, "bookings"), {
-        ...parsedData.data,
+        ...data,
         selectedSlots,
         createdAt: serverTimestamp(),
         status: "pending"
@@ -107,3 +99,4 @@ export async function handleBookingRequest(
     return { success: false, message: "Ocorreu um erro inesperado. Tente novamente." };
   }
 }
+

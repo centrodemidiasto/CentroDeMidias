@@ -14,10 +14,26 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { handleBookingRequest, BookingDetailsSchema } from '@/app/actions';
+import { handleBookingRequest } from '@/app/actions';
 import { SelectedSlots } from './scheduling-form';
 
 const initialState = null;
+
+const BookingDetailsSchema = z.object({
+    fullName: z.string().min(3, { message: "Nome completo é obrigatório." }),
+    email: z.string().email({ message: "E-mail inválido." }),
+    phone: z.string().min(15, { message: "Telefone inválido." }),
+    organizationType: z.enum(["interno", "externo"], {
+      errorMap: () => ({ message: "Selecione o tipo de órgão." }),
+    }),
+    department: z.string().optional(),
+    externalOrganization: z.string().optional(),
+    bookingModalities: z.array(z.string()).min(1, { message: "Selecione ao menos uma modalidade." }),
+    requiredMaterials: z.string().optional(),
+    participantCount: z.coerce.number().min(1, { message: "Informe o número de participantes." }),
+    tableCount: z.coerce.number().min(0, "Mínimo 0.").max(3, "Máximo 3 mesas."),
+    chairCount: z.coerce.number().min(0, "Mínimo 0.").max(10, "Máximo 10 cadeiras."),
+  });
 
 const bookingModalities = [
     { id: 'audio_video', label: 'Gravação de áudio e vídeo' },
@@ -319,4 +335,3 @@ export default function BookingDetailsForm({ selectedSlots, onBookingSuccess }: 
         </Form>
     );
 }
-
