@@ -11,7 +11,6 @@ import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { handleBookingRequest } from '@/app/actions';
@@ -26,7 +25,7 @@ const BookingDetailsSchema = z.object({
     }),
     department: z.string().optional(),
     externalOrganization: z.string().optional(),
-    bookingModalities: z.array(z.string()).min(1, { message: "Selecione ao menos uma modalidade." }),
+    bookingModalities: z.string({ required_error: "Selecione uma modalidade." }),
     requiredMaterials: z.string().optional(),
     participantCount: z.coerce.number().min(1, { message: "Informe o número de participantes." }),
     tableCount: z.coerce.number().min(0, "Mínimo 0.").max(3, "Máximo 3 mesas."),
@@ -85,9 +84,26 @@ interface BookingDetailsFormProps {
 }
 
 export default function BookingDetailsForm({ selectedSlots, onBookingSuccess }: BookingDetailsFormProps) {
-    const { toast, dismiss } = useToast();
-    const [state, formAction, isPending] = useActionState(handleBookingRequest.bind(null, selectedSlots), null);
-
+    const [_, setFormState] = useState<{ success: boolean; message: string; } | null>(null);
+    const { toast } = useToast();
+    
+    const formAction = async (formData: FormData) => {
+        const result = await handleBookingRequest(selectedSlots, null, formData);
+        setFormState(result);
+        if (result) {
+            const variant = result.success ? 'default' : 'destructive';
+            toast({
+                title: result.success ? 'Sucesso!' : 'Erro na Solicitação',
+                description: <div className="whitespace-pre-wrap">{result.message}</div>,
+                variant: variant,
+            });
+            if (result.success) {
+                form.reset();
+                onBookingSuccess();
+            }
+        }
+    };
+    
     const form = useForm<z.infer<typeof BookingDetailsSchema>>({
         resolver: zodResolver(BookingDetailsSchema),
         defaultValues: {
@@ -97,7 +113,7 @@ export default function BookingDetailsForm({ selectedSlots, onBookingSuccess }: 
             organizationType: undefined,
             department: '',
             externalOrganization: '',
-            bookingModalities: [],
+            bookingModalities: undefined,
             requiredMaterials: '',
             participantCount: 1,
             tableCount: 0,
@@ -107,25 +123,8 @@ export default function BookingDetailsForm({ selectedSlots, onBookingSuccess }: 
 
     const organizationType = form.watch('organizationType');
 
-    useEffect(() => {
-        if (state) {
-            const variant = state.success ? 'default' : 'destructive';
-            toast({
-                title: state.success ? 'Sucesso!' : 'Erro na Solicitação',
-                description: <div className="whitespace-pre-wrap">{state.message}</div>,
-                variant: variant,
-            });
-            if (state.success) {
-                form.reset();
-                onBookingSuccess();
-            }
-        }
-    }, [state, toast, form, onBookingSuccess]);
-    
     const handleFormChange = () => {
-        if(state && !state.success) {
-            // This doesn't seem to be implemented yet, let's keep it simple
-        }
+        setFormState(null);
     }
 
     return (
@@ -247,45 +246,27 @@ export default function BookingDetailsForm({ selectedSlots, onBookingSuccess }: 
                 <FormField
                     control={form.control}
                     name="bookingModalities"
-                    render={() => (
-                        <FormItem>
-                             <div className="mb-4">
-                                <FormLabel>Modalidade do Agendamento</FormLabel>
-                            </div>
-                            {bookingModalities.map((item) => (
-                                <FormField
-                                    key={item.id}
-                                    control={form.control}
-                                    name="bookingModalities"
-                                    render={({ field }) => {
-                                        return (
-                                            <FormItem
-                                                key={item.id}
-                                                className="flex flex-row items-start space-x-3 space-y-0"
-                                            >
-                                                <FormControl>
-                                                    <Checkbox
-                                                        checked={field.value?.includes(item.label)}
-                                                        onCheckedChange={(checked) => {
-                                                            const newValue = checked
-                                                                ? [...(field.value || []), item.label]
-                                                                : field.value?.filter(
-                                                                      (value) => value !== item.label
-                                                                  );
-                                                            field.onChange(newValue);
-                                                            return checked;
-                                                        }}
-                                                    />
-                                                </FormControl>
-                                                <FormLabel className="font-normal">
-                                                    {item.label}
-                                                </FormLabel>
-                                            </FormItem>
-                                        )
-                                    }}
-                                />
-                            ))}
-                            <FormMessage />
+                    render={({ field }) => (
+                        <FormItem className="space-y-3">
+                            <FormLabel>Modalidade do Agendamento</FormLabel>
+                            <FormControl>
+                                <RadioGroup
+                                    onValueChange={field.onChange}
+                                    defaultValue={field.value}
+                                    className="flex flex-col space-y-2"
+                                    name={field.name}
+                                >
+                                    {bookingModalities.map((item) => (
+                                        <FormItem key={item.id} className="flex items-center space-x-2 space-y-0">
+                                            <FormControl>
+                                                <RadioGroupItem value={item.label} id={item.id} />
+                                            </FormControl>
+                                            <FormLabel htmlFor={item.id} className="font-normal">{item.label}</FormLabel>
+                                        </FormItem>
+                                    ))}
+                                </RadioGroup>
+                            </FormControl>
+                             <FormMessage />
                         </FormItem>
                     )}
                 />
@@ -355,5 +336,4 @@ export default function BookingDetailsForm({ selectedSlots, onBookingSuccess }: 
             </form>
         </Form>
     );
-
-    
+}

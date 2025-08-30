@@ -33,7 +33,7 @@ interface Booking {
   fullName: string;
   email: string;
   selectedSlots: Record<string, string[]>;
-  bookingModalities: string[];
+  bookingModalities: string;
   status: 'pending' | 'approved' | 'rejected';
   createdAt: any;
 }
@@ -154,7 +154,7 @@ export default function DashboardPage() {
                         <TableCell className="font-medium">{booking.fullName}<br/><span className="text-xs text-muted-foreground">{booking.email}</span></TableCell>
                         <TableCell>{formattedDate}</TableCell>
                         <TableCell>{times}</TableCell>
-                        <TableCell>{booking.bookingModalities.join(', ')}</TableCell>
+                        <TableCell>{booking.bookingModalities}</TableCell>
                         <TableCell className="text-right space-x-2">
                           <Button variant="outline" size="sm" onClick={() => handleStatusUpdate(booking.id, 'approved')}>Aprovar</Button>
                           <Button variant="destructive" size="sm" onClick={() => handleStatusUpdate(booking.id, 'rejected')}>Rejeitar</Button>
