@@ -1,12 +1,13 @@
 "use client";
 
-import { Film, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import Image from "next/image";
 
 const navLinks = [
   { href: "/", label: "Início" },
@@ -37,7 +38,12 @@ export default function Header() {
       <div className="container flex h-14 items-center">
         <div className="mr-4 hidden md:flex">
           <Link href="/" className="mr-6 flex items-center space-x-2">
-            <Film className="h-6 w-6 text-primary" />
+            <Image 
+              src="/img/centrologo.png"
+              width={32}
+              height={32}
+              alt="Logotipo do Centro de Mídias Educacionais"
+            />
             <span className="hidden font-bold sm:inline-block font-headline">
               Centro de Mídias Educacionais - TO
             </span>
@@ -62,7 +68,12 @@ export default function Header() {
             </SheetTrigger>
             <div className="md:hidden flex items-center">
                 <Link href="/" className="flex items-center space-x-2">
-                    <Film className="h-6 w-6 text-primary" />
+                    <Image 
+                      src="/img/centrologo.png"
+                      width={32}
+                      height={32}
+                      alt="Logotipo do Centro de Mídias Educacionais"
+                    />
                     <span className="font-bold font-headline">Centro de Mídias Educacionais - TO</span>
                 </Link>
             </div>
@@ -72,7 +83,13 @@ export default function Header() {
                 className="flex items-center"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
-                <Film className="mr-2 h-4 w-4" />
+                <Image 
+                  src="/img/centrologo.png"
+                  width={24}
+                  height={24}
+                  alt="Logotipo do Centro de Mídias Educacionais"
+                  className="mr-2"
+                />
                 <span className="font-bold">Centro de Mídias Educacionais - TO</span>
               </Link>
               <div className="my-4 h-[calc(100vh-8rem)] pb-10 pl-6">
