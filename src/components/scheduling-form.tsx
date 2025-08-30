@@ -180,10 +180,10 @@ export default function SchedulingForm() {
                      <Button
                       key={time}
                       type="button"
-                      variant={isSelected ? "default" : isPending ? "secondary" : "outline"}
+                      variant={isSelected ? "default" : "outline"}
                       className={cn("h-8 text-xs", 
                         isSelected && "bg-primary hover:bg-primary/90",
-                        isPending && "bg-accent/20 hover:bg-accent/30 text-accent-foreground/70 cursor-not-allowed"
+                        isPending && "bg-accent/20 hover:bg-accent/30 text-accent-foreground/90 cursor-not-allowed"
                       )}
                       onClick={() => handleSlotSelect(day, time)}
                       disabled={isDayDisabled || isPending}
