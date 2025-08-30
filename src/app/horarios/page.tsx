@@ -1,10 +1,10 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, query, where, orderBy, Timestamp } from "firebase/firestore";
-import { format, parseISO, startOfToday, isAfter, isToday, isTomorrow, formatDistanceToNowStrict } from 'date-fns';
+import { format, parseISO, startOfToday, isAfter, isToday, isTomorrow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Clock, User, Building, Video } from "lucide-react";
+import CurrentTime from "@/components/current-time";
 
 interface Booking {
   id: string;
@@ -20,11 +20,14 @@ interface Booking {
 
 async function getUpcomingBookings(): Promise<Booking[]> {
   const bookingsRef = collection(db, "bookings");
+  // Firestore now requires a composite index for this query. 
+  // The error message in the Firebase console will provide a direct link to create it.
   const q = query(
     bookingsRef,
     where("status", "==", "approved"),
     orderBy("createdAt", "desc")
   );
+  
   const querySnapshot = await getDocs(q);
   const bookingsData = querySnapshot.docs.map((doc) => ({
     id: doc.id,
@@ -33,13 +36,15 @@ async function getUpcomingBookings(): Promise<Booking[]> {
 
   const today = startOfToday();
 
-  // Filtra para manter apenas agendamentos de hoje em diante
+  // Filter to keep only bookings from today onwards
   const upcoming = bookingsData.filter(booking => {
-    const bookingDate = parseISO(Object.keys(booking.selectedSlots)[0]);
+    const firstSlotDate = Object.keys(booking.selectedSlots)[0];
+    if (!firstSlotDate) return false;
+    const bookingDate = parseISO(firstSlotDate);
     return isAfter(bookingDate, today) || format(bookingDate, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd');
   });
 
-  // Ordena os agendamentos pela data e depois pelo primeiro horário
+  // Sort bookings by date and then by the first time slot
   upcoming.sort((a, b) => {
     const dateA = parseISO(Object.keys(a.selectedSlots)[0]);
     const dateB = parseISO(Object.keys(b.selectedSlots)[0]);
@@ -125,7 +130,7 @@ export default async function HorariosPage() {
         )}
       </main>
        <footer className="text-center text-gray-500 mt-16 text-lg">
-            <p>Para atualizar, recarregue a página (F5)</p>
+            <CurrentTime />
         </footer>
     </div>
   );
