@@ -28,6 +28,9 @@ export async function handleBookingRequest(
       return { success: false, message: "Por favor, selecione ao menos um horário." };
     }
 
+    // Since Firebase Auth on the server in a server action is complex without a client-side token,
+    // we'll revert to a simplified validation that doesn't rely on Firebase Auth.
+    // The previous implementation for Genkit validation is suitable.
     const validationInput = {
       selectedDates,
       businessHoursStart: "09:00",

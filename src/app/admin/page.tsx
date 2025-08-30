@@ -1,6 +1,6 @@
 import { verifySession } from "@/app/auth-actions";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, getDocs, query, where, orderBy } from "firebase/firestore";
 import { redirect } from "next/navigation";
 import {
   Card,
@@ -22,7 +22,11 @@ import { Button } from "@/components/ui/button";
 
 async function getPendingBookings() {
   const bookingsRef = collection(db, "bookings");
-  const q = query(bookingsRef, where("status", "==", "pending"));
+  const q = query(
+    bookingsRef, 
+    where("status", "==", "pending"),
+    orderBy("createdAt", "desc")
+  );
   const querySnapshot = await getDocs(q);
   const bookings = querySnapshot.docs.map((doc) => ({
     id: doc.id,

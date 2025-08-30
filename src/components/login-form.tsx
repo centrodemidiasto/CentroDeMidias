@@ -15,30 +15,30 @@ import {
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { handleSignIn } from "@/app/auth-actions";
-import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
 
 const formSchema = z.object({
+  email: z.string().email({ message: "Por favor, insira um e-mail válido." }),
   password: z.string().min(1, { message: "A senha é obrigatória." }),
 });
 
 export default function LoginForm() {
   const { toast } = useToast();
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      email: "",
       password: "",
     },
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setLoading(true);
-    const result = await handleSignIn(values.password);
+    const result = await handleSignIn(values.email, values.password);
     
     if (result.success) {
       toast({
@@ -67,17 +67,30 @@ export default function LoginForm() {
             <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Senha de Acesso</FormLabel>
-                    <FormControl>
-                        <Input type="password" placeholder="******" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                      <FormItem>
+                      <FormLabel>E-mail</FormLabel>
+                      <FormControl>
+                          <Input type="email" placeholder="email@seduc.to.gov.br" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                      </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                      <FormItem>
+                      <FormLabel>Senha de Acesso</FormLabel>
+                      <FormControl>
+                          <Input type="password" placeholder="******" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                      </FormItem>
+                  )}
                 />
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Entrar"}

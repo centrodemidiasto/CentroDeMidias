@@ -25,12 +25,13 @@ export default function Header() {
 
   useEffect(() => {
     async function checkLoginStatus() {
-      const session = await verifySession();
-      setIsLoggedIn(session.isLoggedIn);
+      setLoading(true);
+      const { isLoggedIn } = await verifySession();
+      setIsLoggedIn(isLoggedIn);
       setLoading(false);
     }
     checkLoginStatus();
-  }, [pathname]);
+  }, [pathname]); // Re-check on path change
 
 
   const NavLink = ({ href, label }: { href: string, label: string }) => (
@@ -116,7 +117,7 @@ export default function Header() {
               </div>
             </SheetContent>
           </Sheet>
-          <nav className="hidden md:flex items-center gap-2">
+          <div className="flex items-center gap-2">
             {loading ? null : isLoggedIn ? (
                <form action={handleSignOut}>
                 <Button type="submit" variant="ghost" size="sm">
@@ -135,7 +136,7 @@ export default function Header() {
             <Button asChild className="bg-accent hover:bg-accent/90 text-accent-foreground">
               <Link href="/agendamento">Agendar</Link>
             </Button>
-          </nav>
+          </div>
         </div>
       </div>
     </header>
