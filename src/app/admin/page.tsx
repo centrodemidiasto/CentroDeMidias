@@ -18,7 +18,6 @@ export default function DashboardPage() {
   }, [user, loading, router]);
 
   // Exibe o loader enquanto o estado de autenticação está sendo verificado.
-  // Se o usuário não estiver logado após o carregamento, o useEffect acima fará o redirecionamento.
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center">
