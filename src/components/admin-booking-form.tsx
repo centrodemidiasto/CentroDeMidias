@@ -37,7 +37,7 @@ export default function AdminBookingForm({ selectedSlots, onBookingSuccess }: Ad
     const form = useForm<z.infer<typeof AdminBookingSchema>>({
         defaultValues: {
             fullName: '',
-            department: '',
+            department: 'GMEACM',
             bookingModalities: undefined,
         },
     });
