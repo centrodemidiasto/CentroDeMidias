@@ -180,23 +180,22 @@ export default function SchedulingForm() {
                       
                       if (isPending) {
                         return (
-                           <div key={time}>
-                             <Tooltip>
-                                  <TooltipTrigger asChild>
-                                      <Button
-                                          type="button"
-                                          variant="outline"
-                                          className="h-8 w-full text-xs bg-accent/80 hover:bg-accent/80 text-accent-foreground cursor-not-allowed"
-                                          disabled
-                                      >
-                                      {time}
-                                      </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                      <p>Agendamento pendente de aprovação</p>
-                                  </TooltipContent>
-                             </Tooltip>
-                           </div>
+                           <Tooltip key={time}>
+                             <TooltipTrigger asChild>
+                               <span tabIndex={0}>
+                                  <Button
+                                      variant="outline"
+                                      className="h-8 w-full text-xs bg-accent/80 hover:bg-accent/80 text-accent-foreground cursor-not-allowed"
+                                      disabled
+                                  >
+                                  {time}
+                                  </Button>
+                               </span>
+                             </TooltipTrigger>
+                             <TooltipContent>
+                                 <p>Agendamento pendente de aprovação</p>
+                             </TooltipContent>
+                           </Tooltip>
                         )
                       }
                       
