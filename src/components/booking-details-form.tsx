@@ -123,7 +123,9 @@ export default function BookingDetailsForm({ selectedSlots, onBookingSuccess }: 
     }, [state, toast, form, onBookingSuccess]);
     
     const handleFormChange = () => {
-        dismiss();
+        if(state && !state.success) {
+            // This doesn't seem to be implemented yet, let's keep it simple
+        }
     }
 
     return (
@@ -353,4 +355,5 @@ export default function BookingDetailsForm({ selectedSlots, onBookingSuccess }: 
             </form>
         </Form>
     );
-}
+
+    
