@@ -20,7 +20,7 @@ export default function CalendarLegend() {
             <LegendItem colorClass="bg-primary" label="Selecionado" />
             <LegendItem colorClass="bg-green-400" label="Confirmado" />
             <LegendItem colorClass="bg-accent/80" label="Aguardando Aprovação" />
-            <LegendItem colorClass="bg-muted/50" label="Indisponível" />
+            <LegendItem colorClass="bg-muted" label="Indisponível" />
         </div>
     );
 }

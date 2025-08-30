@@ -229,7 +229,7 @@ export default function SchedulingForm() {
                                 <Button
                                     key={time}
                                     variant="outline"
-                                    className="h-8 w-full text-xs bg-muted/50 cursor-not-allowed"
+                                    className="h-8 w-full text-xs bg-muted cursor-not-allowed"
                                     disabled
                                 >
                                     {time}
