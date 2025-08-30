@@ -44,8 +44,10 @@ export async function handleBookingRequest(
         createdAt: serverTimestamp(),
         status: "pending"
       });
+      console.log('Booking saved to Firestore.');
       return { success: true, message: "Seu agendamento foi solicitado com sucesso e está pendente de aprovação!" };
     } else {
+      console.log('Booking validation failed:', result.reason);
       return { success: false, message: result.reason || "Ocorreu um erro na validação do agendamento." };
     }
   } catch (error) {

@@ -9,7 +9,8 @@ import {
   startOfWeek,
   eachDayOfInterval,
   isWeekend,
-  subDays,
+  isBefore,
+  startOfToday,
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ type SelectedSlots = {
 };
 
 const timeSlots = Array.from({ length: 9 }, (_, i) => `${String(i + 9).padStart(2, "0")}:00`);
+const MIN_BOOKING_NOTICE_DAYS = 5;
 
 const initialState = null;
 
@@ -48,11 +50,20 @@ export default function SchedulingForm() {
   const [state, formAction] = useActionState(handleBookingRequest, initialState);
   const { toast } = useToast();
 
+  const today = startOfToday();
+  const firstBookableDate = addDays(today, MIN_BOOKING_NOTICE_DAYS);
+
   const weekDays = useMemo(() => {
     const start = startOfWeek(currentDate, { locale: ptBR });
     const end = addDays(start, 6);
     return eachDayOfInterval({ start, end }).filter(day => !isWeekend(day));
   }, [currentDate]);
+  
+  const isPreviousWeekButtonDisabled = useMemo(() => {
+    const firstDayOfCurrentWeek = startOfWeek(currentDate, { locale: ptBR });
+    return isBefore(firstDayOfCurrentWeek, firstBookableDate);
+  }, [currentDate, firstBookableDate]);
+
 
   const handleSlotSelect = (day: Date, time: string) => {
     const dateKey = format(day, "yyyy-MM-dd");
@@ -63,7 +74,7 @@ export default function SchedulingForm() {
     if (selectedDays.length > 0 && !selectedDays.includes(dateKey)) {
       toast({
         title: "Atenção",
-        description: "Você só pode selecionar horários para o mesmo dia. Para agendar em outro dia, finalize ou limpe a seleção atual.",
+        description: "Você só pode selecionar horários para um único dia. O agendamento deve ser feito por dia.",
         variant: "destructive",
       });
       return;
@@ -111,7 +122,7 @@ export default function SchedulingForm() {
       <form action={formAction}>
         <CardHeader>
           <div className="flex justify-between items-center">
-            <Button variant="outline" size="icon" onClick={() => changeWeek(-1)} disabled={isWeekend(subDays(new Date(),1)) && format(currentDate, 'yyyy-MM-dd') <= format(new Date(), 'yyyy-MM-dd')}>
+            <Button variant="outline" size="icon" onClick={() => changeWeek(-1)} disabled={isPreviousWeekButtonDisabled}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <h2 className="text-lg font-bold text-center font-headline">
@@ -124,8 +135,10 @@ export default function SchedulingForm() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-5 gap-px bg-border overflow-hidden rounded-lg border">
-            {weekDays.map(day => (
-              <div key={day.toString()} className="flex flex-col bg-background">
+            {weekDays.map(day => {
+              const isDayDisabled = isBefore(day, firstBookableDate);
+              return (
+              <div key={day.toString()} className={cn("flex flex-col", isDayDisabled ? "bg-muted/50" : "bg-background")}>
                 <div className="text-center font-bold py-2 border-b font-headline capitalize">
                   {format(day, "EEE", { locale: ptBR })}
                   <div className="font-normal text-sm text-muted-foreground">{format(day, "d/MM")}</div>
@@ -141,6 +154,7 @@ export default function SchedulingForm() {
                         variant={isSelected ? "default" : "outline"}
                         className={cn("h-8 text-xs", isSelected && "bg-primary hover:bg-primary/90")}
                         onClick={() => handleSlotSelect(day, time)}
+                        disabled={isDayDisabled}
                       >
                         {time}
                       </Button>
@@ -148,7 +162,7 @@ export default function SchedulingForm() {
                   })}
                 </div>
               </div>
-            ))}
+            )})}
           </div>
           <input type="hidden" name="selectedSlots" value={JSON.stringify(selectedSlots)} />
         </CardContent>

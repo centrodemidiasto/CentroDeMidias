@@ -40,6 +40,7 @@ export default function LoginForm() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setLoading(true);
+    console.log("Attempting to sign in with:", values.email);
     const result = await handleSignIn(values.email, values.password);
     setLoading(false);
 
@@ -48,6 +49,7 @@ export default function LoginForm() {
         title: "Login bem-sucedido!",
         description: "Você será redirecionado para o painel.",
       });
+      console.log("Pushing to /admin after successful login");
       router.push("/admin");
     } else {
       toast({
