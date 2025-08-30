@@ -26,7 +26,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from '@/components/ui/button';
 import { Loader2, Info, XCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { format, parseISO, startOfToday, isAfter } from 'date-fns';
+import { format, parseISO, startOfToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import BlockSlotsForm from '@/components/block-slots-form';
 
@@ -46,6 +46,7 @@ interface Booking {
   selectedSlots: Record<string, string[]>;
   status: 'pending' | 'approved' | 'rejected';
   createdAt: Timestamp;
+  bookingDate: string; // YYYY-MM-DD
 }
 
 async function getPendingBookings(): Promise<Booking[]> {
@@ -64,11 +65,14 @@ async function getPendingBookings(): Promise<Booking[]> {
 }
 
 async function getApprovedBookings(): Promise<Booking[]> {
+  const today = format(startOfToday(), 'yyyy-MM-dd');
   const bookingsRef = collection(db, "bookings");
+
   const q = query(
     bookingsRef,
     where("status", "==", "approved"),
-    orderBy("createdAt", "desc")
+    where("bookingDate", ">=", today),
+    orderBy("bookingDate", "asc")
   );
   const querySnapshot = await getDocs(q);
   const bookings = querySnapshot.docs.map((doc) => ({
@@ -76,13 +80,18 @@ async function getApprovedBookings(): Promise<Booking[]> {
     ...doc.data(),
   })) as Booking[];
 
-  // Filter out past bookings
-  const today = startOfToday();
-  return bookings.filter(booking => {
-    const bookingDate = parseISO(Object.keys(booking.selectedSlots)[0]);
-    return isAfter(bookingDate, today) || format(bookingDate, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd');
+  // Additional client-side sort by time if needed, as Firestore can only order by one field in a range query
+  bookings.sort((a, b) => {
+    const timeA = a.selectedSlots[a.bookingDate][0];
+    const timeB = b.selectedSlots[b.bookingDate][0];
+    if (a.bookingDate < b.bookingDate) return -1;
+    if (a.bookingDate > b.bookingDate) return 1;
+    return timeA.localeCompare(timeB);
   });
+  
+  return bookings;
 }
+
 
 async function updateBookingStatus(id: string, status: 'approved' | 'rejected') {
     const bookingRef = doc(db, "bookings", id);

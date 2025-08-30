@@ -1,7 +1,8 @@
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, query, where, orderBy, Timestamp } from "firebase/firestore";
-import { format, parseISO, startOfToday, isAfter, isToday, isTomorrow } from 'date-fns';
+import { format, parseISO, startOfToday, isToday, isTomorrow, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Clock, User, Building, Video } from "lucide-react";
 import CurrentTime from "@/components/current-time";
@@ -17,16 +18,20 @@ interface Booking {
   selectedSlots: Record<string, string[]>;
   status: 'pending' | 'approved' | 'rejected';
   createdAt: Timestamp;
+  bookingDate: string; // YYYY-MM-DD
 }
 
 async function getUpcomingBookings(): Promise<Booking[]> {
+  const today = format(startOfToday(), 'yyyy-MM-dd');
+  const endOfMonthDate = format(endOfMonth(new Date()), 'yyyy-MM-dd');
   const bookingsRef = collection(db, "bookings");
-  // Firestore now requires a composite index for this query. 
-  // The error message in the Firebase console will provide a direct link to create it.
+  
   const q = query(
     bookingsRef,
     where("status", "==", "approved"),
-    orderBy("createdAt", "desc")
+    where("bookingDate", ">=", today),
+    where("bookingDate", "<=", endOfMonthDate),
+    orderBy("bookingDate", "asc")
   );
   
   const querySnapshot = await getDocs(q);
@@ -35,32 +40,16 @@ async function getUpcomingBookings(): Promise<Booking[]> {
     ...doc.data(),
   })) as Booking[];
 
-  const today = startOfToday();
-
-  // Filter to keep only bookings from today onwards
-  const upcoming = bookingsData.filter(booking => {
-    const firstSlotDate = Object.keys(booking.selectedSlots)[0];
-    if (!firstSlotDate) return false;
-    const bookingDate = parseISO(firstSlotDate);
-    return isAfter(bookingDate, today) || format(bookingDate, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd');
-  });
-
-  // Sort bookings by date and then by the first time slot
-  upcoming.sort((a, b) => {
-    const dateA = parseISO(Object.keys(a.selectedSlots)[0]);
-    const dateB = parseISO(Object.keys(b.selectedSlots)[0]);
-    
-    if (dateA.getTime() !== dateB.getTime()) {
-      return dateA.getTime() - dateB.getTime();
-    }
-
-    const timeA = a.selectedSlots[Object.keys(a.selectedSlots)[0]][0];
-    const timeB = b.selectedSlots[Object.keys(b.selectedSlots)[0]][0];
-
+  // Additional client-side sort by time if needed
+  bookingsData.sort((a, b) => {
+    const timeA = a.selectedSlots[a.bookingDate][0];
+    const timeB = b.selectedSlots[b.bookingDate][0];
+    if (a.bookingDate < b.bookingDate) return -1;
+    if (a.bookingDate > b.bookingDate) return 1;
     return timeA.localeCompare(timeB);
   });
 
-  return upcoming;
+  return bookingsData;
 }
 
 

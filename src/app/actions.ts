@@ -104,9 +104,11 @@ export async function handleBookingRequest(
     const result = await validateBookingRequest(validationInput);
 
     if (result.isValid) {
+      const bookingDate = Object.keys(selectedSlots)[0]; // YYYY-MM-DD format
       await addDoc(collection(db, "bookings"), {
         ...data,
         selectedSlots,
+        bookingDate: bookingDate, // Add this field for querying
         createdAt: serverTimestamp(),
         status: "pending"
       });
@@ -144,10 +146,12 @@ export async function handleAdminBookingRequest(
     }
 
     try {
+       const bookingDate = Object.keys(selectedSlots)[0];
        await addDoc(collection(db, "bookings"), {
             ...data,
             organizationType: 'interno',
             selectedSlots,
+            bookingDate: bookingDate, // Add this field for querying
             createdAt: serverTimestamp(),
             status: "approved" // Automatically approve admin bookings
        });
