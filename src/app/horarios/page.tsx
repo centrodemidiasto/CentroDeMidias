@@ -6,9 +6,6 @@ import { format, parseISO, startOfToday, isAfter, isToday, isTomorrow, formatDis
 import { ptBR } from 'date-fns/locale';
 import { Clock, User, Building, Video } from "lucide-react";
 
-// Força a revalidação da página a cada 60 segundos
-export const revalidate = 60;
-
 interface Booking {
   id: string;
   fullName: string;
@@ -128,9 +125,8 @@ export default async function HorariosPage() {
         )}
       </main>
        <footer className="text-center text-gray-500 mt-16 text-lg">
-            <p>Atualizado automaticamente. Última verificação: {format(new Date(), "HH:mm:ss", { locale: ptBR })}</p>
+            <p>Para atualizar, recarregue a página (F5)</p>
         </footer>
     </div>
   );
 }
-
