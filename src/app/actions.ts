@@ -53,13 +53,19 @@ type FormState = {
 
 // Helper to get Google Calendar API client
 async function getGoogleCalendarClient() {
-    // As credenciais agora são lidas diretamente das variáveis de ambiente
-    // que o Next.js expõe ao processo do servidor.
+    console.log("Tentando obter cliente do Google Calendar...");
     const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n');
     const clientEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+    const projectId = process.env.GOOGLE_PROJECT_ID;
 
-    if (!clientEmail || !privateKey) {
-        console.error("Credenciais do Google Service Account não encontradas no ambiente.");
+    // Log para verificar se as variáveis de ambiente estão sendo lidas
+    console.log(`GOOGLE_PROJECT_ID: ${projectId ? 'Encontrado' : 'NÃO ENCONTRADO'}`);
+    console.log(`GOOGLE_SERVICE_ACCOUNT_EMAIL: ${clientEmail ? 'Encontrado' : 'NÃO ENCONTRADO'}`);
+    console.log(`GOOGLE_PRIVATE_KEY: ${privateKey ? 'Encontrado' : 'NÃO ENCONTRADO'}`);
+    
+
+    if (!clientEmail || !privateKey || !projectId) {
+        console.error("Credenciais do Google Service Account não encontradas ou incompletas no ambiente.");
         throw new Error("Configuração de API do Google ausente no servidor.");
     }
 
@@ -67,11 +73,14 @@ async function getGoogleCalendarClient() {
         client_email: clientEmail,
         private_key: privateKey,
     };
+    
     const auth = new google.auth.GoogleAuth({
         credentials,
         scopes: ["https://www.googleapis.com/auth/calendar"],
     });
+
     const calendar = google.calendar({ version: "v3", auth });
+    console.log("Cliente do Google Calendar obtido com sucesso.");
     return calendar;
 }
 
@@ -179,6 +188,7 @@ export async function handleBookingRequest(
   console.log("Conexão com o DB (Admin) verificada.");
 
   const rawFormData = Object.fromEntries(formData.entries());
+  console.log("Dados brutos do formulário recebidos:", rawFormData);
   
   const parsedData = BookingDetailsSchema.safeParse({
     fullName: formData.get("fullName"),
