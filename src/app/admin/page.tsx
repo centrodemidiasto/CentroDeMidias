@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import { collection, getDocs, query, where, orderBy, doc, updateDoc, Timestamp } from 'firebase/firestore';
+import { collection, getDocs, query, where, orderBy, doc, Timestamp } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import {
   Card,
@@ -30,7 +30,7 @@ import { useToast } from '@/hooks/use-toast';
 import { format, parseISO, startOfToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import BlockSlotsForm, { ReservedBooking, ManuallyBlockedSlot } from '@/components/block-slots-form';
-
+import { updateBookingStatus } from '@/app/actions';
 
 interface Booking {
   id: string;
@@ -119,10 +119,6 @@ async function getManuallyBlockedSlots(): Promise<ManuallyBlockedSlot[]> {
     return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as ManuallyBlockedSlot);
 }
 
-async function updateBookingStatus(id: string, status: 'approved' | 'rejected') {
-    const bookingRef = doc(db, "bookings", id);
-    await updateDoc(bookingRef, { status });
-}
 
 export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null);
@@ -148,14 +144,21 @@ export default function DashboardPage() {
         setPendingBookings(data);
         setLoadingPending(false);
         setInitialLoading(false);
+    }).catch(err => {
+        console.error("Error fetching pending bookings:", err);
+        setLoadingPending(false);
+        setInitialLoading(false);
     });
   };
 
   const fetchApprovedBookings = () => {
-    if (approvedBookings) return; // Don't refetch
+    if (approvedBookings) return; // Don't refetch if already loaded
     setLoadingApproved(true);
     getApprovedBookings().then(data => {
         setApprovedBookings(data);
+        setLoadingApproved(false);
+    }).catch(err => {
+        console.error("Error fetching approved bookings:", err);
         setLoadingApproved(false);
     });
   };
@@ -165,6 +168,9 @@ export default function DashboardPage() {
     setLoadingBlockSlots(true);
     Promise.all([getReservedBookingsForBlocking(), getManuallyBlockedSlots()]).then(([reserved, manual]) => {
         setBlockSlotsData({ reserved, manual });
+        setLoadingBlockSlots(false);
+    }).catch(err => {
+        console.error("Error fetching block slots data:", err);
         setLoadingBlockSlots(false);
     });
   };
@@ -181,7 +187,7 @@ export default function DashboardPage() {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         setUser(user);
-        fetchPendingBookings();
+        fetchPendingBookings(); // Load pending bookings by default
       } else {
         router.push('/login');
       }
@@ -195,17 +201,18 @@ export default function DashboardPage() {
         await updateBookingStatus(id, status);
         toast({
             title: "Sucesso!",
-            description: `Agendamento ${status === 'approved' ? 'aprovado' : 'cancelado'}.`,
+            description: `Agendamento ${status === 'approved' ? 'aprovado e adicionado ao Google Agenda' : 'cancelado e removido do Google Agenda'}.`,
         });
         // Refetch relevant data after update
         fetchPendingBookings();
-        if (approvedBookings) {
+        if (approvedBookings) { // If approved bookings were loaded, refresh them
             fetchApprovedBookings();
         }
     } catch (error) {
+        console.error("Error updating booking status:", error);
         toast({
             title: "Erro",
-            description: "Não foi possível atualizar o status do agendamento.",
+            description: "Não foi possível atualizar o status do agendamento. Verifique o console para mais detalhes.",
             variant: "destructive",
         });
     }
@@ -224,8 +231,13 @@ export default function DashboardPage() {
   }
   
   const formatDateForDisplay = (dateString: string) => {
-      const date = parseISO(dateString);
-      return format(date, "dd 'de' MMMM, yyyy", { locale: ptBR });
+      try {
+        const date = parseISO(dateString);
+        return format(date, "dd 'de' MMMM, yyyy", { locale: ptBR });
+      } catch (error) {
+        console.error("Invalid date format:", dateString);
+        return "Data inválida";
+      }
   };
 
 
@@ -461,5 +473,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    

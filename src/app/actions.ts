@@ -2,9 +2,10 @@
 "use server";
 
 import { validateBookingRequest } from "@/ai/flows/validate-booking-request";
-import { db } from "@/lib/firebase";
-import { collection, addDoc, serverTimestamp, getDocs, query, where, writeBatch, doc } from "firebase/firestore";
+import { db } from "@/lib/firebase-admin"; // Use Firebase Admin SDK
+import { collection, addDoc, serverTimestamp, getDocs, query, where, writeBatch, doc, getDoc, updateDoc } from "firebase/firestore";
 import { z } from "zod";
+import { google } from 'googleapis';
 
 const BookingDetailsSchema = z.object({
   fullName: z.string().min(3, { message: "Nome completo é obrigatório." }),
@@ -48,6 +49,94 @@ type FormState = {
   success: boolean;
   message: string;
 } | null;
+
+
+// Helper to get Google Calendar API client
+async function getGoogleCalendarClient() {
+    const credentials = {
+        client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+        private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+    };
+    const auth = new google.auth.GoogleAuth({
+        credentials,
+        scopes: ["https://www.googleapis.com/auth/calendar"],
+    });
+    const calendar = google.calendar({ version: "v3", auth });
+    return calendar;
+}
+
+
+export async function updateBookingStatus(bookingId: string, status: 'approved' | 'rejected') {
+    const bookingRef = doc(db, "bookings", bookingId);
+    
+    try {
+        const bookingSnap = await getDoc(bookingRef);
+        if (!bookingSnap.exists()) {
+            throw new Error("Agendamento não encontrado.");
+        }
+        const bookingData = bookingSnap.data();
+        const calendarEventId = bookingData.calendarEventId;
+
+        // Update Firestore first
+        await updateDoc(bookingRef, { status });
+
+        const calendar = await getGoogleCalendarClient();
+        const calendarId = process.env.GOOGLE_CALENDAR_ID;
+        
+        if (!calendarId) {
+            throw new Error("ID do Google Calendar não configurado nas variáveis de ambiente.");
+        }
+
+        if (status === 'approved') {
+            const date = Object.keys(bookingData.selectedSlots)[0];
+            const startTimeStr = bookingData.selectedSlots[date][0];
+            const endTimeStr = bookingData.selectedSlots[date][bookingData.selectedSlots[date].length - 1];
+            
+            const startHour = parseInt(startTimeStr.split(':')[0]);
+            const endHour = parseInt(endTimeStr.split(':')[0]) + 1; // Assuming each slot is 1 hour
+
+            const event = {
+                summary: `Gravação: ${bookingData.fullName}`,
+                description: `Modalidade: ${bookingData.bookingModalities}\nSolicitante: ${bookingData.fullName} (${bookingData.email})\nÓrgão: ${bookingData.organizationType === 'interno' ? bookingData.department : bookingData.externalOrganization}`,
+                start: {
+                    dateTime: `${date}T${startTimeStr}:00`,
+                    timeZone: "America/Araguaina",
+                },
+                end: {
+                    dateTime: `${date}T${String(endHour).padStart(2, '0')}:00:00`,
+                    timeZone: "America/Araguaina",
+                },
+                attendees: bookingData.email ? [{ email: bookingData.email }] : [],
+                reminders: {
+                    useDefault: true,
+                },
+            };
+
+            const createdEvent = await calendar.events.insert({
+                calendarId,
+                requestBody: event,
+            });
+
+            // Store the event ID in Firestore so we can cancel it later
+            await updateDoc(bookingRef, { calendarEventId: createdEvent.data.id });
+
+        } else if (status === 'rejected' && calendarEventId) {
+             // If the booking is rejected and there was a calendar event, delete it
+            await calendar.events.delete({
+                calendarId,
+                eventId: calendarEventId,
+            });
+            // Optionally remove the event ID from Firestore
+            await updateDoc(bookingRef, { calendarEventId: null });
+        }
+    } catch (error) {
+        console.error("Error updating booking status or calendar event:", error);
+        // Revert status update on error to maintain consistency
+        // await updateDoc(bookingRef, { status: bookingData.status });
+        throw new Error("Falha ao atualizar o status do agendamento ou sincronizar com o Google Calendar.");
+    }
+}
+
 
 export async function handleBookingRequest(
   selectedSlots: Record<string, string[]>,
@@ -147,14 +236,19 @@ export async function handleAdminBookingRequest(
 
     try {
        const bookingDate = Object.keys(selectedSlots)[0];
-       await addDoc(collection(db, "bookings"), {
+       const newBookingRef = await addDoc(collection(db, "bookings"), {
             ...data,
             organizationType: 'interno',
+            email: 'centrodemidias@seduc.to.gov.br', // Add default email for admin bookings
             selectedSlots,
-            bookingDate: bookingDate, // Add this field for querying
+            bookingDate: bookingDate, 
             createdAt: serverTimestamp(),
-            status: "approved" // Automatically approve admin bookings
+            status: "pending" // Set to pending to trigger the approval flow
        });
+
+       // Now, call the approval function which also creates the calendar event
+       await updateBookingStatus(newBookingRef.id, 'approved');
+
        return { success: true, message: "Agendamento rápido realizado e aprovado com sucesso!" };
 
     } catch (error) {
