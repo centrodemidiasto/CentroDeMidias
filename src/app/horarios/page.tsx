@@ -1,6 +1,6 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { db } from "@/lib/firebase";
+import { db as clientDb } from "@/lib/firebase";
 import { collection, getDocs, query, where, orderBy, Timestamp } from "firebase/firestore";
 import { format, parseISO, startOfToday, isToday, isTomorrow, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -24,7 +24,7 @@ interface Booking {
 async function getUpcomingBookings(): Promise<Booking[]> {
   const today = format(startOfToday(), 'yyyy-MM-dd');
   const thirtyDaysFromNow = format(addDays(new Date(), 30), 'yyyy-MM-dd');
-  const bookingsRef = collection(db, "bookings");
+  const bookingsRef = collection(clientDb, "bookings");
   
   const q = query(
     bookingsRef,

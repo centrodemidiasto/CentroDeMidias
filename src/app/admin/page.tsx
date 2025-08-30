@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { auth, db } from '@/lib/firebase';
+import { auth, db as clientDb } from '@/lib/firebase';
 import { collection, getDocs, query, where, orderBy, doc, Timestamp } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import {
@@ -52,7 +52,7 @@ interface Booking {
 }
 
 async function getPendingBookings(): Promise<Booking[]> {
-  const bookingsRef = collection(db, "bookings");
+  const bookingsRef = collection(clientDb, "bookings");
   const q = query(
     bookingsRef,
     where("status", "==", "pending"),
@@ -68,7 +68,7 @@ async function getPendingBookings(): Promise<Booking[]> {
 
 async function getApprovedBookings(): Promise<Booking[]> {
   const today = format(startOfToday(), 'yyyy-MM-dd');
-  const bookingsRef = collection(db, "bookings");
+  const bookingsRef = collection(clientDb, "bookings");
 
   const q = query(
     bookingsRef,
@@ -95,7 +95,7 @@ async function getApprovedBookings(): Promise<Booking[]> {
 }
 
 async function getReservedBookingsForBlocking(): Promise<ReservedBooking[]> {
-  const bookingsRef = collection(db, "bookings");
+  const bookingsRef = collection(clientDb, "bookings");
   const q = query(
     bookingsRef,
     where("status", "in", ["pending", "approved"])
@@ -114,7 +114,7 @@ async function getReservedBookingsForBlocking(): Promise<ReservedBooking[]> {
 }
 
 async function getManuallyBlockedSlots(): Promise<ManuallyBlockedSlot[]> {
-    const blockedSlotsRef = collection(db, "blockedSlots");
+    const blockedSlotsRef = collection(clientDb, "blockedSlots");
     const querySnapshot = await getDocs(blockedSlotsRef);
     return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as ManuallyBlockedSlot);
 }
@@ -146,6 +146,7 @@ export default function DashboardPage() {
         setInitialLoading(false);
     }).catch(err => {
         console.error("Error fetching pending bookings:", err);
+        toast({ title: "Erro ao buscar pendentes", description: err.message, variant: "destructive"});
         setLoadingPending(false);
         setInitialLoading(false);
     });
@@ -159,6 +160,7 @@ export default function DashboardPage() {
         setLoadingApproved(false);
     }).catch(err => {
         console.error("Error fetching approved bookings:", err);
+        toast({ title: "Erro ao buscar aprovados", description: err.message, variant: "destructive"});
         setLoadingApproved(false);
     });
   };
@@ -171,6 +173,7 @@ export default function DashboardPage() {
         setLoadingBlockSlots(false);
     }).catch(err => {
         console.error("Error fetching block slots data:", err);
+        toast({ title: "Erro ao buscar dados de bloqueio", description: err.message, variant: "destructive"});
         setLoadingBlockSlots(false);
     });
   };
@@ -208,11 +211,11 @@ export default function DashboardPage() {
         if (approvedBookings) { // If approved bookings were loaded, refresh them
             fetchApprovedBookings();
         }
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error updating booking status:", error);
         toast({
             title: "Erro",
-            description: "Não foi possível atualizar o status do agendamento. Verifique o console para mais detalhes.",
+            description: error.message || "Não foi possível atualizar o status do agendamento.",
             variant: "destructive",
         });
     }

@@ -67,6 +67,9 @@ async function getGoogleCalendarClient() {
 
 
 export async function updateBookingStatus(bookingId: string, status: 'approved' | 'rejected') {
+    if (!db) {
+      throw new Error("A conexão com o banco de dados não foi inicializada.");
+    }
     const bookingRef = doc(db, "bookings", bookingId);
     
     try {
@@ -150,7 +153,9 @@ export async function handleBookingRequest(
   prevState: FormState,
   formData: FormData
 ): Promise<FormState> {
-  
+  if (!db) {
+    return { success: false, message: "Ocorreu um erro de configuração do servidor. Tente novamente mais tarde." };
+  }
   const rawFormData = Object.fromEntries(formData.entries());
   console.log("Raw form data received:", rawFormData);
   
@@ -223,7 +228,9 @@ export async function handleAdminBookingRequest(
     prevState: FormState,
     formData: FormData
 ): Promise<FormState> {
-
+    if (!db) {
+      return { success: false, message: "Ocorreu um erro de configuração do servidor. Tente novamente mais tarde." };
+    }
     const parsedData = AdminBookingSchema.safeParse({
         fullName: formData.get("fullName"),
         department: formData.get("department"),
@@ -263,5 +270,3 @@ export async function handleAdminBookingRequest(
         return { success: false, message: "Ocorreu um erro inesperado. Tente novamente." };
     }
 }
-
-    

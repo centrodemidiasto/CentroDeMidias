@@ -19,7 +19,7 @@ import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { collection, getDocs, query, where, writeBatch, doc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { db as clientDb } from "@/lib/firebase";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import AdminCalendarLegend from "./admin-calendar-legend";
 
@@ -59,7 +59,7 @@ export default function BlockSlotsForm({ initialReservedBookings, initialManuall
   const { toast } = useToast();
   
   const fetchManuallyBlockedSlots = async () => {
-    const blockedSlotsRef = collection(db, "blockedSlots");
+    const blockedSlotsRef = collection(clientDb, "blockedSlots");
     const querySnapshot = await getDocs(blockedSlotsRef);
     const newBlockedSlots = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as ManuallyBlockedSlot);
     setManuallyBlockedSlots(newBlockedSlots);
@@ -103,8 +103,8 @@ export default function BlockSlotsForm({ initialReservedBookings, initialManuall
   const handleSaveChanges = async () => {
     setIsSubmitting(true);
     try {
-      const batch = writeBatch(db);
-      const blockedSlotsRef = collection(db, 'blockedSlots');
+      const batch = writeBatch(clientDb);
+      const blockedSlotsRef = collection(clientDb, 'blockedSlots');
       
       const changesByDate: Record<string, { toBlock: string[], toUnblock: string[] }> = {};
 
@@ -149,7 +149,7 @@ export default function BlockSlotsForm({ initialReservedBookings, initialManuall
           }
         } else if (finalTimes.length > 0) {
           // Create a new document if it doesn't exist and there are times to block
-          batch.set(doc(collection(db, "blockedSlots")), { date, times: finalTimes });
+          batch.set(doc(collection(clientDb, "blockedSlots")), { date, times: finalTimes });
         }
       }
 
@@ -311,5 +311,3 @@ export default function BlockSlotsForm({ initialReservedBookings, initialManuall
     </>
   );
 }
-
-    

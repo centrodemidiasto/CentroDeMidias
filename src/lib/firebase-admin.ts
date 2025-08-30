@@ -3,28 +3,27 @@ import { getFirestore } from 'firebase-admin/firestore';
 
 // This ensures we only initialize the app once
 if (!admin.apps.length) {
-    // Make sure to replace newline characters in the private key
-    const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, '\n');
+    const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n');
 
-    if (!process.env.FIREBASE_ADMIN_PROJECT_ID || !privateKey || !process.env.FIREBASE_ADMIN_CLIENT_EMAIL) {
-        console.error("Firebase Admin SDK environment variables are not set.");
-    }
-
-    try {
-        admin.initializeApp({
-            credential: admin.credential.cert({
-                projectId: process.env.FIREBASE_ADMIN_PROJECT_ID,
-                privateKey: privateKey,
-                clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
-            }),
-            databaseURL: `https://${process.env.FIREBASE_ADMIN_PROJECT_ID}.firebaseio.com`
-        });
-    } catch (error) {
-        console.error('Firebase admin initialization error', error);
+    if (process.env.GOOGLE_PROJECT_ID && privateKey && process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL) {
+        try {
+            admin.initializeApp({
+                credential: admin.credential.cert({
+                    projectId: process.env.GOOGLE_PROJECT_ID,
+                    privateKey: privateKey,
+                    clientEmail: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+                }),
+                databaseURL: `https://${process.env.GOOGLE_PROJECT_ID}.firebaseio.com`
+            });
+        } catch (error) {
+            console.error('Firebase admin initialization error', error);
+        }
+    } else {
+         console.warn("Firebase Admin SDK environment variables are not fully set. Skipping initialization.");
     }
 }
 
 
-const db = getFirestore();
+const db = admin.apps.length ? getFirestore() : null;
 
 export { db };
