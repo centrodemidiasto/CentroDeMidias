@@ -48,7 +48,7 @@ export default function LoginForm() {
         title: "Login bem-sucedido!",
         description: "Você será redirecionado para o painel.",
       });
-      router.push("/admin/dashboard");
+      router.push("/admin");
     } else {
       toast({
         title: "Erro de login",

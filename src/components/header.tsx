@@ -63,7 +63,7 @@ export default function Header() {
             {navLinks.map((link) => (
               <NavLink key={link.href} {...link} />
             ))}
-             {user && <NavLink href="/admin/dashboard" label="Painel" />}
+             {user && <NavLink href="/admin" label="Painel" />}
           </nav>
         </div>
 
@@ -109,7 +109,7 @@ export default function Header() {
                   {navLinks.map((link) => (
                     <NavLink key={link.href} {...link} />
                   ))}
-                   {user && <NavLink href="/admin/dashboard" label="Painel" />}
+                   {user && <NavLink href="/admin" label="Painel" />}
                 </div>
               </div>
             </SheetContent>
