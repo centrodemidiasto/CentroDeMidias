@@ -1,5 +1,5 @@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { ListChecks } from "lucide-react";
+import { ListChecks, Clock, AlertTriangle } from "lucide-react";
 import SchedulingForm from "@/components/scheduling-form";
 
 export default function AgendamentoPage() {
@@ -10,10 +10,19 @@ export default function AgendamentoPage() {
           <h1 className="text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl font-headline">
             Agendamento de Horários
           </h1>
-          <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground font-body">
-            Selecione os dias e horários desejados para utilizar nossos estúdios.
-          </p>
+          <div className="mt-4 flex items-center justify-center gap-2 text-muted-foreground font-body">
+            <Clock className="h-4 w-4" />
+            <span>Cada agendamento tem duração de 60 minutos.</span>
+          </div>
         </div>
+
+        <Alert variant="destructive" className="bg-destructive/5 border-destructive/20 text-destructive">
+            <AlertTriangle className="h-4 w-4 text-destructive" />
+            <AlertTitle className="font-headline">Atenção</AlertTitle>
+            <AlertDescription className="font-body">
+            Todos os arquivos e materiais digitais, tais como: Slides, Vídeos, Música e outros materiais que serão utilizados como auxilio durante as gravações e lives, precisam ser enviadas para o e-mail: centrodemidias@seduc.to.gov.br com pelo menos 72h (Setenta e duas horas) de antecedência ao horário respectivamente agendado.
+            </AlertDescription>
+        </Alert>
 
         <Alert className="bg-primary/5 border-primary/20">
           <ListChecks className="h-4 w-4 text-primary" />
