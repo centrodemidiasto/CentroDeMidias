@@ -53,34 +53,23 @@ type FormState = {
 
 // Helper to get Google Calendar API client
 async function getGoogleCalendarClient() {
-    console.log("Tentando obter cliente do Google Calendar...");
     const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n');
     const clientEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-    const projectId = process.env.GOOGLE_PROJECT_ID;
 
-    // Log para verificar se as variáveis de ambiente estão sendo lidas
-    console.log(`GOOGLE_PROJECT_ID: ${projectId ? 'Encontrado' : 'NÃO ENCONTRADO'}`);
-    console.log(`GOOGLE_SERVICE_ACCOUNT_EMAIL: ${clientEmail ? 'Encontrado' : 'NÃO ENCONTRADO'}`);
-    console.log(`GOOGLE_PRIVATE_KEY: ${privateKey ? 'Encontrado' : 'NÃO ENCONTRADO'}`);
-    
-
-    if (!clientEmail || !privateKey || !projectId) {
+    if (!clientEmail || !privateKey) {
         console.error("Credenciais do Google Service Account não encontradas ou incompletas no ambiente.");
         throw new Error("Configuração de API do Google ausente no servidor.");
     }
 
-    const credentials = {
-        client_email: clientEmail,
-        private_key: privateKey,
-    };
-    
     const auth = new google.auth.GoogleAuth({
-        credentials,
+        credentials: {
+          client_email: clientEmail,
+          private_key: privateKey,
+        },
         scopes: ["https://www.googleapis.com/auth/calendar"],
     });
 
     const calendar = google.calendar({ version: "v3", auth });
-    console.log("Cliente do Google Calendar obtido com sucesso.");
     return calendar;
 }
 
@@ -137,12 +126,10 @@ export async function updateBookingStatus(bookingId: string, status: 'approved' 
                 },
             };
 
-            console.log("Criando evento no Google Calendar:", event);
             const createdEvent = await calendar.events.insert({
                 calendarId,
                 requestBody: event,
             });
-            console.log("Evento criado com sucesso, ID:", createdEvent.data.id);
 
             // Store the event ID in Firestore so we can cancel it later
             await updateDoc(bookingRef, { calendarEventId: createdEvent.data.id });
@@ -150,19 +137,15 @@ export async function updateBookingStatus(bookingId: string, status: 'approved' 
         } else if (status === 'rejected' && calendarEventId) {
              // If the booking is rejected and there was a calendar event, delete it
             try {
-                console.log("Cancelando evento no Google Calendar, ID:", calendarEventId);
                 await calendar.events.delete({
                     calendarId,
                     eventId: calendarEventId,
                 });
-                console.log("Evento cancelado com sucesso.");
             } catch (err: any) {
                 // If the event is already deleted on Google Calendar, ignore the error.
                 if (err.code !== 410) {
-                     console.error("Erro ao deletar evento do Google Calendar (não era 410):", err);
                     throw err; // Re-throw other errors
                 }
-                console.log("Evento já havia sido removido do Google Calendar (erro 410 ignorado).");
             }
             // Optionally remove the event ID from Firestore
             await updateDoc(bookingRef, { calendarEventId: null });
@@ -180,15 +163,11 @@ export async function handleBookingRequest(
   prevState: FormState,
   formData: FormData
 ): Promise<FormState> {
-  console.log("Iniciando handleBookingRequest no servidor...");
   if (!db) {
-    console.error("Ação handleBookingRequest falhou: Conexão com Firestore (Admin) é nula.");
     return { success: false, message: "Ocorreu um erro de configuração do servidor. Tente novamente mais tarde." };
   }
-  console.log("Conexão com o DB (Admin) verificada.");
 
   const rawFormData = Object.fromEntries(formData.entries());
-  console.log("Dados brutos do formulário recebidos:", rawFormData);
   
   const parsedData = BookingDetailsSchema.safeParse({
     fullName: formData.get("fullName"),
@@ -207,15 +186,12 @@ export async function handleBookingRequest(
 
   if (!parsedData.success) {
     const errorMessages = parsedData.error.errors.map(e => `- ${e.message}`).join("\n");
-    console.error("Erro de validação do formulário:", errorMessages);
     return { success: false, message: `Por favor, corrija os seguintes erros:\n${errorMessages}` };
   }
 
   const data = parsedData.data;
-  console.log("Dados do formulário validados:", data);
   
   if (!selectedSlots || Object.keys(selectedSlots).length === 0) {
-    console.error("Erro de validação: Nenhum horário selecionado.");
     return { success: false, message: "Nenhum horário selecionado." };
   }
 
@@ -235,14 +211,11 @@ export async function handleBookingRequest(
       maxBookingDays: 7,
     };
     
-    console.log("Enviando para validação da IA:", validationInput);
     const result = await validateBookingRequest(validationInput);
-    console.log("Resultado da validação da IA:", result);
 
 
     if (result.isValid) {
       const bookingDate = Object.keys(selectedSlots)[0]; // YYYY-MM-DD format
-      console.log("Adicionando documento ao Firestore...");
       await addDoc(collection(db, "bookings"), {
         ...data,
         selectedSlots,
@@ -250,10 +223,8 @@ export async function handleBookingRequest(
         createdAt: serverTimestamp(),
         status: "pending"
       });
-      console.log("Documento adicionado com sucesso.");
       return { success: true, message: "Seu agendamento foi solicitado com sucesso e está pendente de aprovação!" };
     } else {
-      console.error("Validação da IA falhou:", result.reason);
       return { success: false, message: result.reason || "Ocorreu um erro na validação do agendamento." };
     }
   } catch (error) {
@@ -268,7 +239,6 @@ export async function handleAdminBookingRequest(
     formData: FormData
 ): Promise<FormState> {
     if (!db) {
-      console.error("Ação handleAdminBookingRequest falhou: Conexão com Firestore (Admin) é nula.");
       return { success: false, message: "Ocorreu um erro de configuração do servidor. Tente novamente mais tarde." };
     }
     const parsedData = AdminBookingSchema.safeParse({
