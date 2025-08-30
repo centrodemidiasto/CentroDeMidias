@@ -1,3 +1,4 @@
+
 import Image from "next/image";
 import Link from "next/link";
 
@@ -7,15 +8,13 @@ export default function Footer() {
       <div className="container flex flex-col items-center justify-center gap-6 py-8">
         <div className="flex flex-col items-center gap-4">
           <Link href="/" className="flex items-center space-x-2">
-            <Image 
-              src="/img/centroicone.png"
-              width={40}
-              height={40}
-              alt="Logotipo do Centro de Mídias Educacionais"
+             <Image
+                src="/img/centrologo.png"
+                width={180}
+                height={50}
+                alt="Logotipo do Centro de Mídias Educacionais"
+                className="object-contain"
             />
-            <span className="font-bold sm:inline-block font-headline">
-              Centro de Mídias Educacionais - TO
-            </span>
           </Link>
           <div className="text-sm text-muted-foreground text-center">
             <p>Endereço: Quadra 604 Sul, Alameda 6, S/N – Plano Diretor Sul</p>

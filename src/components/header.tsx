@@ -72,15 +72,13 @@ export default function Header() {
       <div className="container flex h-14 items-center">
         <div className="mr-4 hidden md:flex">
           <Link href="/" className="mr-6 flex items-center space-x-2">
-            <Image 
-              src="/img/centroicone.png"
-              width={32}
-              height={32}
-              alt="Logotipo do Centro de Mídias Educacionais"
+            <Image
+                src="/img/centrologo.png"
+                width={150}
+                height={40}
+                alt="Logotipo do Centro de Mídias Educacionais"
+                className="object-contain"
             />
-            <span className="hidden font-bold sm:inline-block font-headline">
-              Centro de Mídias Educacionais - TO
-            </span>
           </Link>
           <nav className="flex items-center space-x-6 text-sm font-medium">
             {navLinks.map((link) => (
@@ -103,13 +101,13 @@ export default function Header() {
             </SheetTrigger>
             <div className="md:hidden flex items-center">
                 <Link href="/" className="flex items-center space-x-2">
-                    <Image 
-                      src="/img/centroicone.png"
-                      width={32}
-                      height={32}
-                      alt="Logotipo do Centro de Mídias Educacionais"
+                     <Image
+                        src="/img/centrologo.png"
+                        width={120}
+                        height={32}
+                        alt="Logotipo do Centro de Mídias Educacionais"
+                        className="object-contain"
                     />
-                    <span className="font-bold font-headline">Centro de Mídias - TO</span>
                 </Link>
             </div>
             <SheetContent side="left" className="pr-0">
@@ -119,13 +117,12 @@ export default function Header() {
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 <Image 
-                  src="/img/centroicone.png"
-                  width={24}
-                  height={24}
+                  src="/img/centrologo.png"
+                  width={120}
+                  height={32}
                   alt="Logotipo do Centro de Mídias Educacionais"
-                  className="mr-2"
+                  className="mr-2 object-contain"
                 />
-                <span className="font-bold">Centro de Mídias - TO</span>
               </Link>
               <div className="my-4 h-[calc(100vh-8rem)] pb-10 pl-6">
                 <div className="flex flex-col space-y-3">
