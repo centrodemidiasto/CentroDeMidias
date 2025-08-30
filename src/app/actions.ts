@@ -6,7 +6,7 @@ import { db } from "@/lib/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { z } from "zod";
 
-export const BookingDetailsSchema = z.object({
+const baseSchema = z.object({
   fullName: z.string().min(3, { message: "Nome completo é obrigatório." }),
   email: z.string().email({ message: "E-mail inválido." }),
   phone: z.string().min(15, { message: "Telefone inválido." }),
@@ -20,14 +20,24 @@ export const BookingDetailsSchema = z.object({
   participantCount: z.coerce.number().min(1, { message: "Informe o número de participantes." }),
   tableCount: z.coerce.number().min(0, "Mínimo 0.").max(3, "Máximo 3 mesas."),
   chairCount: z.coerce.number().min(0, "Mínimo 0.").max(10, "Máximo 10 cadeiras."),
-}).refine(data => {
-    if (data.organizationType === 'interno') return !!data.department && data.department.length > 0;
-    return true;
-}, { message: "Departamento é obrigatório para órgão interno.", path: ["department"]})
-.refine(data => {
-    if (data.organizationType === 'externo') return !!data.externalOrganization && data.externalOrganization.length > 0;
-    return true;
-}, { message: "Nome do órgão é obrigatório.", path: ["externalOrganization"]});
+});
+
+export const BookingDetailsSchema = baseSchema.superRefine((data, ctx) => {
+    if (data.organizationType === 'interno' && (!data.department || data.department.trim().length === 0)) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Departamento é obrigatório para órgão interno.",
+            path: ["department"],
+        });
+    }
+    if (data.organizationType === 'externo' && (!data.externalOrganization || data.externalOrganization.trim().length === 0)) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Nome do órgão é obrigatório.",
+            path: ["externalOrganization"],
+        });
+    }
+});
 
 
 type FormState = {
