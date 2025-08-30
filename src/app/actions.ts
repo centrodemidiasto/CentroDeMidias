@@ -1,6 +1,8 @@
 "use server";
 
 import { validateBookingRequest } from "@/ai/flows/validate-booking-request";
+import { db } from "@/lib/firebase";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 
 type FormState = {
   success: boolean;
@@ -36,8 +38,12 @@ export async function handleBookingRequest(
     const result = await validateBookingRequest(validationInput);
 
     if (result.isValid) {
-      // Here you would typically save the booking to a database.
-      // For this example, we'll just return a success message.
+      // Save the booking to Firestore
+      await addDoc(collection(db, "bookings"), {
+        selectedSlots,
+        createdAt: serverTimestamp(),
+        status: "pending"
+      });
       return { success: true, message: "Seu agendamento foi solicitado com sucesso e está pendente de aprovação!" };
     } else {
       return { success: false, message: result.reason || "Ocorreu um erro na validação do agendamento." };
