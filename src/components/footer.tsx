@@ -5,7 +5,7 @@ export default function Footer() {
   return (
     <footer className="border-t bg-background">
       <div className="container flex flex-col items-center justify-center gap-6 py-8">
-        <div className="flex flex-col items-center gap-4 text-center">
+        <div className="flex flex-col items-center gap-4">
           <Link href="/" className="flex items-center space-x-2">
             <Image 
               src="/img/centroicone.png"
@@ -17,7 +17,7 @@ export default function Footer() {
               Centro de Mídias Educacionais - TO
             </span>
           </Link>
-          <div className="text-sm text-muted-foreground">
+          <div className="text-sm text-muted-foreground text-center">
             <p>Endereço: Quadra 604 Sul, Alameda 6, S/N – Plano Diretor Sul</p>
             <p>Palmas-TO – CEP 77022-038</p>
             <p>Contato: centrodemidias@seduc.to.gov.br</p>
