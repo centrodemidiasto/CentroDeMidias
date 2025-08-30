@@ -201,8 +201,11 @@ export default function SchedulingForm() {
             <div className="grid grid-cols-1 md:grid-cols-5 gap-px bg-border overflow-hidden rounded-lg border">
             {weekDays.map(day => {
                 const isDayDisabledForUser = isBefore(day, firstBookableDate);
-                const isDayDisabled = user ? false : isDayDisabledForUser;
+                let isDayDisabled = user ? false : isDayDisabledForUser;
                 const dateKeyForReserved = format(day, "yyyy-MM-dd");
+                 if (user && isBefore(day, startOfToday())) {
+                  isDayDisabled = true;
+                }
                 
                 return (
                 <div key={day.toString()} className={cn("flex flex-col", isDayDisabled ? "bg-muted/50" : "bg-background")}>
@@ -219,24 +222,14 @@ export default function SchedulingForm() {
 
                       if (manuallyBlocked) {
                            return (
-                                <div key={time}>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <span tabIndex={0}>
-                                                <Button
-                                                    variant="outline"
-                                                    className="h-8 w-full text-xs bg-destructive/80 hover:bg-destructive/80 text-destructive-foreground cursor-not-allowed"
-                                                    disabled
-                                                >
-                                                    {time}
-                                                </Button>
-                                            </span>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            <p>Equipe Centro de Mídias</p>
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </div>
+                                <Button
+                                    key={time}
+                                    variant="outline"
+                                    className="h-8 w-full text-xs bg-muted/50 cursor-not-allowed"
+                                    disabled
+                                >
+                                    {time}
+                                </Button>
                             );
                       }
 

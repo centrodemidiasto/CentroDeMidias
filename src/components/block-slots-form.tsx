@@ -8,6 +8,9 @@ import {
   startOfWeek,
   eachDayOfInterval,
   isWeekend,
+  isBefore,
+  startOfToday,
+  endOfWeek
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -62,6 +65,7 @@ async function getManuallyBlockedSlots(): Promise<ManuallyBlockedSlot[]> {
 }
 
 export default function BlockSlotsForm() {
+  const today = startOfToday();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedSlots, setSelectedSlots] = useState<SelectedSlots>({});
   const [reservedBookings, setReservedBookings] = useState<ReservedBooking[]>([]);
@@ -89,6 +93,11 @@ export default function BlockSlotsForm() {
     const end = addDays(start, 6);
     return eachDayOfInterval({ start, end }).filter(day => !isWeekend(day));
   }, [currentDate]);
+
+  const isPreviousWeekButtonDisabled = useMemo(() => {
+    const firstDayOfCurrentWeek = startOfWeek(currentDate, { locale: ptBR });
+    return isBefore(firstDayOfCurrentWeek, startOfWeek(today, { locale: ptBR }));
+  }, [currentDate, today]);
 
   const handleSlotSelect = (day: Date, time: string) => {
     const dateKey = format(day, "yyyy-MM-dd");
@@ -176,7 +185,7 @@ export default function BlockSlotsForm() {
     <>
       <CardHeader>
         <div className="flex justify-between items-center">
-          <Button variant="outline" size="icon" onClick={() => changeWeek(-1)}>
+          <Button variant="outline" size="icon" onClick={() => changeWeek(-1)} disabled={isPreviousWeekButtonDisabled}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <h2 className="text-lg font-bold text-center font-headline">
@@ -197,8 +206,10 @@ export default function BlockSlotsForm() {
             <div className="grid grid-cols-1 md:grid-cols-5 gap-px bg-border overflow-hidden rounded-lg border">
               {weekDays.map(day => {
                 const dateKeyForReserved = format(day, "yyyy-MM-dd");
+                const isPastDay = isBefore(day, today);
+
                 return (
-                  <div key={day.toString()} className="flex flex-col bg-background">
+                  <div key={day.toString()} className={cn("flex flex-col", isPastDay ? "bg-muted/50" : "bg-background")}>
                     <div className="text-center font-bold py-2 border-b font-headline capitalize">
                       {format(day, "EEE", { locale: ptBR })}
                       <div className="font-normal text-sm text-muted-foreground">{format(day, "d/MM")}</div>
@@ -211,7 +222,7 @@ export default function BlockSlotsForm() {
                         const manuallyBlocked = manuallyBlockedSlots.find(b => b.date === dateKeyForReserved && b.times.includes(time));
 
                         let buttonClass = "";
-                        let isDisabled = false;
+                        let isDisabled = isPastDay;
                         let tooltipContent = "";
 
                         if (reservedSlot) {
@@ -243,9 +254,11 @@ export default function BlockSlotsForm() {
                                         </Button>
                                       </span>
                                     </TooltipTrigger>
+                                    {tooltipContent && (
                                     <TooltipContent>
                                       <p>{tooltipContent}</p>
                                     </TooltipContent>
+                                    )}
                                   </Tooltip>
                                 </div>
                               );
