@@ -15,14 +15,17 @@ import {
 import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, Info } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import BookingDetailsForm from "./booking-details-form";
+import AdminBookingForm from "./admin-booking-form";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
 import { collection, getDocs, query, where, Timestamp } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { db, auth } from "@/lib/firebase";
+import { onAuthStateChanged, User } from "firebase/auth";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
+import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
 
 
 export type SelectedSlots = {
@@ -80,8 +83,16 @@ export default function SchedulingForm() {
   const [reservedBookings, setReservedBookings] = useState<ReservedBooking[]>([]);
   const [manuallyBlockedSlots, setManuallyBlockedSlots] = useState<ManuallyBlockedSlot[]>([]);
   const [loadingReserved, setLoadingReserved] = useState(true);
+  const [user, setUser] = useState<User | null>(null);
 
   const { toast } = useToast();
+  
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUser(user);
+    });
+    return () => unsubscribe();
+  }, []);
   
   const fetchAllBookings = () => {
     setLoadingReserved(true);
@@ -105,9 +116,11 @@ export default function SchedulingForm() {
   
   const isPreviousWeekButtonDisabled = useMemo(() => {
     const firstDayOfCurrentWeek = startOfWeek(currentDate, { locale: ptBR });
+    // Allow admins to go back in time, but not regular users
+    if (user) return false;
     const firstPossibleDay = startOfWeek(firstBookableDate, { locale: ptBR });
     return isBefore(firstDayOfCurrentWeek, firstPossibleDay);
-  }, [currentDate, firstBookableDate]);
+  }, [currentDate, firstBookableDate, user]);
 
 
   const handleSlotSelect = (day: Date, time: string) => {
@@ -154,6 +167,17 @@ export default function SchedulingForm() {
 
   return (
     <Card>
+      {user && (
+         <div className="p-4 border-b">
+            <Alert variant="default" className="bg-primary/5 border-primary/20">
+                <Info className="h-4 w-4 text-primary" />
+                <AlertTitle className="font-headline text-primary">Modo de Agendamento Simplificado</AlertTitle>
+                <AlertDescription>
+                    Você está autenticado com uma conta do Centro de Mídias. Os agendamentos realizados serão aprovados automaticamente e usarão um formulário simplificado.
+                </AlertDescription>
+            </Alert>
+         </div>
+      )}
       <CardHeader>
         <div className="flex justify-between items-center">
           <Button variant="outline" size="icon" onClick={() => changeWeek(-1)} disabled={isPreviousWeekButtonDisabled}>
@@ -176,7 +200,8 @@ export default function SchedulingForm() {
         ) : (
             <div className="grid grid-cols-1 md:grid-cols-5 gap-px bg-border overflow-hidden rounded-lg border">
             {weekDays.map(day => {
-                const isDayDisabled = isBefore(day, firstBookableDate);
+                const isDayDisabledForUser = isBefore(day, firstBookableDate);
+                const isDayDisabled = user ? false : isDayDisabledForUser;
                 const dateKeyForReserved = format(day, "yyyy-MM-dd");
                 
                 return (
@@ -279,9 +304,15 @@ export default function SchedulingForm() {
             </DialogTrigger>
             <DialogContent className="sm:max-w-[625px]">
               <DialogHeader>
-                <DialogTitle className="font-headline">Informações para o agendamento</DialogTitle>
+                <DialogTitle className="font-headline">
+                    {user ? "Agendamento Simplificado" : "Informações para o agendamento"}
+                </DialogTitle>
               </DialogHeader>
-              <BookingDetailsForm selectedSlots={selectedSlots} onBookingSuccess={onBookingSuccess}/>
+              {user ? (
+                 <AdminBookingForm selectedSlots={selectedSlots} onBookingSuccess={onBookingSuccess}/>
+              ) : (
+                 <BookingDetailsForm selectedSlots={selectedSlots} onBookingSuccess={onBookingSuccess}/>
+              )}
             </DialogContent>
           </Dialog>
         </CardFooter>

@@ -37,6 +37,12 @@ const BookingDetailsSchema = z.object({
     }
 });
 
+const AdminBookingSchema = z.object({
+    fullName: z.string().min(3, { message: "Nome do responsável é obrigatório." }),
+    department: z.string().min(2, { message: "Setor/Departamento é obrigatório." }),
+    bookingModalities: z.string({ required_error: "Selecione uma modalidade." }),
+});
+
 
 type FormState = {
   success: boolean;
@@ -112,4 +118,43 @@ export async function handleBookingRequest(
     console.error("Error handling booking request:", error);
     return { success: false, message: "Ocorreu um erro inesperado. Tente novamente." };
   }
+}
+
+export async function handleAdminBookingRequest(
+    selectedSlots: Record<string, string[]>,
+    prevState: FormState,
+    formData: FormData
+): Promise<FormState> {
+
+    const parsedData = AdminBookingSchema.safeParse({
+        fullName: formData.get("fullName"),
+        department: formData.get("department"),
+        bookingModalities: formData.get("bookingModalities"),
+    });
+
+    if (!parsedData.success) {
+        const errorMessages = parsedData.error.errors.map(e => `- ${e.message}`).join("\n");
+        return { success: false, message: `Por favor, corrija os seguintes erros:\n${errorMessages}` };
+    }
+    
+    const data = parsedData.data;
+
+    if (!selectedSlots || Object.keys(selectedSlots).length === 0) {
+        return { success: false, message: "Nenhum horário selecionado." };
+    }
+
+    try {
+       await addDoc(collection(db, "bookings"), {
+            ...data,
+            organizationType: 'interno',
+            selectedSlots,
+            createdAt: serverTimestamp(),
+            status: "approved" // Automatically approve admin bookings
+       });
+       return { success: true, message: "Agendamento rápido realizado e aprovado com sucesso!" };
+
+    } catch (error) {
+        console.error("Error handling admin booking request:", error);
+        return { success: false, message: "Ocorreu um erro inesperado. Tente novamente." };
+    }
 }
