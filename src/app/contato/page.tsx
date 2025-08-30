@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Mail, MapPin, Clock } from "lucide-react";
+import { Mail, MapPin, Clock, Youtube, Instagram } from "lucide-react";
 
 export default function ContatoPage() {
   return (
@@ -55,6 +55,31 @@ export default function ContatoPage() {
                   </p>
                 </div>
               </div>
+
+               <div className="flex items-start gap-4">
+                <div className="bg-primary/10 p-3 rounded-full">
+                  <Youtube className="w-6 h-6 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold font-headline">Youtube</h3>
+                  <a href="https://www.youtube.com/channel/UC38AnaXTbx5ZzWBQx8av62Q" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors font-body">
+                    @CentrodeMidiasTO
+                  </a>
+                </div>
+              </div>
+
+               <div className="flex items-start gap-4">
+                <div className="bg-primary/10 p-3 rounded-full">
+                  <Instagram className="w-6 h-6 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold font-headline">Instagram</h3>
+                  <a href="https://www.instagram.com/centrodemidias.to" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors font-body">
+                    @centrodemidias.to
+                  </a>
+                </div>
+              </div>
+
             </div>
           </CardContent>
         </Card>
