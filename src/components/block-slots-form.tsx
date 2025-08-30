@@ -119,6 +119,7 @@ export default function BlockSlotsForm() {
   const totalSelectedSlots = Object.values(selectedSlots).reduce((acc, curr) => acc + curr.length, 0);
 
   const handleSaveChanges = async () => {
+    console.log("[Client] Initiating handleSaveChanges. Selected slots:", selectedSlots);
     setIsSubmitting(true);
     try {
         const slotsToBlock: SelectedSlots = {};
@@ -137,18 +138,39 @@ export default function BlockSlotsForm() {
             }
         }
         
+        console.log("[Client] Slots to Block:", slotsToBlock);
+        console.log("[Client] Slots to Unblock:", slotsToUnblock);
+
         const promises = [];
         const cleanSlotsToBlock = Object.fromEntries(Object.entries(slotsToBlock).filter(([_, v]) => v.length > 0));
         const cleanSlotsToUnblock = Object.fromEntries(Object.entries(slotsToUnblock).filter(([_, v]) => v.length > 0));
+        
+        console.log("[Client] Cleaned Slots to Block:", cleanSlotsToBlock);
+        console.log("[Client] Cleaned Slots to Unblock:", cleanSlotsToUnblock);
+
 
         if (Object.keys(cleanSlotsToBlock).length > 0) {
+            console.log("[Client] Pushing blockSlots to promises.");
             promises.push(blockSlots(cleanSlotsToBlock));
         }
         if (Object.keys(cleanSlotsToUnblock).length > 0) {
+            console.log("[Client] Pushing unblockSlots to promises.");
             promises.push(unblockSlots(cleanSlotsToUnblock));
         }
 
+        if (promises.length === 0) {
+          console.log("[Client] No changes to save.");
+          toast({
+            title: "Nenhuma alteração",
+            description: "Nenhum novo horário foi selecionado para bloquear ou desbloquear.",
+          });
+          setIsSubmitting(false);
+          return;
+        }
+
+        console.log(`[Client] Executing ${promises.length} promises.`);
         const results = await Promise.all(promises);
+        console.log("[Client] Promise results:", results);
 
         results.forEach(result => {
             if (result) {
@@ -161,16 +183,17 @@ export default function BlockSlotsForm() {
         });
 
     } catch (error) {
-        console.error("Client-side error in handleSaveChanges:", error);
+        console.error("[Client] Error in handleSaveChanges:", error);
         toast({
             title: "Erro Inesperado",
-            description: "Ocorreu um erro ao processar sua solicitação. Tente novamente.",
+            description: "Ocorreu um erro ao processar sua solicitação no cliente. Verifique o console.",
             variant: "destructive",
         });
     } finally {
         setSelectedSlots({});
         fetchAllBookings();
         setIsSubmitting(false);
+        console.log("[Client] handleSaveChanges finished.");
     }
   }
 
