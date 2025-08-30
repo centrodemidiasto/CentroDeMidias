@@ -11,10 +11,9 @@ export default function DashboardPage() {
   const router = useRouter();
 
   useEffect(() => {
-    console.log(`Admin Page - Loading: ${loading}, User: ${user ? user.email : 'null'}`);
     // Redirect only if loading is complete and there's no user.
     if (!loading && !user) {
-      console.log("Redirecting to /login from admin page");
+      console.log("Redirecting to /login from admin page (no user after loading)");
       router.push("/login");
     }
   }, [user, loading, router]);
@@ -29,7 +28,7 @@ export default function DashboardPage() {
   }
 
   // If after loading there is no user, render nothing,
-  // as the redirect is about to happen.
+  // as the redirect effect will handle it.
   if (!user) {
     return null;
   }

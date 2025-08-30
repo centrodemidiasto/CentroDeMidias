@@ -32,7 +32,6 @@ export default function AgendamentoPage() {
               <li>O agendamento deverá ocorrer com pelo menos sete dias de antecedência e estará sujeito a disponibilidade de data e horário.</li>
               <li>O período máximo para um único agendamento é de um dia.</li>
               <li>Os participantes da gravação e/ou transmissão deverão chegar ao Centro de Mídias com 30 minutos de antecedência ao horário agendado.</li>
-              <li>Todos os arquivos e materiais digitais, tais como: Slides, Vídeos, Música e outros materiais que serão utilizados como auxilio durante as gravações e lives, precisam ser enviadas para o e-mail: centrodemidias@seduc.to.gov.br com pelo menos 72h (Setenta e duas horas) de antecedência ao horário respectivamente agendado.</li>
               <li>O agendamento está sujeito à aprovação da equipe do Centro de Mídias.</li>
               <li>Cancele com no mínimo 24 horas de antecedência caso não possa comparecer.</li>
             </ul>
