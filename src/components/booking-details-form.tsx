@@ -1,10 +1,10 @@
 
 'use client';
 
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useActionState, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -89,17 +89,19 @@ export default function BookingDetailsForm({ selectedSlots, onBookingSuccess }: 
     
     const formAction = async (formData: FormData) => {
         const result = await handleBookingRequest(selectedSlots, null, formData);
-        setFormState(result);
-        if (result) {
+        
+        if (result && result.message) {
             const variant = result.success ? 'default' : 'destructive';
             toast({
                 title: result.success ? 'Sucesso!' : 'Erro na Solicitação',
                 description: <div className="whitespace-pre-wrap">{result.message}</div>,
                 variant: variant,
             });
-            if (result.success) {
+             if (result.success) {
                 form.reset();
                 onBookingSuccess();
+            } else {
+                setFormState(result);
             }
         }
     };
@@ -336,4 +338,5 @@ export default function BookingDetailsForm({ selectedSlots, onBookingSuccess }: 
             </form>
         </Form>
     );
-}
+
+    
