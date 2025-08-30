@@ -153,15 +153,11 @@ export async function handleBookingRequest(
   prevState: FormState,
   formData: FormData
 ): Promise<FormState> {
-  console.log("Iniciando handleBookingRequest...");
   if (!db) {
-    console.error("[ERRO] handleBookingRequest: A variável 'db' do Firestore Admin é nula. A configuração do servidor falhou.");
     return { success: false, message: "Ocorreu um erro de configuração do servidor. Tente novamente mais tarde." };
   }
-  console.log("handleBookingRequest: Conexão com o DB parece estar OK.");
 
   const rawFormData = Object.fromEntries(formData.entries());
-  console.log("Dados brutos do formulário recebidos:", rawFormData);
   
   const parsedData = BookingDetailsSchema.safeParse({
     fullName: formData.get("fullName"),
@@ -179,7 +175,6 @@ export async function handleBookingRequest(
 
 
   if (!parsedData.success) {
-    console.log("Validação do Zod falhou:", parsedData.error.flatten());
     const errorMessages = parsedData.error.errors.map(e => `- ${e.message}`).join("\n");
     return { success: false, message: `Por favor, corrija os seguintes erros:\n${errorMessages}` };
   }
@@ -210,7 +205,6 @@ export async function handleBookingRequest(
 
     if (result.isValid) {
       const bookingDate = Object.keys(selectedSlots)[0]; // YYYY-MM-DD format
-      console.log("Adicionando documento ao Firestore com os seguintes dados:", { ...data, selectedSlots, bookingDate });
       await addDoc(collection(db, "bookings"), {
         ...data,
         selectedSlots,
@@ -218,7 +212,6 @@ export async function handleBookingRequest(
         createdAt: serverTimestamp(),
         status: "pending"
       });
-      console.log("Documento adicionado ao Firestore com sucesso.");
       return { success: true, message: "Seu agendamento foi solicitado com sucesso e está pendente de aprovação!" };
     } else {
       return { success: false, message: result.reason || "Ocorreu um erro na validação do agendamento." };
