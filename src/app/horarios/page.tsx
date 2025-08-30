@@ -82,10 +82,7 @@ export default async function HorariosPage() {
   return (
     <div className="bg-gray-900 text-white min-h-screen p-8 font-sans">
       <header className="text-center mb-12 flex flex-col items-center">
-        <h1 className="text-6xl font-bold tracking-tight text-blue-300">
-          Próximas Gravações
-        </h1>
-        <div className="mt-4">
+         <div className="mb-4">
             <Image
                 src="/img/centrologo.png"
                 width={300}
@@ -94,6 +91,9 @@ export default async function HorariosPage() {
                 className="object-contain"
             />
         </div>
+        <h1 className="text-6xl font-bold tracking-tight text-blue-300">
+          Próximas Gravações
+        </h1>
       </header>
 
       <main>
