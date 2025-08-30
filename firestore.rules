@@ -1,0 +1,27 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Regras para a coleção de agendamentos
+    match /bookings/{bookingId} {
+      // Qualquer pessoa pode criar um agendamento.
+      allow create: if true;
+
+      // Qualquer pessoa pode ler os agendamentos para verificar os horários.
+      allow read: if true;
+
+      // Apenas usuários autenticados (admin) podem atualizar (aprovar/rejeitar) ou deletar.
+      allow update, delete: if request.auth != null;
+    }
+
+    // Regras para a coleção de horários bloqueados manualmente
+    match /blockedSlots/{slotId} {
+        // Apenas usuários autenticados (admin) podem criar, atualizar ou deletar bloqueios.
+        allow create, update, delete: if request.auth != null;
+        
+        // Qualquer pessoa pode ler os horários bloqueados para exibição na agenda pública.
+        allow read: if true;
+    }
+  }
+}
