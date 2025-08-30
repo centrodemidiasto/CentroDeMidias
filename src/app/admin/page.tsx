@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import { collection, getDocs, query, where, orderBy, doc, updateDoc } from 'firebase/firestore';
+import { collection, getDocs, query, where, orderBy, doc, updateDoc, Timestamp } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import {
   Card,
@@ -21,21 +21,29 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 interface Booking {
   id: string;
   fullName: string;
   email: string;
-  selectedSlots: Record<string, string[]>;
+  phone: string;
+  organizationType: 'interno' | 'externo';
+  department?: string;
+  externalOrganization?: string;
   bookingModalities: string;
+  requiredMaterials?: string;
+  participantCount: number;
+  tableCount: number;
+  chairCount: number;
+  selectedSlots: Record<string, string[]>;
   status: 'pending' | 'approved' | 'rejected';
-  createdAt: any;
+  createdAt: Timestamp;
 }
 
 async function getPendingBookings(): Promise<Booking[]> {
@@ -62,6 +70,7 @@ export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const router = useRouter();
   const { toast } = useToast();
 
@@ -100,7 +109,6 @@ export default function DashboardPage() {
     }
   }
 
-
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
@@ -110,8 +118,15 @@ export default function DashboardPage() {
   }
 
   if (!user) {
-    return null; // ou um esqueleto de página de login
+    return null;
   }
+  
+  const formatDateForDisplay = (dateString: string) => {
+      // Parse the date string as ISO (e.g., '2024-09-04') which treats it as local timezone
+      const date = parseISO(dateString);
+      return format(date, "dd 'de' MMMM, yyyy", { locale: ptBR });
+  };
+
 
   return (
     <div className="container mx-auto max-w-7xl px-4 py-12 md:px-6 md:py-16">
@@ -147,7 +162,7 @@ export default function DashboardPage() {
                 {bookings.length > 0 ? (
                   bookings.map((booking) => {
                     const date = Object.keys(booking.selectedSlots)[0];
-                    const formattedDate = format(new Date(date), "dd 'de' MMMM, yyyy", { locale: ptBR });
+                    const formattedDate = formatDateForDisplay(date);
                     const times = booking.selectedSlots[date].join(', ');
                     return (
                       <TableRow key={booking.id}>
@@ -156,6 +171,13 @@ export default function DashboardPage() {
                         <TableCell>{times}</TableCell>
                         <TableCell>{booking.bookingModalities}</TableCell>
                         <TableCell className="text-right space-x-2">
+                           <Dialog>
+                            <DialogTrigger asChild>
+                               <Button variant="ghost" size="icon" onClick={() => setSelectedBooking(booking)}>
+                                <Info className="h-4 w-4" />
+                               </Button>
+                            </DialogTrigger>
+                           </Dialog>
                           <Button variant="outline" size="sm" onClick={() => handleStatusUpdate(booking.id, 'approved')}>Aprovar</Button>
                           <Button variant="destructive" size="sm" onClick={() => handleStatusUpdate(booking.id, 'rejected')}>Rejeitar</Button>
                         </TableCell>
@@ -174,6 +196,76 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+       {selectedBooking && (
+        <Dialog open={!!selectedBooking} onOpenChange={(isOpen) => !isOpen && setSelectedBooking(null)}>
+            <DialogContent className="sm:max-w-[625px]">
+                <DialogHeader>
+                    <DialogTitle className="font-headline">Detalhes do Agendamento</DialogTitle>
+                </DialogHeader>
+                <div className="grid gap-4 py-4 text-sm">
+                    <div className="grid grid-cols-[150px_1fr] items-center gap-4">
+                        <span className="font-semibold text-right">Solicitante:</span>
+                        <span>{selectedBooking.fullName}</span>
+                    </div>
+                    <div className="grid grid-cols-[150px_1fr] items-center gap-4">
+                        <span className="font-semibold text-right">E-mail:</span>
+                        <span>{selectedBooking.email}</span>
+                    </div>
+                    <div className="grid grid-cols-[150px_1fr] items-center gap-4">
+                        <span className="font-semibold text-right">Telefone:</span>
+                        <span>{selectedBooking.phone}</span>
+                    </div>
+                     <div className="grid grid-cols-[150px_1fr] items-center gap-4">
+                        <span className="font-semibold text-right">Data:</span>
+                        <span>{formatDateForDisplay(Object.keys(selectedBooking.selectedSlots)[0])}</span>
+                    </div>
+                     <div className="grid grid-cols-[150px_1fr] items-center gap-4">
+                        <span className="font-semibold text-right">Horários:</span>
+                        <span>{Object.values(selectedBooking.selectedSlots)[0].join(', ')}</span>
+                    </div>
+                    <div className="grid grid-cols-[150px_1fr] items-center gap-4">
+                        <span className="font-semibold text-right">Órgão:</span>
+                        <span>{selectedBooking.organizationType === 'interno' ? 'Interno (SEDUC)' : 'Externo'}</span>
+                    </div>
+                    {selectedBooking.department && (
+                         <div className="grid grid-cols-[150px_1fr] items-center gap-4">
+                            <span className="font-semibold text-right">Departamento:</span>
+                            <span>{selectedBooking.department}</span>
+                        </div>
+                    )}
+                     {selectedBooking.externalOrganization && (
+                         <div className="grid grid-cols-[150px_1fr] items-center gap-4">
+                            <span className="font-semibold text-right">Órgão Externo:</span>
+                            <span>{selectedBooking.externalOrganization}</span>
+                        </div>
+                    )}
+                    <div className="grid grid-cols-[150px_1fr] items-center gap-4">
+                        <span className="font-semibold text-right">Modalidade:</span>
+                        <span>{selectedBooking.bookingModalities}</span>
+                    </div>
+                     <div className="grid grid-cols-[150px_1fr] items-center gap-4">
+                        <span className="font-semibold text-right">Participantes:</span>
+                        <span>{selectedBooking.participantCount}</span>
+                    </div>
+                     <div className="grid grid-cols-[150px_1fr] items-center gap-4">
+                        <span className="font-semibold text-right">Mesas:</span>
+                        <span>{selectedBooking.tableCount}</span>
+                    </div>
+                     <div className="grid grid-cols-[150px_1fr] items-center gap-4">
+                        <span className="font-semibold text-right">Cadeiras:</span>
+                        <span>{selectedBooking.chairCount}</span>
+                    </div>
+                    {selectedBooking.requiredMaterials && (
+                         <div className="grid grid-cols-[150px_1fr] items-start gap-4">
+                            <span className="font-semibold text-right">Materiais:</span>
+                            <span className="break-words">{selectedBooking.requiredMaterials}</span>
+                        </div>
+                    )}
+                </div>
+            </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
