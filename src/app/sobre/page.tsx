@@ -22,10 +22,10 @@ export default function SobrePage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
-                <p className="text-muted-foreground font-body">
+                <p className="text-muted-foreground font-body text-justify">
                   Os Núcleos de Produção de Recursos Educacionais Digitais da Gerência de Mídias Educacionais e Acompanhamento aos Centros de Mídias – GMEACM, tem estrutura para gravação e transmissão de vídeo-aulas além de contribuir com a formação de docentes e suas interfaces para as inovações curriculares.
                 </p>
-                <p className="mt-4 text-muted-foreground font-body">
+                <p className="mt-4 text-muted-foreground font-body text-justify">
                   O Centro de Mídias Educacionais do Tocantins destina-se ao corpo  docente, discente e  técnico-administrativo da Seduc. O seu uso deve ser normatizado para garantir o fluxo de produção bem como a qualidade da produção audiovisual, e deve ser utilizado preferencialmente para atender às dimensões de ensino, pesquisa e extensão da Seduc.
                 </p>
               </CardContent>
@@ -59,7 +59,7 @@ export default function SobrePage() {
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="p-0 space-y-4">
-                      <p className="text-muted-foreground font-body">
+                      <p className="text-muted-foreground font-body text-justify">
                         As atividades audiovisuais desenvolvidas no centro de mídias são em forma de gravações e lives, que deverão ser especificadas pelo interessado no ato do agendamento.
                       </p>
                       
@@ -69,7 +69,7 @@ export default function SobrePage() {
                             <Video className="w-5 h-5 text-accent" />
                             Gravação
                           </h3>
-                          <p className="text-sm text-muted-foreground font-body">
+                          <p className="text-sm text-muted-foreground font-body text-justify">
                             As gravações realizadas no centro de mídias educacionais são produzidas por equipamentos e softwares de última geração, em um estúdio muito confortável e equipado onde todo o trabalho é realizado por uma equipe totalmente qualificada e preparada para os diversos formatos de gravações.
                           </p>
                         </div>
@@ -78,7 +78,7 @@ export default function SobrePage() {
                             <RadioTower className="w-5 h-5 text-accent" />
                             Transmissões ao vivo (Live)
                           </h3>
-                          <p className="text-sm text-muted-foreground font-body">
+                          <p className="text-sm text-muted-foreground font-body text-justify">
                            As lives realizadas e transmitidas pelo centro de mídias educacionais são realizadas com equipamentos e softwares de última geração, em um estúdio muito confortável e equipado onde todo o trabalho é realizado por uma equipe totalmente qualificada e preparada para as diversas formas de transmissão online.
                           </p>
                         </div>
