@@ -1,13 +1,16 @@
 "use client";
 
-import { Menu, X } from "lucide-react";
+import { Menu, X, LogIn, LogOut, LayoutDashboard } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
+import { useAuth } from "@/hooks/use-auth";
+import { handleSignOut } from "@/app/auth-actions";
+import { useRouter } from "next/navigation";
 
 const navLinks = [
   { href: "/", label: "Início" },
@@ -19,6 +22,14 @@ const navLinks = [
 export default function Header() {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+
+  const onSignOut = async () => {
+    await handleSignOut();
+    router.push('/');
+  }
 
   const NavLink = ({ href, label }: { href: string, label: string }) => (
     <Link
@@ -52,6 +63,7 @@ export default function Header() {
             {navLinks.map((link) => (
               <NavLink key={link.href} {...link} />
             ))}
+             {user && <NavLink href="/admin/dashboard" label="Painel" />}
           </nav>
         </div>
 
@@ -74,7 +86,7 @@ export default function Header() {
                       height={32}
                       alt="Logotipo do Centro de Mídias Educacionais"
                     />
-                    <span className="font-bold font-headline">Centro de Mídias Educacionais - TO</span>
+                    <span className="font-bold font-headline">Centro de Mídias - TO</span>
                 </Link>
             </div>
             <SheetContent side="left" className="pr-0">
@@ -90,18 +102,32 @@ export default function Header() {
                   alt="Logotipo do Centro de Mídias Educacionais"
                   className="mr-2"
                 />
-                <span className="font-bold">Centro de Mídias Educacionais - TO</span>
+                <span className="font-bold">Centro de Mídias - TO</span>
               </Link>
               <div className="my-4 h-[calc(100vh-8rem)] pb-10 pl-6">
                 <div className="flex flex-col space-y-3">
                   {navLinks.map((link) => (
                     <NavLink key={link.href} {...link} />
                   ))}
+                   {user && <NavLink href="/admin/dashboard" label="Painel" />}
                 </div>
               </div>
             </SheetContent>
           </Sheet>
-          <nav className="hidden md:flex items-center">
+          <nav className="hidden md:flex items-center gap-2">
+            {loading ? null : user ? (
+               <Button onClick={onSignOut} variant="ghost" size="sm">
+                <LogOut className="mr-2 h-4 w-4" />
+                Sair
+              </Button>
+            ) : (
+              <Button asChild variant="ghost" size="sm">
+                <Link href="/login">
+                  <LogIn className="mr-2 h-4 w-4" />
+                  Login
+                </Link>
+              </Button>
+            )}
             <Button asChild className="bg-accent hover:bg-accent/90 text-accent-foreground">
               <Link href="/agendamento">Agendar</Link>
             </Button>
