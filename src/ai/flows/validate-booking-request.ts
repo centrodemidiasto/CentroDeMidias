@@ -62,6 +62,8 @@ const validateBookingRequestFlow = ai.defineFlow(
     outputSchema: ValidateBookingRequestOutputSchema,
   },
   async input => {
+    // This flow is currently unused in the application, but kept for potential future use.
+    // The current implementation validates on the client and then directly in the server action.
     const {output} = await validateBookingRequestPrompt(input);
     return output!;
   }

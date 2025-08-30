@@ -1,21 +1,20 @@
 import admin from 'firebase-admin';
 import { getFirestore } from 'firebase-admin/firestore';
 
+const serviceAccount = {
+  projectId: process.env.GOOGLE_PROJECT_ID,
+  clientEmail: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+  privateKey: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+};
+
 if (!admin.apps.length) {
   try {
-    // As credenciais são lidas das variáveis de ambiente pelo SDK
     admin.initializeApp({
-      credential: admin.credential.cert({
-        projectId: process.env.GOOGLE_PROJECT_ID,
-        clientEmail: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-        // A chave privada precisa ter as quebras de linha substituídas
-        privateKey: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-      }),
-      databaseURL: `https://${process.env.GOOGLE_PROJECT_ID}.firebaseio.com`,
+      credential: admin.credential.cert(serviceAccount)
     });
-    console.log("Firebase Admin SDK inicializado com sucesso.");
+    console.log("Firebase Admin SDK initialized.");
   } catch (error: any) {
-    console.error("Erro ao inicializar Firebase Admin SDK. Verifique as variáveis de ambiente.", error.message);
+    console.error("Error initializing Firebase Admin SDK:", error.message);
   }
 }
 
