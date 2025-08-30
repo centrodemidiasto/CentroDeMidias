@@ -48,6 +48,12 @@ export async function handleBookingRequest(
   prevState: FormState,
   formData: FormData
 ): Promise<FormState> {
+  
+  const rawFormData = Object.fromEntries(formData.entries());
+  console.log("=========================================");
+  console.log("Raw Form Data Received:", rawFormData);
+  console.log("=========================================");
+
   const parsedData = BookingDetailsSchema.safeParse({
     fullName: formData.get("fullName"),
     email: formData.get("email"),
@@ -61,6 +67,11 @@ export async function handleBookingRequest(
     tableCount: formData.get("tableCount"),
     chairCount: formData.get("chairCount"),
   });
+
+  console.log("=========================================");
+  console.log("Zod Parsed Data Result:", JSON.stringify(parsedData, null, 2));
+  console.log("=========================================");
+
 
   if (!parsedData.success) {
     const errorMessages = parsedData.error.errors.map(e => `- ${e.message}`).join("\n");
