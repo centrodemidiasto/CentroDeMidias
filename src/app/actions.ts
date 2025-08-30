@@ -125,22 +125,22 @@ export async function blockSlots(slotsToBlock: Record<string, string[]>): Promis
         const blockedSlotsRef = collection(db, 'blockedSlots');
 
         for (const date in slotsToBlock) {
-            const times = slotsToBlock[date];
-            if (times && times.length > 0) {
-                 const q = query(blockedSlotsRef, where("date", "==", date));
-                 const querySnapshot = await getDocs(q);
+            if (slotsToBlock[date] && slotsToBlock[date].length > 0) {
+                const q = query(blockedSlotsRef, where("date", "==", date));
+                const querySnapshot = await getDocs(q);
 
-                 if (querySnapshot.empty) {
-                     console.log(`[Action: blockSlots] No existing doc for date ${date}. Creating new one.`);
-                     const newDocRef = doc(blockedSlotsRef);
-                     batch.set(newDocRef, { date, times });
-                 } else {
-                     const docRef = querySnapshot.docs[0].ref;
-                     const existingTimes = querySnapshot.docs[0].data().times || [];
-                     const updatedTimes = [...new Set([...existingTimes, ...times])];
-                     console.log(`[Action: blockSlots] Existing doc for date ${date}. Updating times to:`, updatedTimes);
-                     batch.update(docRef, { times: updatedTimes });
-                 }
+                if (querySnapshot.empty) {
+                    console.log(`[Action: blockSlots] No existing doc for date ${date}. Creating new one.`);
+                    const newDocRef = doc(blockedSlotsRef); // Create a new document reference
+                    batch.set(newDocRef, { date, times: slotsToBlock[date] });
+                } else {
+                    const docSnapshot = querySnapshot.docs[0];
+                    const docRef = docSnapshot.ref;
+                    const existingTimes = docSnapshot.data().times || [];
+                    const updatedTimes = [...new Set([...existingTimes, ...slotsToBlock[date]])];
+                    console.log(`[Action: blockSlots] Existing doc for date ${date}. Updating times to:`, updatedTimes);
+                    batch.update(docRef, { times: updatedTimes });
+                }
             }
         }
         await batch.commit();
@@ -148,7 +148,10 @@ export async function blockSlots(slotsToBlock: Record<string, string[]>): Promis
         return { success: true, message: 'Horários bloqueados com sucesso!' };
     } catch (error) {
         console.error("[Action: blockSlots] Error caught:", error);
-        return { success: false, message: 'Ocorreu um erro ao bloquear os horários.' };
+        if (error instanceof Error) {
+            return { success: false, message: `Ocorreu um erro ao bloquear os horários: ${error.message}` };
+        }
+        return { success: false, message: 'Ocorreu um erro desconhecido ao bloquear os horários.' };
     }
 }
 
@@ -187,6 +190,11 @@ export async function unblockSlots(slotsToUnblock: Record<string, string[]>): Pr
         return { success: true, message: 'Horários desbloqueados com sucesso!' };
     } catch (error) {
          console.error("[Action: unblockSlots] Error caught:", error);
-        return { success: false, message: 'Ocorreu um erro ao desbloquear os horários.' };
+        if (error instanceof Error) {
+            return { success: false, message: `Ocorreu um erro ao desbloquear os horários: ${error.message}` };
+        }
+        return { success: false, message: 'Ocorreu um erro desconhecido ao desbloquear os horários.' };
     }
 }
+
+    
