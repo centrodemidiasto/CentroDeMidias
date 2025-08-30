@@ -1,28 +1,60 @@
 import admin from 'firebase-admin';
-import { getFirestore } from 'firebase-admin/firestore';
+import { getFirestore, Firestore } from 'firebase-admin/firestore';
 
-// This ensures we only initialize the app once
-if (!admin.apps.length) {
+// Variável global para armazenar a instância do admin app
+let app: admin.app.App | undefined = undefined;
+
+function getAdminApp(): admin.app.App {
+  if (app) {
+    return app;
+  }
+
+  // Verifica se as credenciais estão disponíveis nas variáveis de ambiente
+  // No Next.js, as variáveis de ambiente do lado do servidor precisam ser acessadas diretamente.
   const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+  const projectId = process.env.GOOGLE_PROJECT_ID;
+  const clientEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
 
-  if (process.env.GOOGLE_PROJECT_ID && privateKey && process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL) {
+  if (admin.apps.length > 0) {
+      app = admin.apps[0]!;
+      return app;
+  }
+
+  if (projectId && privateKey && clientEmail) {
     try {
-      admin.initializeApp({
+      app = admin.initializeApp({
         credential: admin.credential.cert({
-          projectId: process.env.GOOGLE_PROJECT_ID,
+          projectId: projectId,
           privateKey: privateKey,
-          clientEmail: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+          clientEmail: clientEmail,
         }),
-        databaseURL: `https://${process.env.GOOGLE_PROJECT_ID}.firebaseio.com`
+        databaseURL: `https://${projectId}.firebaseio.com`
       });
-    } catch (error) {
-      console.error('Firebase admin initialization error', error);
+      console.log("Firebase Admin SDK inicializado com sucesso.");
+      return app;
+    } catch (error: any) {
+      console.error('Erro na inicialização do Firebase Admin SDK:', error.stack);
+      throw new Error("Falha na inicialização do Firebase Admin. Verifique as credenciais.");
     }
   } else {
-    console.warn("Firebase Admin SDK credentials not found. Skipping initialization.");
+    // Log detalhado para depuração
+    console.error("Credenciais do Firebase Admin SDK não encontradas ou incompletas.");
+    console.error(`GOOGLE_PROJECT_ID: ${!!projectId}`);
+    console.error(`GOOGLE_PRIVATE_KEY: ${!!privateKey}`);
+    console.error(`GOOGLE_SERVICE_ACCOUNT_EMAIL: ${!!clientEmail}`);
+    throw new Error("Credenciais do Firebase Admin SDK não configuradas nas variáveis de ambiente.");
   }
 }
 
-const db = admin.apps.length ? getFirestore() : null;
+// Exporta uma instância do DB que pode ser nula se a inicialização falhar.
+// As funções que usam 'db' devem verificar se é nulo.
+let db: Firestore | null = null;
+try {
+    getAdminApp();
+    db = getFirestore();
+} catch (e) {
+    console.error("Não foi possível obter a instância do Firestore. O app pode não ter sido inicializado.", e);
+}
+
 
 export { db };

@@ -3,6 +3,8 @@ import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
+// As variáveis de ambiente NEXT_PUBLIC_* são substituídas em tempo de build
+// e ficam disponíveis no lado do cliente.
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -13,6 +15,7 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
+// Esta verificação garante que a inicialização só aconteça uma vez.
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const db = getFirestore(app);
 const auth = getAuth(app);
