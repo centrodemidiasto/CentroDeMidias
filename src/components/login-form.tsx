@@ -21,8 +21,7 @@ import { Loader2 } from "lucide-react";
 import { useState } from "react";
 
 const formSchema = z.object({
-  email: z.string().email({ message: "Por favor, insira um email válido." }),
-  password: z.string().min(6, { message: "A senha deve ter no mínimo 6 caracteres." }),
+  password: z.string().min(1, { message: "A senha é obrigatória." }),
 });
 
 export default function LoginForm() {
@@ -33,15 +32,13 @@ export default function LoginForm() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      email: "",
       password: "",
     },
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setLoading(true);
-    console.log("Attempting to sign in with:", values.email);
-    const result = await handleSignIn(values.email, values.password);
+    const result = await handleSignIn(values.password);
     setLoading(false);
 
     if (result.success) {
@@ -49,8 +46,8 @@ export default function LoginForm() {
         title: "Login bem-sucedido!",
         description: "Você será redirecionado para o painel.",
       });
-      console.log("Pushing to /admin after successful login");
       router.push("/admin");
+      router.refresh(); // Forces a refresh to update server-side session checks
     } else {
       toast({
         title: "Erro de login",
@@ -59,20 +56,11 @@ export default function LoginForm() {
       });
     }
   }
-  
-  const handleEmailChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const value = event.target.value;
-    if (value.endsWith('@')) {
-      form.setValue('email', value + 'seduc.to.gov.br');
-    } else {
-      form.setValue('email', value);
-    }
-  };
 
   return (
     <Card className="w-full max-w-sm">
         <CardHeader>
-            <CardTitle className="text-2xl font-bold font-headline">Login</CardTitle>
+            <CardTitle className="text-2xl font-bold font-headline">Acesso Restrito</CardTitle>
             <CardDescription className="font-body">Acesse o painel de gerenciamento de agendamentos.</CardDescription>
         </CardHeader>
         <CardContent>
@@ -80,27 +68,10 @@ export default function LoginForm() {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 <FormField
                 control={form.control}
-                name="email"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                        <Input 
-                          placeholder="email@seduc.to.gov.br" 
-                          {...field}
-                          onChange={handleEmailChange}
-                        />
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
-                <FormField
-                control={form.control}
                 name="password"
                 render={({ field }) => (
                     <FormItem>
-                    <FormLabel>Senha</FormLabel>
+                    <FormLabel>Senha de Acesso</FormLabel>
                     <FormControl>
                         <Input type="password" placeholder="******" {...field} />
                     </FormControl>

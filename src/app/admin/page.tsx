@@ -1,41 +1,15 @@
-"use client";
-
-import { useAuth } from "@/hooks/use-auth.tsx";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { verifySession } from "@/app/auth-actions";
 
-export default function DashboardPage() {
-  const { user, loading } = useAuth();
-  const router = useRouter();
+export default async function DashboardPage() {
+  const session = await verifySession();
 
-  useEffect(() => {
-    // Apenas redireciona se o carregamento estiver concluído e não houver usuário.
-    // Esta é a verificação de segurança final.
-    if (!loading && !user) {
-      console.log("Redirecting to /login from admin page (no user after loading)");
-      router.push("/login");
-    }
-  }, [user, loading, router]);
-
-  // Enquanto o status de autenticação estiver sendo verificado, exiba um loader.
-  // Isso impede que a verificação no useEffect seja executada prematuramente.
-  if (loading) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
+  if (!session.isLoggedIn) {
+    redirect("/login");
   }
 
-  // Se, após o carregamento, não houver usuário, o useEffect acima fará o redirecionamento.
-  // Retornar nulo aqui evita a renderização do painel para usuários não autorizados.
-  if (!user) {
-    return null;
-  }
-
-  // Se chegamos aqui, o usuário está carregado e autenticado.
   return (
     <div className="container mx-auto max-w-7xl px-4 py-12 md:px-6 md:py-16">
       <div className="space-y-8">

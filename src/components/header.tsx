@@ -1,6 +1,6 @@
 "use client";
 
-import { Menu, X, LogIn, LogOut, LayoutDashboard } from "lucide-react";
+import { Menu, X, LogIn, LogOut } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
@@ -8,9 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
-import { useAuth } from "@/hooks/use-auth.tsx";
-import { handleSignOut } from "@/app/auth-actions";
-import { useRouter } from "next/navigation";
+import { handleSignOut, verifySession } from "@/app/auth-actions";
 
 const navLinks = [
   { href: "/", label: "Início" },
@@ -22,14 +20,18 @@ const navLinks = [
 export default function Header() {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { user, loading } = useAuth();
-  const router = useRouter();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    async function checkLoginStatus() {
+      const session = await verifySession();
+      setIsLoggedIn(session.isLoggedIn);
+      setLoading(false);
+    }
+    checkLoginStatus();
+  }, [pathname]); // Re-check on path change
 
-  const onSignOut = async () => {
-    await handleSignOut();
-    router.push('/');
-  }
 
   const NavLink = ({ href, label }: { href: string, label: string }) => (
     <Link
@@ -63,7 +65,7 @@ export default function Header() {
             {navLinks.map((link) => (
               <NavLink key={link.href} {...link} />
             ))}
-             {!loading && user && <NavLink href="/admin" label="Painel" />}
+             {!loading && isLoggedIn && <NavLink href="/admin" label="Painel" />}
           </nav>
         </div>
 
@@ -109,17 +111,19 @@ export default function Header() {
                   {navLinks.map((link) => (
                     <NavLink key={link.href} {...link} />
                   ))}
-                   {!loading && user && <NavLink href="/admin" label="Painel" />}
+                   {!loading && isLoggedIn && <NavLink href="/admin" label="Painel" />}
                 </div>
               </div>
             </SheetContent>
           </Sheet>
           <nav className="hidden md:flex items-center gap-2">
-            {loading ? null : user ? (
-               <Button onClick={onSignOut} variant="ghost" size="sm">
-                <LogOut className="mr-2 h-4 w-4" />
-                Sair
-              </Button>
+            {loading ? null : isLoggedIn ? (
+               <form action={handleSignOut}>
+                <Button type="submit" variant="ghost" size="sm">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sair
+                </Button>
+              </form>
             ) : (
               <Button asChild variant="ghost" size="sm">
                 <Link href="/login">
