@@ -2,7 +2,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, query, where, orderBy, Timestamp } from "firebase/firestore";
-import { format, parseISO, startOfToday, isToday, isTomorrow, endOfMonth } from 'date-fns';
+import { format, parseISO, startOfToday, isToday, isTomorrow, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Clock, User, Building, Video } from "lucide-react";
 import CurrentTime from "@/components/current-time";
@@ -23,14 +23,14 @@ interface Booking {
 
 async function getUpcomingBookings(): Promise<Booking[]> {
   const today = format(startOfToday(), 'yyyy-MM-dd');
-  const endOfMonthDate = format(endOfMonth(new Date()), 'yyyy-MM-dd');
+  const thirtyDaysFromNow = format(addDays(new Date(), 30), 'yyyy-MM-dd');
   const bookingsRef = collection(db, "bookings");
   
   const q = query(
     bookingsRef,
     where("status", "==", "approved"),
     where("bookingDate", ">=", today),
-    where("bookingDate", "<=", endOfMonthDate),
+    where("bookingDate", "<=", thirtyDaysFromNow),
     orderBy("bookingDate", "asc")
   );
   
@@ -42,8 +42,8 @@ async function getUpcomingBookings(): Promise<Booking[]> {
 
   // Additional client-side sort by time if needed
   bookingsData.sort((a, b) => {
-    const timeA = a.selectedSlots[a.bookingDate][0];
-    const timeB = b.selectedSlots[b.bookingDate][0];
+    const timeA = a.selectedSlots[a.bookingDate]?.[0] || '00:00';
+    const timeB = b.selectedSlots[b.bookingDate]?.[0] || '00:00';
     if (a.bookingDate < b.bookingDate) return -1;
     if (a.bookingDate > b.bookingDate) return 1;
     return timeA.localeCompare(timeB);
