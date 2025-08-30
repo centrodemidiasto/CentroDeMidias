@@ -86,7 +86,8 @@ export default function SchedulingForm() {
   
   const isPreviousWeekButtonDisabled = useMemo(() => {
     const firstDayOfCurrentWeek = startOfWeek(currentDate, { locale: ptBR });
-    return isBefore(firstDayOfCurrentWeek, startOfWeek(firstBookableDate, { locale: ptBR }));
+    const firstPossibleDay = startOfWeek(firstBookableDate, { locale: ptBR });
+    return isBefore(firstDayOfCurrentWeek, firstPossibleDay);
   }, [currentDate, firstBookableDate]);
 
 
@@ -179,21 +180,23 @@ export default function SchedulingForm() {
                       
                       if (isPending) {
                         return (
-                           <Tooltip key={time}>
-                                <TooltipTrigger asChild>
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        className="h-8 text-xs bg-accent/80 hover:bg-accent/90 text-accent-foreground cursor-not-allowed"
-                                        disabled
-                                    >
-                                    {time}
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>Agendamento pendente de aprovação</p>
-                                </TooltipContent>
-                           </Tooltip>
+                           <div key={time}>
+                             <Tooltip>
+                                  <TooltipTrigger asChild>
+                                      <Button
+                                          type="button"
+                                          variant="outline"
+                                          className="h-8 w-full text-xs bg-accent/80 hover:bg-accent/80 text-accent-foreground cursor-not-allowed"
+                                          disabled
+                                      >
+                                      {time}
+                                      </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                      <p>Agendamento pendente de aprovação</p>
+                                  </TooltipContent>
+                             </Tooltip>
+                           </div>
                         )
                       }
                       
