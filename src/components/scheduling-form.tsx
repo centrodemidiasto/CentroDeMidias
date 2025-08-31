@@ -224,7 +224,7 @@ export default function SchedulingForm() {
                 const dateKeyForReserved = format(day, "yyyy-MM-dd");
                 
                 return (
-                <div key={day.toString()} className={cn("flex flex-col", isDayDisabled ? "bg-muted" : "bg-background")}>
+                <div key={day.toString()} className={cn("flex flex-col", isDayBeforeFirstBookable ? "bg-muted" : "bg-background")}>
                 <div className="text-center font-bold py-2 border-b font-headline capitalize">
                     {format(day, "EEE", { locale: ptBR })}
                     <div className="font-normal text-sm text-muted-foreground">{format(day, "d/MM")}</div>
@@ -249,29 +249,56 @@ export default function SchedulingForm() {
                           </Button>
                         );
                       }
-
-                      if (manuallyBlocked || (!user && reservedSlot)) {
+                      
+                      // For non-admins (public view)
+                      if (!user) {
+                         if (manuallyBlocked || (reservedSlot && reservedSlot.status === 'approved')) {
                            return (
-                                <Button
-                                    key={time}
-                                    variant="outline"
-                                    className="h-8 w-full text-xs bg-muted cursor-not-allowed"
-                                    disabled
-                                >
+                              <Button key={time} variant="outline" className="h-8 w-full text-xs bg-muted cursor-not-allowed" disabled>
+                                {time}
+                              </Button>
+                           );
+                         }
+                         if (reservedSlot && reservedSlot.status === 'pending') {
+                             return (
+                                <Tooltip key={time}>
+                                  <TooltipTrigger asChild>
+                                    <span tabIndex={0}>
+                                        <Button variant="outline" className="h-8 w-full text-xs bg-accent/80 hover:bg-accent/80 text-accent-foreground cursor-not-allowed" disabled>
+                                          {time}
+                                        </Button>
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent><p>Aguardando Aprovação</p></TooltipContent>
+                                </Tooltip>
+                             );
+                         }
+                      }
+
+                      // For admins (logged in user)
+                      if (user && (manuallyBlocked || reservedSlot)) {
+                          const isPending = reservedSlot?.status === 'pending';
+                          const isApproved = reservedSlot?.status === 'approved';
+                          const isBlocked = manuallyBlocked;
+
+                          let tooltipContent = "";
+                          let buttonColorClass = "";
+
+                          if (isPending) {
+                            tooltipContent = "Agendamento pendente de aprovação";
+                            buttonColorClass = "bg-accent/80 hover:bg-accent/80 text-accent-foreground cursor-not-allowed";
+                          } else if (isApproved) {
+                            tooltipContent = "Agendamento já realizado e confirmado para este horário";
+                            buttonColorClass = "bg-green-400 hover:bg-green-400 text-green-900 cursor-not-allowed";
+                          } else if (isBlocked) {
+                            // This case is for the admin's own view, not the block-slots-form
+                            // We just show it as unavailable
+                             return (
+                                <Button key={time} variant="outline" className="h-8 w-full text-xs bg-muted cursor-not-allowed" disabled>
                                     {time}
                                 </Button>
-                            );
-                      }
-                      
-                      // This block now only runs for logged-in users, as non-users are handled above
-                      if (user && reservedSlot) {
-                          const isPending = reservedSlot.status === 'pending';
-                          const tooltipContent = isPending 
-                              ? "Agendamento pendente de aprovação"
-                              : "Agendamento já realizado e confirmado para este horário";
-                          const buttonColorClass = isPending 
-                              ? "bg-accent/80 hover:bg-accent/80 text-accent-foreground cursor-not-allowed"
-                              : "bg-green-400 hover:bg-green-400 text-green-900 cursor-not-allowed";
+                             );
+                          }
 
                           return (
                               <div key={time}>
@@ -287,9 +314,11 @@ export default function SchedulingForm() {
                                               </Button>
                                           </span>
                                       </TooltipTrigger>
-                                      <TooltipContent>
-                                          <p>{tooltipContent}</p>
-                                      </TooltipContent>
+                                      {tooltipContent && (
+                                        <TooltipContent>
+                                            <p>{tooltipContent}</p>
+                                        </TooltipContent>
+                                      )}
                                   </Tooltip>
                               </div>
                           )
