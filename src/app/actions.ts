@@ -1,25 +1,26 @@
 
 "use server";
 
-import { adminDb } from "@/lib/firebase-admin"; 
-import { collection, addDoc, serverTimestamp, getDocs, query, where, writeBatch, doc, getDoc, updateDoc } from "firebase/firestore";
+import { adminDb } from "@/lib/firebase-admin";
+import { FieldValue } from 'firebase-admin/firestore';
 import { z } from "zod";
 import { google } from 'googleapis';
+const { JWT } = google.auth; // Importa o JWT para autenticação com personificação
 
 const BookingDetailsSchema = z.object({
-  fullName: z.string().min(3, { message: "Nome completo é obrigatório." }),
-  email: z.string().email({ message: "E-mail inválido." }),
-  phone: z.string().min(15, { message: "Telefone inválido." }),
-  organizationType: z.enum(["interno", "externo"], {
-    errorMap: () => ({ message: "Selecione o tipo de órgão." }),
-  }),
-  department: z.string().optional(),
-  externalOrganization: z.string().optional(),
-  bookingModalities: z.string({ required_error: "Selecione uma modalidade." }),
-  requiredMaterials: z.string().optional(),
-  participantCount: z.coerce.number().min(1, { message: "Informe o número de participantes." }),
-  tableCount: z.coerce.number().min(0, "Mínimo 0.").max(3, "Máximo 3 mesas."),
-  chairCount: z.coerce.number().min(0, "Mínimo 0.").max(10, "Máximo 10 cadeiras."),
+    fullName: z.string().min(3, { message: "Nome completo é obrigatório." }),
+    email: z.string().email({ message: "E-mail inválido." }),
+    phone: z.string().min(15, { message: "Telefone inválido." }),
+    organizationType: z.enum(["interno", "externo"], {
+        errorMap: () => ({ message: "Selecione o tipo de órgão." }),
+    }),
+    department: z.string().optional(),
+    externalOrganization: z.string().optional(),
+    bookingModalities: z.string({ required_error: "Selecione uma modalidade." }),
+    requiredMaterials: z.string().optional(),
+    participantCount: z.coerce.number().min(1, { message: "Informe o número de participantes." }),
+    tableCount: z.coerce.number().min(0, "Mínimo 0.").max(3, "Máximo 3 mesas."),
+    chairCount: z.coerce.number().min(0, "Mínimo 0.").max(10, "Máximo 10 cadeiras."),
 }).superRefine((data, ctx) => {
     if (data.organizationType === 'interno' && (!data.department || data.department.trim().length === 0)) {
         ctx.addIssue({
@@ -45,27 +46,28 @@ const AdminBookingSchema = z.object({
 
 
 type FormState = {
-  success: boolean;
-  message: string;
+    success: boolean;
+    message: string;
 } | null;
 
 
-// Helper to get Google Calendar API client
+// Helper to get Google Calendar API client (VERSÃO ATUALIZADA)
 async function getGoogleCalendarClient() {
-    const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n');
-    const clientEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+    const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, '\n');
+    const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+    const userToImpersonate = process.env.GOOGLE_CALENDAR_ID; // O alvo da delegação
 
-    if (!clientEmail || !privateKey) {
-        console.error("Google Service Account credentials not found or incomplete in environment.");
-        throw new Error("Google API configuration is missing on the server.");
+    if (!clientEmail || !privateKey || !userToImpersonate) {
+        console.error("Firebase/Google credentials or Calendar ID are missing.");
+        throw new Error("API configuration is missing on the server.");
     }
     
-    const auth = new google.auth.GoogleAuth({
-        credentials: {
-          client_email: clientEmail,
-          private_key: privateKey,
-        },
+    // Usando JWT para incluir a personificação (subject)
+    const auth = new JWT({
+        email: clientEmail,
+        key: privateKey,
         scopes: ["https://www.googleapis.com/auth/calendar"],
+        subject: userToImpersonate, // <-- A MUDANÇA CRUCIAL ESTÁ AQUI
     });
 
     const calendar = google.calendar({ version: "v3", auth });
@@ -74,14 +76,14 @@ async function getGoogleCalendarClient() {
 
 
 export async function updateBookingStatus(bookingId: string, status: 'approved' | 'rejected') {
-    const bookingRef = doc(adminDb, "bookings", bookingId);
+    const bookingRef = adminDb.collection("bookings").doc(bookingId);
     
     try {
-        const bookingSnap = await getDoc(bookingRef);
-        if (!bookingSnap.exists()) {
+        const bookingSnap = await bookingRef.get();
+        if (!bookingSnap.exists) {
             throw new Error("Agendamento não encontrado.");
         }
-        const bookingData = bookingSnap.data();
+        const bookingData = bookingSnap.data()!;
         const calendarEventId = bookingData.calendarEventId;
 
         const calendar = await getGoogleCalendarClient();
@@ -123,10 +125,10 @@ export async function updateBookingStatus(bookingId: string, status: 'approved' 
                 requestBody: event,
             });
 
-            await updateDoc(bookingRef, { status, calendarEventId: createdEvent.data.id });
+            await bookingRef.update({ status, calendarEventId: createdEvent.data.id });
 
         } else if (status === 'rejected') {
-             await updateDoc(bookingRef, { status }); // Update status first
+            await bookingRef.update({ status }); // Update status first
              if (calendarEventId) {
                 try {
                     await calendar.events.delete({
@@ -139,7 +141,7 @@ export async function updateBookingStatus(bookingId: string, status: 'approved' 
                         // Do not re-throw, as the main goal (rejecting booking) is done.
                     }
                 }
-                await updateDoc(bookingRef, { calendarEventId: null });
+                await bookingRef.update({ calendarEventId: null });
              }
         }
     } catch (error) {
@@ -150,70 +152,57 @@ export async function updateBookingStatus(bookingId: string, status: 'approved' 
 
 
 export async function handleBookingRequest(
-  selectedSlots: Record<string, string[]>,
-  prevState: FormState,
-  formData: FormData
+    selectedSlots: Record<string, string[]>,
+    prevState: FormState,
+    formData: FormData
 ): Promise<FormState> {
 
-  const rawFormData = Object.fromEntries(formData.entries());
-  
-  const parsedData = BookingDetailsSchema.safeParse({
-    fullName: formData.get("fullName"),
-    email: formData.get("email"),
-    phone: formData.get("phone"),
-    organizationType: formData.get("organizationType"),
-    department: formData.get("department"),
-    externalOrganization: formData.get("externalOrganization"),
-    bookingModalities: formData.get("bookingModalities"),
-    requiredMaterials: formData.get("requiredMaterials"),
-    participantCount: formData.get("participantCount"),
-    tableCount: formData.get("tableCount"),
-    chairCount: formData.get("chairCount"),
-  });
-
-
-  if (!parsedData.success) {
-    const errorMessages = parsedData.error.errors.map(e => `- ${e.message}`).join("\n");
-    return { success: false, message: `Por favor, corrija os seguintes erros:\n${errorMessages}` };
-  }
-
-  const data = parsedData.data;
-  
-  if (!selectedSlots || Object.keys(selectedSlots).length === 0) {
-    return { success: false, message: "Nenhum horário selecionado." };
-  }
-
-  try {
-    const selectedDates = Object.entries(selectedSlots).flatMap(([date, times]) =>
-      (times as string[]).map(time => new Date(`${date}T${time}:00`).toISOString())
+    const parsedData = BookingDetailsSchema.safeParse(
+      Object.fromEntries(formData.entries())
     );
 
-    if (selectedDates.length === 0) {
-      return { success: false, message: "Por favor, selecione ao menos um horário." };
+    if (!parsedData.success) {
+        const errorMessages = parsedData.error.errors.map(e => `- ${e.message}`).join("\n");
+        return { success: false, message: `Por favor, corrija os seguintes erros:\n${errorMessages}` };
     }
+
+    const data = parsedData.data;
     
-    const bookingDate = Object.keys(selectedSlots)[0]; // YYYY-MM-DD format
-    await addDoc(collection(adminDb, "bookings"), {
-      ...data,
-      selectedSlots,
-      bookingDate: bookingDate, // Add this field for querying
-      createdAt: serverTimestamp(),
-      status: "pending"
-    });
-    return { success: true, message: "Seu agendamento foi solicitado com sucesso e está pendente de aprovação!" };
-   
-  } catch (error) {
-    console.error("--- DETAILED ERROR IN handleBookingRequest ---");
-    if (error instanceof Error) {
-        console.error("Error Name:", error.name);
-        console.error("Error Message:", error.message);
-        console.error("Error Stack:", error.stack);
-    } else {
-        console.error("Caught a non-Error object:", error);
+    if (!selectedSlots || Object.keys(selectedSlots).length === 0) {
+        return { success: false, message: "Nenhum horário selecionado." };
     }
-    console.error("--- END OF DETAILED ERROR ---");
-    return { success: false, message: "Ocorreu um erro inesperado. Tente novamente." };
-  }
+
+    try {
+        const selectedDates = Object.entries(selectedSlots).flatMap(([date, times]) =>
+            (times as string[]).map(time => new Date(`${date}T${time}:00`).toISOString())
+        );
+
+        if (selectedDates.length === 0) {
+            return { success: false, message: "Por favor, selecione ao menos um horário." };
+        }
+        
+        const bookingDate = Object.keys(selectedSlots)[0]; // YYYY-MM-DD format
+        await adminDb.collection("bookings").add({
+            ...data,
+            selectedSlots,
+            bookingDate: bookingDate,
+            createdAt: FieldValue.serverTimestamp(),
+            status: "pending"
+        });
+        return { success: true, message: "Seu agendamento foi solicitado com sucesso e está pendente de aprovação!" };
+        
+    } catch (error) {
+        console.error("--- DETAILED ERROR IN handleBookingRequest ---");
+        if (error instanceof Error) {
+            console.error("Error Name:", error.name);
+            console.error("Error Message:", error.message);
+            console.error("Error Stack:", error.stack);
+        } else {
+            console.error("Caught a non-Error object:", error);
+        }
+        console.error("--- END OF DETAILED ERROR ---");
+        return { success: false, message: "Ocorreu um erro inesperado. Tente novamente." };
+    }
 }
 
 export async function handleAdminBookingRequest(
@@ -221,11 +210,9 @@ export async function handleAdminBookingRequest(
     prevState: FormState,
     formData: FormData
 ): Promise<FormState> {
-    const parsedData = AdminBookingSchema.safeParse({
-        fullName: formData.get("fullName"),
-        department: formData.get("department"),
-        bookingModalities: formData.get("bookingModalities"),
-    });
+    const parsedData = AdminBookingSchema.safeParse(
+      Object.fromEntries(formData.entries())
+    );
 
     if (!parsedData.success) {
         const errorMessages = parsedData.error.errors.map(e => `- ${e.message}`).join("\n");
@@ -240,13 +227,15 @@ export async function handleAdminBookingRequest(
 
     try {
        const bookingDate = Object.keys(selectedSlots)[0];
-       const newBookingRef = await addDoc(collection(adminDb, "bookings"), {
+       
+       // SINTAXE DO ADMIN SDK CORRIGIDA AQUI
+       const newBookingRef = await adminDb.collection("bookings").add({
             ...data,
             organizationType: 'interno',
             email: 'centrodemidias@seduc.to.gov.br', // Add default email for admin bookings
             selectedSlots,
             bookingDate: bookingDate, 
-            createdAt: serverTimestamp(),
+            createdAt: FieldValue.serverTimestamp(), // SINTAXE CORRIGIDA
             status: "pending" // Set to pending to trigger the approval flow
        });
 
@@ -267,3 +256,26 @@ export async function handleAdminBookingRequest(
        return { success: false, message: "Ocorreu um erro inesperado. Tente novamente." };
     }
 }
+
+// Adicione esta função no final do seu arquivo src/app/actions.ts
+export async function testFirestoreWrite() {
+    console.log("--- INICIANDO TESTE DE ESCRITA NO FIRESTORE ---");
+    try {
+      const testData = {
+        timestamp: FieldValue.serverTimestamp(),
+        status: "SUCCESS",
+        message: "A conexão com o Admin SDK e a escrita no Firestore funcionaram.",
+      };
+  
+      const docRef = await adminDb.collection("testLogs").add(testData);
+      console.log("--- SUCESSO! Documento de teste escrito com o ID:", docRef.id);
+      return { success: true, message: `Teste bem-sucedido! Documento criado em testLogs com o ID: ${docRef.id}` };
+  
+    } catch (error: any) {
+      console.error("--- ERRO NO TESTE DE ESCRITA ---");
+      console.error("Error Name:", error.name);
+      console.error("Error Message:", error.message);
+      console.error("--- FIM DO ERRO DE TESTE ---");
+      return { success: false, message: `O teste de escrita falhou: ${error.message}` };
+    }
+  }
