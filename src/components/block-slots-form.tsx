@@ -67,7 +67,8 @@ export default function BlockSlotsForm({ initialReservedBookings, initialManuall
 
   const weekDays = useMemo(() => {
     const start = startOfWeek(currentDate, { locale: ptBR });
-    return eachDayOfInterval({ start, end: addDays(start, 4) });
+    const end = endOfWeek(currentDate, { locale: ptBR });
+    return eachDayOfInterval({ start, end }).filter(day => !isWeekend(day));
   }, [currentDate]);
 
   const isPreviousWeekButtonDisabled = useMemo(() => {
