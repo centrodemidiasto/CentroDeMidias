@@ -1,10 +1,9 @@
-// Import the functions you need from the SDKs you need
-import { initializeApp, getApps, getApp } from "firebase/app";
+// lib/firebase/config.js
+import { initializeApp, getApps } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
-// As variáveis de ambiente NEXT_PUBLIC_* são substituídas em tempo de build
-// e ficam disponíveis no lado do cliente.
+// Suas credenciais do Firebase que ficam no navegador
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -14,10 +13,15 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Initialize Firebase
-// Esta verificação garante que a inicialização só aconteça uma vez.
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+// Inicializa o Firebase, mas apenas se ainda não foi inicializado
+let app;
+if (!getApps().length) {
+  app = initializeApp(firebaseConfig);
+} else {
+  app = getApps()[0]; // Usa o app já existente
+}
+
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-export { db, auth };
+export { app, db, auth };

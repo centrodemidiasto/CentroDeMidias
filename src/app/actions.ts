@@ -1,7 +1,7 @@
 
 "use server";
 
-import { db } from "@/lib/firebase-admin"; 
+import { adminDb } from "@/lib/firebase-admin"; 
 import { collection, addDoc, serverTimestamp, getDocs, query, where, writeBatch, doc, getDoc, updateDoc } from "firebase/firestore";
 import { z } from "zod";
 import { google } from 'googleapis';
@@ -74,7 +74,7 @@ async function getGoogleCalendarClient() {
 
 
 export async function updateBookingStatus(bookingId: string, status: 'approved' | 'rejected') {
-    const bookingRef = doc(db, "bookings", bookingId);
+    const bookingRef = doc(adminDb, "bookings", bookingId);
     
     try {
         const bookingSnap = await getDoc(bookingRef);
@@ -193,7 +193,7 @@ export async function handleBookingRequest(
     }
     
     const bookingDate = Object.keys(selectedSlots)[0]; // YYYY-MM-DD format
-    await addDoc(collection(db, "bookings"), {
+    await addDoc(collection(adminDb, "bookings"), {
       ...data,
       selectedSlots,
       bookingDate: bookingDate, // Add this field for querying
@@ -203,7 +203,15 @@ export async function handleBookingRequest(
     return { success: true, message: "Seu agendamento foi solicitado com sucesso e está pendente de aprovação!" };
    
   } catch (error) {
-    console.error("Error processing booking:", error);
+    console.error("--- DETAILED ERROR IN handleBookingRequest ---");
+    if (error instanceof Error) {
+        console.error("Error Name:", error.name);
+        console.error("Error Message:", error.message);
+        console.error("Error Stack:", error.stack);
+    } else {
+        console.error("Caught a non-Error object:", error);
+    }
+    console.error("--- END OF DETAILED ERROR ---");
     return { success: false, message: "Ocorreu um erro inesperado. Tente novamente." };
   }
 }
@@ -232,7 +240,7 @@ export async function handleAdminBookingRequest(
 
     try {
        const bookingDate = Object.keys(selectedSlots)[0];
-       const newBookingRef = await addDoc(collection(db, "bookings"), {
+       const newBookingRef = await addDoc(collection(adminDb, "bookings"), {
             ...data,
             organizationType: 'interno',
             email: 'centrodemidias@seduc.to.gov.br', // Add default email for admin bookings
@@ -247,7 +255,15 @@ export async function handleAdminBookingRequest(
        return { success: true, message: "Agendamento rápido realizado e aprovado com sucesso!" };
 
     } catch (error) {
-        console.error("Detailed error in handleAdminBookingRequest:", error);
-        return { success: false, message: "Ocorreu um erro inesperado. Tente novamente." };
+       console.error("--- DETAILED ERROR IN handleAdminBookingRequest ---");
+       if (error instanceof Error) {
+            console.error("Error Name:", error.name);
+            console.error("Error Message:", error.message);
+            console.error("Error Stack:", error.stack);
+        } else {
+            console.error("Caught a non-Error object:", error);
+        }
+       console.error("--- END OF DETAILED ERROR ---");
+       return { success: false, message: "Ocorreu um erro inesperado. Tente novamente." };
     }
 }
