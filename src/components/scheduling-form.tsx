@@ -239,6 +239,20 @@ export default function SchedulingForm() {
                       const reservedSlot = reservedBookings.find(b => b.date === dateKeyForReserved && b.times.includes(time));
                       const manuallyBlocked = manuallyBlockedSlots.find(b => b.date === dateKeyForReserved && b.times.includes(time));
 
+                      // For non-admins, if the day is not bookable, all slots are just unavailable
+                      if (!user && isDayDisabled) {
+                        return (
+                          <Button
+                              key={time}
+                              variant="outline"
+                              className="h-8 w-full text-xs bg-muted cursor-not-allowed"
+                              disabled
+                          >
+                              {time}
+                          </Button>
+                        );
+                      }
+
                       if (manuallyBlocked) {
                            return (
                                 <Button
