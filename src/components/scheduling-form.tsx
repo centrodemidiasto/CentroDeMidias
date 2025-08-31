@@ -219,12 +219,9 @@ export default function SchedulingForm() {
         ) : (
             <div className="grid grid-cols-1 md:grid-cols-5 gap-px bg-border overflow-hidden rounded-lg border">
             {weekDays.map(day => {
-                const isDayDisabledForUser = isBefore(day, firstBookableDate);
-                let isDayDisabled = user ? false : isDayDisabledForUser;
+                const isDayBeforeFirstBookable = isBefore(day, firstBookableDate);
+                let isDayDisabled = user ? isBefore(day, today) : isDayBeforeFirstBookable;
                 const dateKeyForReserved = format(day, "yyyy-MM-dd");
-                 if (user && isBefore(day, startOfToday())) {
-                  isDayDisabled = true;
-                }
                 
                 return (
                 <div key={day.toString()} className={cn("flex flex-col", isDayDisabled ? "bg-muted" : "bg-background")}>
@@ -240,7 +237,7 @@ export default function SchedulingForm() {
                       const manuallyBlocked = manuallyBlockedSlots.find(b => b.date === dateKeyForReserved && b.times.includes(time));
 
                       // For non-admins, if the day is not bookable, all slots are just unavailable
-                      if (!user && isDayDisabled) {
+                      if (isDayDisabled) {
                         return (
                           <Button
                               key={time}
@@ -253,7 +250,7 @@ export default function SchedulingForm() {
                         );
                       }
 
-                      if (manuallyBlocked) {
+                      if (manuallyBlocked || (!user && reservedSlot)) {
                            return (
                                 <Button
                                     key={time}
@@ -265,8 +262,9 @@ export default function SchedulingForm() {
                                 </Button>
                             );
                       }
-
-                      if (reservedSlot) {
+                      
+                      // This block now only runs for logged-in users, as non-users are handled above
+                      if (user && reservedSlot) {
                           const isPending = reservedSlot.status === 'pending';
                           const tooltipContent = isPending 
                               ? "Agendamento pendente de aprovação"
