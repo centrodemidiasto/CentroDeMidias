@@ -204,7 +204,7 @@ export default function DashboardPage() {
         await updateBookingStatus(id, status);
         toast({
             title: "Sucesso!",
-            description: `Agendamento ${status === 'approved' ? 'aprovado e adicionado ao Google Agenda' : 'cancelado e removido do Google Agenda'}.`,
+            description: `Agendamento ${status === 'approved' ? 'aprovado' : 'rejeitado'}.`,
         });
         // Refetch relevant data after update
         fetchPendingBookings();

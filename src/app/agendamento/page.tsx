@@ -1,20 +1,12 @@
-// src/app/agendamento/page.tsx (ou similar)
 
-'use client'; // DIRETIVA DE CLIENTE ADICIONADA para permitir interatividade
+
+'use client'; 
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ListChecks, Clock, AlertTriangle } from "lucide-react";
 import SchedulingForm from "@/components/scheduling-form";
-import { testFirestoreWrite } from "@/app/actions"; // FUNÇÃO DE TESTE IMPORTADA
 
 export default function AgendamentoPage() {
-
-  // FUNÇÃO DO HANDLER DO BOTÃO
-  const handleTestClick = async () => {
-    console.log("Clicou no botão de teste...");
-    const result = await testFirestoreWrite();
-    alert(result.message); // Mostra o resultado em um alerta
-  };
 
   return (
     <div className="container mx-auto max-w-7xl px-4 py-12 md:px-6 md:py-16">
@@ -53,23 +45,6 @@ export default function AgendamentoPage() {
 
         <SchedulingForm />
         
-        {/* BOTÃO DE TESTE ADICIONADO */}
-        <div className="text-center">
-            <button 
-                onClick={handleTestClick} 
-                style={{ 
-                    backgroundColor: 'darkred', 
-                    color: 'white', 
-                    padding: '10px 20px', 
-                    marginTop: '30px',
-                    borderRadius: '8px',
-                    fontWeight: 'bold'
-                }}
-            >
-                TESTAR CONEXÃO FIRESTORE
-            </button>
-        </div>
-
       </div>
     </div>
   );
