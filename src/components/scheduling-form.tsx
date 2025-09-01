@@ -48,7 +48,7 @@ type ManuallyBlockedSlot = {
 
 const timeSlots = Array.from({ length: 9 }, (_, i) => `${String(i + 9).padStart(2, "0")}:00`);
 const MIN_BOOKING_NOTICE_DAYS = 5;
-const MAX_BOOKING_WEEKS_IN_ADVANCE = 14;
+const MAX_BOOKING_WEEKS_IN_ADVANCE = 8;
 
 
 async function getReservedBookings(): Promise<ReservedBooking[]> {
@@ -234,7 +234,7 @@ export default function SchedulingForm() {
            <div className="flex flex-col items-center justify-center h-48 text-center text-muted-foreground bg-muted/50 rounded-lg">
                 <CalendarX2 className="w-12 h-12 mb-4"/>
                 <h3 className="font-bold text-lg">Indisponível</h3>
-                <p className="text-sm">Não é possível realizar agendamentos com mais de 14 semanas de antecedência.</p>
+                <p className="text-sm">Não é possível realizar agendamentos com mais de 8 semanas de antecedência.</p>
            </div>
         ) : (
             <div className="grid grid-cols-1 md:grid-cols-5 gap-px bg-border overflow-hidden rounded-lg border">
