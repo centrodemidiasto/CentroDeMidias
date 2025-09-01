@@ -64,8 +64,9 @@ export default function FormularioBloqueioHorarios({ reservasIniciais, bloqueios
   }
 
   const diasDaSemana = useMemo(() => {
-    const inicio = startOfWeek(dataAtual, { locale: ptBR });
-    return eachDayOfInterval({ start: inicio, end: addDays(inicio, 4) });
+    const inicioDaSemana = startOfWeek(dataAtual, { locale: ptBR });
+    const segundaFeira = addDays(inicioDaSemana, 1);
+    return eachDayOfInterval({ start: segundaFeira, end: addDays(segundaFeira, 4) });
   }, [dataAtual]);
 
   const desabilitarBtnSemanaAnterior = useMemo(() => {

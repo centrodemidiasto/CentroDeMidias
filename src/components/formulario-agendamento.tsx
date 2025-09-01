@@ -69,7 +69,12 @@ async function getReservasExistentes(): Promise<ReservaExistente[]> {
 async function getBloqueiosManuais(): Promise<BloqueioManual[]> {
     const bloqueiosRef = collection(db, "horariosBloqueados");
     const querySnapshot = await getDocs(bloqueiosRef);
-    return querySnapshot.docs.map(doc => doc.data() as BloqueioManual);
+    const bloqueios: BloqueioManual[] = [];
+    querySnapshot.forEach(doc => {
+        const data = doc.data();
+        bloqueios.push({ data: data.data, horarios: data.horarios });
+    });
+    return bloqueios;
 }
 
 export default function FormularioAgendamento() {
@@ -120,31 +125,23 @@ export default function FormularioAgendamento() {
   }, []);
 
   const diasDaSemana = useMemo(() => {
-    const inicio = startOfWeek(dataAtual, { locale: ptBR });
-    return eachDayOfInterval({ start: inicio, end: addDays(inicio, 4) });
+    const inicioDaSemana = startOfWeek(dataAtual, { locale: ptBR });
+    const segundaFeira = addDays(inicioDaSemana, 1); 
+    return eachDayOfInterval({ start: segundaFeira, end: addDays(segundaFeira, 4) });
   }, [dataAtual]);
   
   const desabilitarBtnSemanaAnterior = useMemo(() => {
     if (!clienteRenderizou) return true;
-    const primeiroDiaSemanaAtual = startOfWeek(dataAtual, { locale: ptBR });
-    if (usuario) {
-        const ultimoDiaSemanaAnterior = addDays(primeiroDiaSemanaAtual, -1);
-        return isBefore(ultimoDiaSemanaAnterior, hoje);
-    }
-    const primeiroDiaPossivel = startOfWeek(primeiraDataAgendavel, { locale: ptBR });
-    const semanaAtualComecaAntes = isBefore(primeiroDiaSemanaAtual, primeiroDiaPossivel);
-
-    if (isBefore(primeiroDiaPossivel, primeiroDiaSemanaAtual)) {
-      return false;
-    }
-    return semanaAtualComecaAntes;
-  }, [dataAtual, primeiraDataAgendavel, usuario, hoje, clienteRenderizou]);
+    const primeiraDataVisivel = diasDaSemana[0];
+    const primeiroDiaPermitido = startOfWeek(primeiraDataAgendavel, { locale: ptBR });
+    return isBefore(primeiraDataVisivel, primeiroDiaPermitido);
+  }, [diasDaSemana, primeiraDataAgendavel, clienteRenderizou]);
 
 
   const desabilitarBtnProximaSemana = useMemo(() => {
-    const primeiroDiaSemanaAtual = startOfWeek(dataAtual, { locale: ptBR });
-    return isAfter(primeiroDiaSemanaAtual, ultimaDataAgendavel);
-  }, [dataAtual, ultimaDataAgendavel]);
+    const proximaSemana = addDays(diasDaSemana[0], 7);
+    return isAfter(proximaSemana, ultimaDataAgendavel);
+  }, [diasDaSemana, ultimaDataAgendavel]);
   
   const calendarioForaDoIntervalo = useMemo(() => {
      return isAfter(diasDaSemana[0], ultimaDataAgendavel);
