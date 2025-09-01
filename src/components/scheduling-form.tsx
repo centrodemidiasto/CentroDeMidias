@@ -11,11 +11,13 @@ import {
   isBefore,
   startOfToday,
   parseISO,
+  addWeeks,
+  isAfter,
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChevronLeft, ChevronRight, Loader2, Info } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, Info, CalendarX2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import BookingDetailsForm from "./booking-details-form";
@@ -46,6 +48,7 @@ type ManuallyBlockedSlot = {
 
 const timeSlots = Array.from({ length: 9 }, (_, i) => `${String(i + 9).padStart(2, "0")}:00`);
 const MIN_BOOKING_NOTICE_DAYS = 5;
+const MAX_BOOKING_WEEKS_IN_ADVANCE = 14;
 
 
 async function getReservedBookings(): Promise<ReservedBooking[]> {
@@ -77,6 +80,8 @@ async function getManuallyBlockedSlots(): Promise<ManuallyBlockedSlot[]> {
 export default function SchedulingForm() {
   const today = startOfToday();
   const initialFirstBookableDate = addDays(today, MIN_BOOKING_NOTICE_DAYS);
+  const lastBookableDate = addWeeks(today, MAX_BOOKING_WEEKS_IN_ADVANCE);
+
 
   const [currentDate, setCurrentDate] = useState(initialFirstBookableDate);
   const [selectedSlots, setSelectedSlots] = useState<SelectedSlots>({});
@@ -141,6 +146,12 @@ export default function SchedulingForm() {
     return isBefore(firstDayOfCurrentWeek, firstPossibleDay);
   }, [currentDate, initialFirstBookableDate, user, today, isClient]);
 
+  const isNextWeekButtonDisabled = useMemo(() => {
+    if (user) return false; // Admins can see indefinitely into the future
+    const firstDayOfNextWeek = addDays(startOfWeek(currentDate, { locale: ptBR }), 7);
+    return isAfter(firstDayOfNextWeek, lastBookableDate);
+  }, [currentDate, lastBookableDate, user]);
+
 
   const handleSlotSelect = (day: Date, time: string) => {
     const dateKey = format(day, "yyyy-MM-dd");
@@ -184,6 +195,9 @@ export default function SchedulingForm() {
     fetchAllBookings();
   }
 
+  const isCalendarOutOfRange = !user && isAfter(weekDays[0], lastBookableDate);
+
+
   return (
     <Card>
       {user && (
@@ -205,7 +219,7 @@ export default function SchedulingForm() {
           <h2 className="text-lg font-bold text-center font-headline">
             {format(weekDays[0], "d 'de' MMMM", { locale: ptBR })} - {format(weekDays[weekDays.length - 1], "d 'de' MMMM 'de' yyyy", { locale: ptBR })}
           </h2>
-          <Button variant="outline" size="icon" onClick={() => changeWeek(1)}>
+          <Button variant="outline" size="icon" onClick={() => changeWeek(1)} disabled={isNextWeekButtonDisabled}>
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
@@ -216,6 +230,12 @@ export default function SchedulingForm() {
           <div className="flex items-center justify-center h-48">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
+        ) : isCalendarOutOfRange ? (
+           <div className="flex flex-col items-center justify-center h-48 text-center text-muted-foreground bg-muted/50 rounded-lg">
+                <CalendarX2 className="w-12 h-12 mb-4"/>
+                <h3 className="font-bold text-lg">Indisponível</h3>
+                <p className="text-sm">Não é possível realizar agendamentos com mais de 14 semanas de antecedência.</p>
+           </div>
         ) : (
             <div className="grid grid-cols-1 md:grid-cols-5 gap-px bg-border overflow-hidden rounded-lg border">
             {weekDays.map(day => {

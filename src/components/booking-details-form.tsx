@@ -225,7 +225,7 @@ export default function BookingDetailsForm({ selectedSlots, onBookingSuccess }: 
                             <FormItem>
                                 <FormLabel>Informe o Departamento</FormLabel>
                                 <FormControl>
-                                    <Input placeholder="Ex: Diretoria de Ensino" {...field} />
+                                    <Input placeholder="Ex: DTIE" {...field} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
