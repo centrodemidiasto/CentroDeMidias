@@ -229,7 +229,10 @@ export default function FormularioAgendamentoRecorrente({
                 </Button>
             </div>
             <div className="space-y-2">
-                <h3 className="font-medium">2. Selecione as Datas</h3>
+                <div className="p-2 border rounded-md text-center">
+                    <h3 className="font-medium">2. Selecione as Datas</h3>
+                    <p className="text-xs text-muted-foreground">Marque várias datas para o mesmo conjunto de horários.</p>
+                </div>
                 {horariosSelecionados.length > 0 ? (
                     <div className="flex justify-center">
                         <Calendar

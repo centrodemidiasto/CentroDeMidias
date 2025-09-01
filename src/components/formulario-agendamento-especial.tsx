@@ -8,16 +8,18 @@ import { cn } from "@/lib/utils";
 import FormularioReservaAdmin from "./formulario-reserva-admin";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
 import { Calendar } from "./ui/calendar";
-import { HorariosSelecionados, ReservaExistente, BloqueioManual, SLOTS_DE_TEMPO } from "./formulario-agendamento";
+import { HorariosSelecionados, ReservaExistente, BloqueioManual } from "./formulario-agendamento";
 import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
-import { Calendar as CalendarIcon } from "lucide-react";
+import { Calendar as CalendarIcon, Clock } from "lucide-react";
 
 interface FormularioAgendamentoEspecialProps {
     reservasExistentes: ReservaExistente[];
     bloqueiosManuais: BloqueioManual[];
     onSucessoReserva: () => void;
 }
+
+const SLOTS_DE_TEMPO_ESPECIAL = Array.from({ length: 14 }, (_, i) => `${String(i + 8).padStart(2, "0")}:00`);
 
 const LegendaItem = ({ cor, texto }: { cor: string, texto: string }) => (
     <div className="flex items-center gap-2">
@@ -84,9 +86,12 @@ export default function FormularioAgendamentoEspecial({
                             },
                         }}
                     />
-                    <div className="flex gap-4 mt-2">
-                        <LegendaItem cor="bg-primary" texto="Com seleção atual" />
-                        <LegendaItem cor="bg-background border" texto="Disponível" />
+                     <div className="flex flex-col gap-2 mt-4 p-2 border rounded-md">
+                        <div className="flex gap-4">
+                            <LegendaItem cor="bg-primary" texto="Com seleção atual" />
+                            <LegendaItem cor="bg-background border" texto="Disponível" />
+                        </div>
+                        <p className="text-xs text-muted-foreground text-center">Este modo permite agendamentos fora do horário de expediente (9h-18h).</p>
                     </div>
                 </div>
                 <div className="space-y-4">
@@ -95,8 +100,8 @@ export default function FormularioAgendamentoEspecial({
                             <h3 className="text-lg font-medium text-center">
                                 Horários para {format(dataSelecionada, "dd/MM/yyyy")}
                             </h3>
-                            <div className="grid grid-cols-3 gap-2">
-                                {SLOTS_DE_TEMPO.map(horario => {
+                            <div className="grid grid-cols-3 lg:grid-cols-4 gap-2">
+                                {SLOTS_DE_TEMPO_ESPECIAL.map(horario => {
                                     const slotReservado = reservasExistentes.find(r => r.data === chaveData && r.horarios.includes(horario));
                                     const bloqueadoManualmente = bloqueiosManuais.find(b => b.data === chaveData && b.horarios.includes(horario));
                                     const estaDesabilitado = !!slotReservado || !!bloqueadoManualmente;
