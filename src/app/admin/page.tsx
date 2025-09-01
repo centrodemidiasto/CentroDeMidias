@@ -247,28 +247,33 @@ export default function DashboardPage() {
 
   const createGoogleCalendarLink = (booking: Booking): string => {
     const date = Object.keys(booking.selectedSlots)[0];
-    const startTimeStr = booking.selectedSlots[date][0];
-    const endTimeStr = booking.selectedSlots[date][booking.selectedSlots[date].length - 1];
+    const startTimeStr = booking.selectedSlots[date]?.[0];
+    const endTimeStr = booking.selectedSlots[date]?.[booking.selectedSlots[date].length - 1];
 
-    if (!date || !startTimeStr) return '';
+    if (!date || !startTimeStr || !endTimeStr) return '';
 
     const startDateTime = parseISO(`${date}T${startTimeStr}:00`);
-    // Assuming each slot is 1 hour, the end time is 1 hour after the last selected slot's start time
     const endDateTime = addHours(parseISO(`${date}T${endTimeStr}:00`), 1);
 
     const formatForGoogle = (d: Date) => format(d, "yyyyMMdd'T'HHmmss");
 
     const dates = `${formatForGoogle(startDateTime)}/${formatForGoogle(endDateTime)}`;
     const text = `Gravação: ${booking.fullName} - ${booking.bookingModalities}`;
+    
     const organization = booking.organizationType === 'interno' ? booking.department : booking.externalOrganization;
+    
+    // Helper to format details, replacing falsy values with '-'
+    const formatDetail = (value: any) => (value ? value : '-');
+    const formatMaterials = (value: any) => (value && value.toLowerCase() !== 'nenhum' ? value : '-');
+
     const details = `Agendamento no Centro de Mídias.
-Solicitante: ${booking.fullName}
-Órgão: ${organization}
-Modalidade: ${booking.bookingModalities}
-Participantes: ${booking.participantCount}
-Mesas: ${booking.tableCount}
-Cadeiras: ${booking.chairCount}
-Materiais: ${booking.requiredMaterials || 'Nenhum'}`;
+Solicitante: ${formatDetail(booking.fullName)}
+Órgão: ${formatDetail(organization)}
+Modalidade: ${formatDetail(booking.bookingModalities)}
+Participantes: ${formatDetail(booking.participantCount)}
+Mesas: ${formatDetail(booking.tableCount)}
+Cadeiras: ${formatDetail(booking.chairCount)}
+Materiais: ${formatMaterials(booking.requiredMaterials)}`;
 
     const params = new URLSearchParams({
         action: 'TEMPLATE',
@@ -276,7 +281,6 @@ Materiais: ${booking.requiredMaterials || 'Nenhum'}`;
         dates,
         details,
         location: 'Centro de Mídias Educacionais - Palmas, TO',
-        // ctz: 'America/Sao_Paulo' // Optional: specify timezone
     });
 
     return `https://www.google.com/calendar/render?${params.toString()}`;
