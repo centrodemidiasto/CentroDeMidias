@@ -13,6 +13,7 @@ import {
   isAfter,
   isMonday,
   nextMonday,
+  previousMonday,
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -131,7 +132,10 @@ export default function FormularioAgendamento() {
   }, []);
 
   const diasDaSemana = useMemo(() => {
-    const inicioDaSemana = startOfWeek(dataAtual, { weekStartsOn: 1 });
+    let inicioDaSemana = startOfWeek(dataAtual, { weekStartsOn: 1 });
+    if (!isMonday(inicioDaSemana)) {
+        inicioDaSemana = isBefore(inicioDaSemana, dataAtual) ? nextMonday(inicioDaSemana) : previousMonday(inicioDaSemana);
+    }
     return eachDayOfInterval({ start: inicioDaSemana, end: addDays(inicioDaSemana, 4) });
   }, [dataAtual]);
   
@@ -144,16 +148,14 @@ export default function FormularioAgendamento() {
 
 
   const desabilitarBtnProximaSemana = useMemo(() => {
-    const primeiraDataVisivel = diasDaSemana[0];
-    const ultimoDiaMostravel = startOfWeek(ultimaDataAgendavel, { weekStartsOn: 1 });
-    return !isBefore(primeiraDataVisivel, ultimoDiaMostravel);
+    const ultimaDataVisivel = diasDaSemana[diasDaSemana.length - 1];
+    return isAfter(ultimaDataVisivel, ultimaDataAgendavel);
   }, [diasDaSemana, ultimaDataAgendavel]);
 
   
   const calendarioForaDoIntervalo = useMemo(() => {
      const primeiraDataVisivel = diasDaSemana[0];
-     const ultimoDiaMostravel = addWeeks(startOfWeek(ultimaDataAgendavel, {weekStartsOn: 1}), 1);
-     return isAfter(primeiraDataVisivel, ultimoDiaMostravel);
+     return isAfter(primeiraDataVisivel, ultimaDataAgendavel);
   }, [diasDaSemana, ultimaDataAgendavel]);
 
 
@@ -214,47 +216,47 @@ export default function FormularioAgendamento() {
                 </AlertDescription>
             </Alert>
             <div className="flex flex-col sm:flex-row gap-4">
-                 <Dialog open={modalEspecialAberto} onOpenChange={setModalEspecialAberto}>
-                    <DialogTrigger asChild>
-                        <Button variant="outline" className="w-full">
-                           <CalendarPlus className="mr-2 h-4 w-4" /> Agendamento Especial
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-4xl">
-                        <DialogHeader>
-                            <DialogTitle>Agendamento Especial</DialogTitle>
-                             <DialogDescription>
-                                Selecione uma data e horário sem as restrições normais de antecedência.
-                            </DialogDescription>
-                        </DialogHeader>
-                        <FormularioAgendamentoEspecial
-                           reservasExistentes={reservasExistentes}
-                           bloqueiosManuais={bloqueiosManuais}
-                           onSucessoReserva={onSucessoReserva}
-                        />
-                    </DialogContent>
-                 </Dialog>
+                <div className="flex-1 space-y-2">
+                    <Dialog open={modalEspecialAberto} onOpenChange={setModalEspecialAberto}>
+                        <DialogTrigger asChild>
+                            <Button variant="outline" className="w-full">
+                               <CalendarPlus className="mr-2 h-4 w-4" /> Agendamento Especial
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-4xl">
+                            <DialogHeader>
+                                <DialogTitle>Agendamento Especial</DialogTitle>
+                            </DialogHeader>
+                            <FormularioAgendamentoEspecial
+                               reservasExistentes={reservasExistentes}
+                               bloqueiosManuais={bloqueiosManuais}
+                               onSucessoReserva={onSucessoReserva}
+                            />
+                        </DialogContent>
+                    </Dialog>
+                    <p className="text-xs text-muted-foreground text-center">Permite agendar em qualquer data ou horário, sem as restrições normais.</p>
+                </div>
 
-                 <Dialog open={modalRecorrenteAberto} onOpenChange={setModalRecorrenteAberto}>
-                    <DialogTrigger asChild>
-                         <Button variant="outline" className="w-full">
-                            <Repeat className="mr-2 h-4 w-4" /> Agendamento Recorrente
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-4xl">
-                         <DialogHeader>
-                            <DialogTitle>Agendamento Recorrente</DialogTitle>
-                            <DialogDescription>
-                                Selecione um horário e depois marque todas as datas desejadas para esse mesmo agendamento.
-                            </DialogDescription>
-                        </DialogHeader>
-                        <FormularioAgendamentoRecorrente
-                           reservasExistentes={reservasExistentes}
-                           bloqueiosManuais={bloqueiosManuais}
-                           onSucessoReserva={onSucessoReserva}
-                        />
-                    </DialogContent>
-                 </Dialog>
+                <div className="flex-1 space-y-2">
+                    <Dialog open={modalRecorrenteAberto} onOpenChange={setModalRecorrenteAberto}>
+                        <DialogTrigger asChild>
+                             <Button variant="outline" className="w-full">
+                                <Repeat className="mr-2 h-4 w-4" /> Agendamento Recorrente
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-4xl">
+                             <DialogHeader>
+                                <DialogTitle>Agendamento Recorrente</DialogTitle>
+                            </DialogHeader>
+                            <FormularioAgendamentoRecorrente
+                               reservasExistentes={reservasExistentes}
+                               bloqueiosManuais={bloqueiosManuais}
+                               onSucessoReserva={onSucessoReserva}
+                            />
+                        </DialogContent>
+                    </Dialog>
+                    <p className="text-xs text-muted-foreground text-center">Permite agendar o mesmo horário para várias datas de uma só vez.</p>
+                </div>
             </div>
          </div>
       )}

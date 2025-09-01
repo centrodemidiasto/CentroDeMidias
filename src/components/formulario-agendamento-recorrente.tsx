@@ -67,7 +67,6 @@ export default function FormularioAgendamentoRecorrente({
         return !!slotReservado || !!bloqueadoManualmente;
     }
     
-    // Desabilita uma data no calendário se todos os horários selecionados estiverem ocupados nela
     const disabledDays = useMemo(() => {
         if (horariosSelecionados.length === 0) return [];
         
@@ -94,7 +93,6 @@ export default function FormularioAgendamentoRecorrente({
                 return [...prev, horario].sort();
             }
         });
-        // Limpar datas selecionadas se os horários mudarem
         setDatasSelecionadas([]);
     };
     
@@ -231,7 +229,6 @@ export default function FormularioAgendamentoRecorrente({
             <div className="space-y-2">
                 <div className="p-2 border rounded-md text-center">
                     <h3 className="font-medium">2. Selecione as Datas</h3>
-                    <p className="text-xs text-muted-foreground">Marque várias datas para o mesmo conjunto de horários.</p>
                 </div>
                 {horariosSelecionados.length > 0 ? (
                     <div className="flex justify-center">

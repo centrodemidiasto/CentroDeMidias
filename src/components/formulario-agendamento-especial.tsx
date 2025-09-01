@@ -91,7 +91,6 @@ export default function FormularioAgendamentoEspecial({
                             <LegendaItem cor="bg-primary" texto="Com seleção atual" />
                             <LegendaItem cor="bg-background border" texto="Disponível" />
                         </div>
-                        <p className="text-xs text-muted-foreground text-center">Este modo permite agendamentos fora do horário de expediente (9h-18h).</p>
                     </div>
                 </div>
                 <div className="space-y-4">
