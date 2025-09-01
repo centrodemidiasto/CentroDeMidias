@@ -143,14 +143,16 @@ export default function FormularioAgendamento() {
 
 
   const desabilitarBtnProximaSemana = useMemo(() => {
-    const ultimaDataVisivel = diasDaSemana[diasDaSemana.length - 1];
-    return isAfter(ultimaDataVisivel, ultimaDataAgendavel);
+    const primeiraDataVisivel = diasDaSemana[0];
+    return isAfter(primeiraDataVisivel, ultimaDataAgendavel);
   }, [diasDaSemana, ultimaDataAgendavel]);
 
   
   const calendarioForaDoIntervalo = useMemo(() => {
      const primeiraDataVisivel = diasDaSemana[0];
-     return isAfter(primeiraDataVisivel, ultimaDataAgendavel);
+     // Considera que a última data agendável é a última data da última semana visível
+     const ultimoDiaMostravel = startOfWeek(ultimaDataAgendavel, { locale: ptBR });
+     return isAfter(primeiraDataVisivel, ultimoDiaMostravel);
   }, [diasDaSemana, ultimaDataAgendavel]);
 
 
