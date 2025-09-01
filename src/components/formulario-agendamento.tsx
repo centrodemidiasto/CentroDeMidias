@@ -130,8 +130,7 @@ export default function FormularioAgendamento() {
 
   const diasDaSemana = useMemo(() => {
     const inicioDaSemana = startOfWeek(dataAtual, { locale: ptBR });
-    const segundaFeira = addDays(inicioDaSemana, 1);
-    return eachDayOfInterval({ start: segundaFeira, end: addDays(segundaFeira, 4) });
+    return eachDayOfInterval({ start: inicioDaSemana, end: addDays(inicioDaSemana, 4) });
   }, [dataAtual]);
   
   const desabilitarBtnSemanaAnterior = useMemo(() => {
@@ -144,13 +143,13 @@ export default function FormularioAgendamento() {
 
   const desabilitarBtnProximaSemana = useMemo(() => {
     const primeiraDataVisivel = diasDaSemana[0];
-    return isAfter(primeiraDataVisivel, ultimaDataAgendavel);
+    const ultimoDiaMostravel = startOfWeek(ultimaDataAgendavel, { locale: ptBR });
+    return !isBefore(primeiraDataVisivel, ultimoDiaMostravel);
   }, [diasDaSemana, ultimaDataAgendavel]);
 
   
   const calendarioForaDoIntervalo = useMemo(() => {
      const primeiraDataVisivel = diasDaSemana[0];
-     // Considera que a última data agendável é a última data da última semana visível
      const ultimoDiaMostravel = startOfWeek(ultimaDataAgendavel, { locale: ptBR });
      return isAfter(primeiraDataVisivel, ultimoDiaMostravel);
   }, [diasDaSemana, ultimaDataAgendavel]);
