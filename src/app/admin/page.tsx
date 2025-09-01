@@ -37,16 +37,16 @@ interface Reserva {
   id: string;
   nomeCompleto: string;
   email: string;
-  telefone: string;
+  telefone?: string;
   tituloGravacao?: string;
   tipoOrgao: 'interno' | 'externo';
   departamento?: string;
   organizacaoExterna?: string;
   modalidadesReserva: string;
   materiaisNecessarios?: string;
-  numeroParticipantes: number;
-  numeroMesas: number;
-  numeroCadeiras: number;
+  numeroParticipantes?: number;
+  numeroMesas?: number;
+  numeroCadeiras?: number;
   horariosSelecionados: Record<string, string[]>;
   status: 'pendente' | 'aprovado' | 'rejeitado';
   criadoEm: Timestamp;
@@ -380,11 +380,12 @@ Materiais: ${formatarMateriais(reserva.materiaisNecessarios)}`;
                                         const times = reserva.horariosSelecionados[date].join(', ');
                                         const calendarLink = criarLinkGoogleAgenda(reserva);
                                         const organization = reserva.tipoOrgao === 'interno' ? reserva.departamento : reserva.organizacaoExterna;
+                                        const cardTitle = reserva.tituloGravacao || reserva.nomeCompleto;
 
                                         return (
                                             <Card key={reserva.id} className="flex flex-col">
                                                 <CardHeader className="pb-4">
-                                                    <CardTitle className="text-xl font-headline">{reserva.tituloGravacao || 'Sem Título'}</CardTitle>
+                                                    <CardTitle className="text-xl font-headline">{cardTitle}</CardTitle>
                                                     <CardDescription>{reserva.nomeCompleto} - {organization}</CardDescription>
                                                 </CardHeader>
                                                 <CardContent className="flex-grow space-y-2 text-sm">
@@ -461,7 +462,7 @@ Materiais: ${formatarMateriais(reserva.materiaisNecessarios)}`;
                 <div className="grid gap-4 py-4 text-sm max-h-[70vh] overflow-y-auto pr-4">
                     <div className="grid grid-cols-[150px_1fr] items-center gap-4">
                         <span className="font-semibold text-right">Título:</span>
-                        <span>{reservaSelecionada.tituloGravacao}</span>
+                        <span>{reservaSelecionada.tituloGravacao || reservaSelecionada.nomeCompleto}</span>
                     </div>
                     <div className="grid grid-cols-[150px_1fr] items-center gap-4">
                         <span className="font-semibold text-right">Solicitante:</span>
@@ -471,10 +472,12 @@ Materiais: ${formatarMateriais(reserva.materiaisNecessarios)}`;
                         <span className="font-semibold text-right">E-mail:</span>
                         <span>{reservaSelecionada.email}</span>
                     </div>
-                    <div className="grid grid-cols-[150px_1fr] items-center gap-4">
-                        <span className="font-semibold text-right">Telefone:</span>
-                        <span>{reservaSelecionada.telefone}</span>
-                    </div>
+                    {reservaSelecionada.telefone && (
+                        <div className="grid grid-cols-[150px_1fr] items-center gap-4">
+                            <span className="font-semibold text-right">Telefone:</span>
+                            <span>{reservaSelecionada.telefone}</span>
+                        </div>
+                    )}
                      <div className="grid grid-cols-[150px_1fr] items-center gap-4">
                         <span className="font-semibold text-right">Data:</span>
                         <span>{formatarDataParaExibicao(Object.keys(reservaSelecionada.horariosSelecionados)[0])}</span>
@@ -503,18 +506,24 @@ Materiais: ${formatarMateriais(reserva.materiaisNecessarios)}`;
                         <span className="font-semibold text-right">Modalidade:</span>
                         <span>{reservaSelecionada.modalidadesReserva}</span>
                     </div>
-                     <div className="grid grid-cols-[150px_1fr] items-center gap-4">
-                        <span className="font-semibold text-right">Participantes:</span>
-                        <span>{reservaSelecionada.numeroParticipantes}</span>
-                    </div>
-                     <div className="grid grid-cols-[150px_1fr] items-center gap-4">
-                        <span className="font-semibold text-right">Mesas:</span>
-                        <span>{reservaSelecionada.numeroMesas}</span>
-                    </div>
-                     <div className="grid grid-cols-[150px_1fr] items-center gap-4">
-                        <span className="font-semibold text-right">Cadeiras:</span>
-                        <span>{reservaSelecionada.numeroCadeiras}</span>
-                    </div>
+                    {reservaSelecionada.numeroParticipantes && (
+                        <div className="grid grid-cols-[150px_1fr] items-center gap-4">
+                            <span className="font-semibold text-right">Participantes:</span>
+                            <span>{reservaSelecionada.numeroParticipantes}</span>
+                        </div>
+                    )}
+                    {reservaSelecionada.numeroMesas !== undefined && (
+                        <div className="grid grid-cols-[150px_1fr] items-center gap-4">
+                            <span className="font-semibold text-right">Mesas:</span>
+                            <span>{reservaSelecionada.numeroMesas}</span>
+                        </div>
+                    )}
+                    {reservaSelecionada.numeroCadeiras !== undefined && (
+                        <div className="grid grid-cols-[150px_1fr] items-center gap-4">
+                            <span className="font-semibold text-right">Cadeiras:</span>
+                            <span>{reservaSelecionada.numeroCadeiras}</span>
+                        </div>
+                    )}
                     {reservaSelecionada.materiaisNecessarios && (
                          <div className="grid grid-cols-[150px_1fr] items-start gap-4">
                             <span className="font-semibold text-right">Materiais:</span>
@@ -528,5 +537,3 @@ Materiais: ${formatarMateriais(reserva.materiaisNecessarios)}`;
     </div>
   );
 }
-
-    
