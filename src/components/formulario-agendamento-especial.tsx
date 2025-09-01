@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useMemo } from "react";
-import { format, startOfToday } from "date-fns";
+import { format, startOfToday, parseISO } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import FormularioReservaAdmin from "./formulario-reserva-admin";
@@ -19,6 +19,13 @@ interface FormularioAgendamentoEspecialProps {
     onSucessoReserva: () => void;
 }
 
+const LegendaItem = ({ cor, texto }: { cor: string, texto: string }) => (
+    <div className="flex items-center gap-2">
+        <div className={cn("w-3 h-3 rounded-full", cor)}></div>
+        <span className="text-xs text-muted-foreground">{texto}</span>
+    </div>
+)
+
 export default function FormularioAgendamentoEspecial({ 
     reservasExistentes, 
     bloqueiosManuais, 
@@ -30,6 +37,13 @@ export default function FormularioAgendamentoEspecial({
     const [modalDetalhesAberto, setModalDetalhesAberto] = useState(false);
 
     const chaveData = dataSelecionada ? format(dataSelecionada, "yyyy-MM-dd") : "";
+
+    const diasComReservas = useMemo(() => {
+        const datas = new Set<string>();
+        reservasExistentes.forEach(r => datas.add(r.data));
+        bloqueiosManuais.forEach(b => datas.add(b.data));
+        return Array.from(datas).map(d => parseISO(d));
+    }, [reservasExistentes, bloqueiosManuais]);
 
     const handleSelecaoHorario = (horario: string) => {
         if (!dataSelecionada) return;
@@ -56,14 +70,25 @@ export default function FormularioAgendamentoEspecial({
     return (
         <TooltipProvider>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="flex justify-center">
+                <div className="flex flex-col items-center justify-center">
                     <Calendar
                         mode="single"
                         selected={dataSelecionada}
                         onSelect={setDataSelecionada}
                         className="rounded-md border"
                         initialFocus
+                        modifiers={{ com_reservas: diasComReservas }}
+                        modifiersStyles={{
+                             com_reservas: { 
+                                color: 'hsl(var(--primary-foreground))',
+                                backgroundColor: 'hsl(var(--primary))'
+                            },
+                        }}
                     />
+                    <div className="flex gap-4 mt-2">
+                        <LegendaItem cor="bg-primary" texto="Com agendamentos" />
+                        <LegendaItem cor="bg-background border" texto="Disponível" />
+                    </div>
                 </div>
                 <div className="space-y-4">
                     {dataSelecionada ? (
@@ -83,7 +108,7 @@ export default function FormularioAgendamentoEspecial({
                                             <Tooltip key={horario}>
                                                 <TooltipTrigger asChild>
                                                     <span>
-                                                        <Button variant="outline" className="h-9 w-full text-xs cursor-not-allowed" disabled>
+                                                        <Button variant="outline" className="h-9 w-full text-xs cursor-not-allowed text-muted-foreground" disabled>
                                                             {horario}
                                                         </Button>
                                                     </span>
