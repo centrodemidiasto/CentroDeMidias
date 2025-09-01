@@ -38,6 +38,7 @@ interface Booking {
   fullName: string;
   email: string;
   phone: string;
+  recordingTitle?: string;
   organizationType: 'interno' | 'externo';
   department?: string;
   externalOrganization?: string;
@@ -258,7 +259,7 @@ export default function DashboardPage() {
     const formatForGoogle = (d: Date) => format(d, "yyyyMMdd'T'HHmmss");
 
     const dates = `${formatForGoogle(startDateTime)}/${formatForGoogle(endDateTime)}`;
-    const text = `Gravação: ${booking.fullName} - ${booking.bookingModalities}`;
+    const text = `Gravação: ${booking.recordingTitle || booking.fullName} - ${booking.bookingModalities}`;
     
     const organization = booking.organizationType === 'interno' ? booking.department : booking.externalOrganization;
     
@@ -383,12 +384,13 @@ Materiais: ${formatMaterials(booking.requiredMaterials)}`;
                                         const formattedDate = formatDateForDisplay(date);
                                         const times = booking.selectedSlots[date].join(', ');
                                         const calendarLink = createGoogleCalendarLink(booking);
+                                        const organization = booking.organizationType === 'interno' ? booking.department : booking.externalOrganization;
 
                                         return (
                                             <Card key={booking.id} className="flex flex-col">
                                                 <CardHeader className="pb-4">
-                                                    <CardTitle className="text-xl font-headline">{booking.fullName}</CardTitle>
-                                                    <CardDescription>{booking.organizationType === 'interno' ? booking.department : booking.externalOrganization}</CardDescription>
+                                                    <CardTitle className="text-xl font-headline">{booking.recordingTitle || 'Sem Título'}</CardTitle>
+                                                    <CardDescription>{booking.fullName} - {organization}</CardDescription>
                                                 </CardHeader>
                                                 <CardContent className="flex-grow space-y-2 text-sm">
                                                     <p><strong>Data:</strong> {formattedDate}</p>
@@ -464,6 +466,10 @@ Materiais: ${formatMaterials(booking.requiredMaterials)}`;
                 </DialogHeader>
                 <div className="grid gap-4 py-4 text-sm max-h-[70vh] overflow-y-auto pr-4">
                     <div className="grid grid-cols-[150px_1fr] items-center gap-4">
+                        <span className="font-semibold text-right">Título:</span>
+                        <span>{selectedBooking.recordingTitle}</span>
+                    </div>
+                    <div className="grid grid-cols-[150px_1fr] items-center gap-4">
                         <span className="font-semibold text-right">Solicitante:</span>
                         <span>{selectedBooking.fullName}</span>
                     </div>
@@ -528,5 +534,3 @@ Materiais: ${formatMaterials(booking.requiredMaterials)}`;
     </div>
   );
 }
-
-    

@@ -20,6 +20,7 @@ const BookingDetailsSchema = z.object({
     fullName: z.string(),
     email: z.string(),
     phone: z.string(),
+    recordingTitle: z.string(),
     organizationType: z.enum(["interno", "externo"]),
     department: z.string().optional(),
     externalOrganization: z.string().optional(),
@@ -77,6 +78,7 @@ export default function BookingDetailsForm({ selectedSlots, onBookingSuccess }: 
             fullName: '',
             email: '',
             phone: '',
+            recordingTitle: '',
             organizationType: undefined,
             department: '',
             externalOrganization: '',
@@ -154,6 +156,21 @@ export default function BookingDetailsForm({ selectedSlots, onBookingSuccess }: 
                         )}
                     />
                 </div>
+
+                <FormField
+                    control={form.control}
+                    name="recordingTitle"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Título da Gravação</FormLabel>
+                            <FormControl>
+                                <Input placeholder="Ex: Matriz de Recomposição - CNT" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+
                  <FormField
                         control={form.control}
                         name="email"

@@ -76,9 +76,9 @@ export default function AdminBookingForm({ selectedSlots, onBookingSuccess }: Ad
                     name="fullName"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Nome do Responsável</FormLabel>
+                            <FormLabel>Título da Gravação</FormLabel>
                             <FormControl>
-                                <Input placeholder="Nome completo do responsável" {...field} />
+                                <Input placeholder="Ex: Aula Prof. Fraga" {...field} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>

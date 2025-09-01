@@ -9,6 +9,7 @@ const BookingDetailsSchema = z.object({
     fullName: z.string().min(3, { message: "Nome completo é obrigatório." }),
     email: z.string().email({ message: "E-mail inválido." }),
     phone: z.string().min(15, { message: "Telefone inválido." }),
+    recordingTitle: z.string().min(3, { message: "Título da gravação é obrigatório." }),
     organizationType: z.enum(["interno", "externo"], {
         errorMap: () => ({ message: "Selecione o tipo de órgão." }),
     }),
