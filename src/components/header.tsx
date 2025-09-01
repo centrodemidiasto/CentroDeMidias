@@ -6,7 +6,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { onAuthStateChanged, signOut, User } from "firebase/auth";
@@ -111,6 +111,9 @@ export default function Header() {
                 </Link>
             </div>
             <SheetContent side="left" className="pr-0">
+                <SheetHeader className="sr-only">
+                  <SheetTitle>Menu Principal</SheetTitle>
+                </SheetHeader>
               <Link
                 href="/"
                 className="flex items-center"
