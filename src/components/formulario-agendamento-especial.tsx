@@ -38,12 +38,11 @@ export default function FormularioAgendamentoEspecial({
 
     const chaveData = dataSelecionada ? format(dataSelecionada, "yyyy-MM-dd") : "";
 
-    const diasComReservas = useMemo(() => {
-        const datas = new Set<string>();
-        reservasExistentes.forEach(r => datas.add(r.data));
-        bloqueiosManuais.forEach(b => datas.add(b.data));
-        return Array.from(datas).map(d => parseISO(d));
-    }, [reservasExistentes, bloqueiosManuais]);
+    const diasComSelecaoAtual = useMemo(() => {
+        return Object.keys(horariosSelecionados)
+            .filter(data => horariosSelecionados[data]?.length > 0)
+            .map(d => parseISO(d));
+    }, [horariosSelecionados]);
 
     const handleSelecaoHorario = (horario: string) => {
         if (!dataSelecionada) return;
@@ -58,7 +57,7 @@ export default function FormularioAgendamentoEspecial({
         });
     };
 
-    const totalHorariosSelecionados = horariosSelecionados[chaveData]?.length || 0;
+    const totalHorariosSelecionados = Object.values(horariosSelecionados).reduce((total, horarios) => total + horarios.length, 0);
 
     const handleSucesso = () => {
         onSucessoReserva();
@@ -77,16 +76,16 @@ export default function FormularioAgendamentoEspecial({
                         onSelect={setDataSelecionada}
                         className="rounded-md border"
                         initialFocus
-                        modifiers={{ com_reservas: diasComReservas }}
+                        modifiers={{ com_selecao: diasComSelecaoAtual }}
                         modifiersStyles={{
-                             com_reservas: { 
+                             com_selecao: { 
                                 color: 'hsl(var(--primary-foreground))',
                                 backgroundColor: 'hsl(var(--primary))'
                             },
                         }}
                     />
                     <div className="flex gap-4 mt-2">
-                        <LegendaItem cor="bg-primary" texto="Com agendamentos" />
+                        <LegendaItem cor="bg-primary" texto="Com seleção atual" />
                         <LegendaItem cor="bg-background border" texto="Disponível" />
                     </div>
                 </div>
