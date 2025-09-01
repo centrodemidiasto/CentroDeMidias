@@ -5,146 +5,146 @@ import { adminDb } from "@/lib/firebase-admin";
 import { FieldValue } from 'firebase-admin/firestore';
 import { z } from "zod";
 
-const BookingDetailsSchema = z.object({
-    fullName: z.string().min(3, { message: "Nome completo é obrigatório." }),
+const DetalhesReservaSchema = z.object({
+    nomeCompleto: z.string().min(3, { message: "Nome completo é obrigatório." }),
     email: z.string().email({ message: "E-mail inválido." }),
-    phone: z.string().min(15, { message: "Telefone inválido." }),
-    recordingTitle: z.string().min(3, { message: "Título da gravação é obrigatório." }),
-    organizationType: z.enum(["interno", "externo"], {
+    telefone: z.string().min(15, { message: "Telefone inválido." }),
+    tituloGravacao: z.string().min(3, { message: "Título da gravação é obrigatório." }),
+    tipoOrgao: z.enum(["interno", "externo"], {
         errorMap: () => ({ message: "Selecione o tipo de órgão." }),
     }),
-    department: z.string().optional(),
-    externalOrganization: z.string().optional(),
-    bookingModalities: z.string({ required_error: "Selecione uma modalidade." }),
-    requiredMaterials: z.string().optional(),
-    participantCount: z.coerce.number().min(1, { message: "Informe o número de participantes." }),
-    tableCount: z.coerce.number().min(0, "Mínimo 0.").max(3, "Máximo 3 mesas."),
-    chairCount: z.coerce.number().min(0, "Mínimo 0.").max(10, "Máximo 10 cadeiras."),
+    departamento: z.string().optional(),
+    organizacaoExterna: z.string().optional(),
+    modalidadesReserva: z.string({ required_error: "Selecione uma modalidade." }),
+    materiaisNecessarios: z.string().optional(),
+    numeroParticipantes: z.coerce.number().min(1, { message: "Informe o número de participantes." }),
+    numeroMesas: z.coerce.number().min(0, "Mínimo 0.").max(3, "Máximo 3 mesas."),
+    numeroCadeiras: z.coerce.number().min(0, "Mínimo 0.").max(10, "Máximo 10 cadeiras."),
 }).superRefine((data, ctx) => {
-    if (data.organizationType === 'interno' && (!data.department || data.department.trim().length === 0)) {
+    if (data.tipoOrgao === 'interno' && (!data.departamento || data.departamento.trim().length === 0)) {
         ctx.addIssue({
             code: z.ZodIssueCode.custom,
             message: "Departamento é obrigatório para órgão interno.",
-            path: ["department"],
+            path: ["departamento"],
         });
     }
-    if (data.organizationType === 'externo' && (!data.externalOrganization || data.externalOrganization.trim().length === 0)) {
+    if (data.tipoOrgao === 'externo' && (!data.organizacaoExterna || data.organizacaoExterna.trim().length === 0)) {
          ctx.addIssue({
             code: z.ZodIssueCode.custom,
             message: "Nome do órgão é obrigatório.",
-            path: ["externalOrganization"],
+            path: ["organizacaoExterna"],
         });
     }
 });
 
-const AdminBookingSchema = z.object({
-    fullName: z.string().min(3, { message: "Nome do responsável é obrigatório." }),
-    department: z.string().min(2, { message: "Setor/Departamento é obrigatório." }),
-    bookingModalities: z.string({ required_error: "Selecione uma modalidade." }),
+const ReservaAdminSchema = z.object({
+    nomeCompleto: z.string().min(3, { message: "Nome do responsável é obrigatório." }),
+    departamento: z.string().min(2, { message: "Setor/Departamento é obrigatório." }),
+    modalidadesReserva: z.string({ required_error: "Selecione uma modalidade." }),
 });
 
 
-type FormState = {
-    success: boolean;
-    message: string;
+type EstadoFormulario = {
+    sucesso: boolean;
+    mensagem: string;
 } | null;
 
 
-export async function updateBookingStatus(bookingId: string, status: 'approved' | 'rejected') {
-    const bookingRef = adminDb.collection("bookings").doc(bookingId);
+export async function atualizarStatusReserva(reservaId: string, status: 'aprovado' | 'rejeitado') {
+    const reservaRef = adminDb.collection("reservas").doc(reservaId);
     
     try {
-        await bookingRef.update({ status });
+        await reservaRef.update({ status });
     } catch (error) {
-        console.error("Error updating booking status:", error);
-        throw new Error("Failed to update booking status.");
+        console.error("Erro ao atualizar status da reserva:", error);
+        throw new Error("Falha ao atualizar o status da reserva.");
     }
 }
 
 
-export async function handleBookingRequest(
-    selectedSlots: Record<string, string[]>,
-    prevState: FormState,
+export async function handleSolicitacaoReserva(
+    horariosSelecionados: Record<string, string[]>,
+    estadoAnterior: EstadoFormulario,
     formData: FormData
-): Promise<FormState> {
+): Promise<EstadoFormulario> {
 
-    const parsedData = BookingDetailsSchema.safeParse(
+    const dadosParseados = DetalhesReservaSchema.safeParse(
       Object.fromEntries(formData.entries())
     );
 
-    if (!parsedData.success) {
-        const errorMessages = parsedData.error.errors.map(e => `- ${e.message}`).join("\n");
-        return { success: false, message: `Por favor, corrija os seguintes erros:\n${errorMessages}` };
+    if (!dadosParseados.success) {
+        const mensagensErro = dadosParseados.error.errors.map(e => `- ${e.message}`).join("\n");
+        return { sucesso: false, mensagem: `Por favor, corrija os seguintes erros:\n${mensagensErro}` };
     }
 
-    const data = parsedData.data;
+    const dados = dadosParseados.data;
     
-    if (!selectedSlots || Object.keys(selectedSlots).length === 0) {
-        return { success: false, message: "Nenhum horário selecionado." };
+    if (!horariosSelecionados || Object.keys(horariosSelecionados).length === 0) {
+        return { sucesso: false, mensagem: "Nenhum horário selecionado." };
     }
 
     try {
-        const selectedDates = Object.entries(selectedSlots).flatMap(([date, times]) =>
-            (times as string[]).map(time => new Date(`${date}T${time}:00`).toISOString())
+        const datasSelecionadas = Object.entries(horariosSelecionados).flatMap(([data, horarios]) =>
+            (horarios as string[]).map(horario => new Date(`${data}T${horario}:00`).toISOString())
         );
 
-        if (selectedDates.length === 0) {
-            return { success: false, message: "Por favor, selecione ao menos um horário." };
+        if (datasSelecionadas.length === 0) {
+            return { sucesso: false, mensagem: "Por favor, selecione ao menos um horário." };
         }
         
-        const bookingDate = Object.keys(selectedSlots)[0]; // YYYY-MM-DD format
-        await adminDb.collection("bookings").add({
-            ...data,
-            selectedSlots,
-            bookingDate: bookingDate,
-            createdAt: FieldValue.serverTimestamp(),
-            status: "pending"
+        const dataReserva = Object.keys(horariosSelecionados)[0]; // Formato YYYY-MM-DD
+        await adminDb.collection("reservas").add({
+            ...dados,
+            horariosSelecionados,
+            dataReserva: dataReserva,
+            criadoEm: FieldValue.serverTimestamp(),
+            status: "pendente"
         });
-        return { success: true, message: "Seu agendamento foi solicitado com sucesso e está pendente de aprovação!" };
+        return { sucesso: true, mensagem: "Seu agendamento foi solicitado com sucesso e está pendente de aprovação!" };
         
     } catch (error) {
-        console.error("Error in handleBookingRequest:", error);
-        return { success: false, message: "Ocorreu um erro inesperado. Tente novamente." };
+        console.error("Erro em handleSolicitacaoReserva:", error);
+        return { sucesso: false, mensagem: "Ocorreu um erro inesperado. Tente novamente." };
     }
 }
 
-export async function handleAdminBookingRequest(
-    selectedSlots: Record<string, string[]>,
-    prevState: FormState,
+export async function handleSolicitacaoReservaAdmin(
+    horariosSelecionados: Record<string, string[]>,
+    estadoAnterior: EstadoFormulario,
     formData: FormData
-): Promise<FormState> {
-    const parsedData = AdminBookingSchema.safeParse(
+): Promise<EstadoFormulario> {
+    const dadosParseados = ReservaAdminSchema.safeParse(
       Object.fromEntries(formData.entries())
     );
 
-    if (!parsedData.success) {
-        const errorMessages = parsedData.error.errors.map(e => `- ${e.message}`).join("\n");
-        return { success: false, message: `Por favor, corrija os seguintes erros:\n${errorMessages}` };
+    if (!dadosParseados.success) {
+        const mensagensErro = dadosParseados.error.errors.map(e => `- ${e.message}`).join("\n");
+        return { sucesso: false, mensagem: `Por favor, corrija os seguintes erros:\n${mensagensErro}` };
     }
     
-    const data = parsedData.data;
+    const dados = dadosParseados.data;
 
-    if (!selectedSlots || Object.keys(selectedSlots).length === 0) {
-        return { success: false, message: "Nenhum horário selecionado." };
+    if (!horariosSelecionados || Object.keys(horariosSelecionados).length === 0) {
+        return { sucesso: false, mensagem: "Nenhum horário selecionado." };
     }
 
     try {
-       const bookingDate = Object.keys(selectedSlots)[0];
+       const dataReserva = Object.keys(horariosSelecionados)[0];
        
-       await adminDb.collection("bookings").add({
-            ...data,
-            organizationType: 'interno',
-            email: 'centrodemidias@seduc.to.gov.br', // Add default email for admin bookings
-            selectedSlots,
-            bookingDate: bookingDate, 
-            createdAt: FieldValue.serverTimestamp(),
-            status: "approved" // Admin bookings are auto-approved
+       await adminDb.collection("reservas").add({
+            ...dados,
+            tipoOrgao: 'interno',
+            email: 'centrodemidias@seduc.to.gov.br', // Adiciona email padrão para reservas admin
+            horariosSelecionados,
+            dataReserva: dataReserva, 
+            criadoEm: FieldValue.serverTimestamp(),
+            status: "aprovado" // Reservas admin são auto-aprovadas
        });
 
-       return { success: true, message: "Agendamento rápido realizado e aprovado com sucesso!" };
+       return { sucesso: true, mensagem: "Agendamento rápido realizado e aprovado com sucesso!" };
 
     } catch (error) {
-       console.error("Error in handleAdminBookingRequest:", error);
-       return { success: false, message: "Ocorreu um erro inesperado. Tente novamente." };
+       console.error("Erro em handleSolicitacaoReservaAdmin:", error);
+       return { sucesso: false, mensagem: "Ocorreu um erro inesperado. Tente novamente." };
     }
 }

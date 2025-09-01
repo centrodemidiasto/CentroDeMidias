@@ -4,9 +4,9 @@
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ListChecks, Clock, AlertTriangle } from "lucide-react";
-import SchedulingForm from "@/components/scheduling-form";
+import FormularioAgendamento from "@/components/formulario-agendamento";
 
-export default function AgendamentoPage() {
+export default function PaginaAgendamento() {
 
   return (
     <div className="container mx-auto max-w-7xl px-4 py-12 md:px-6 md:py-16">
@@ -45,7 +45,7 @@ export default function AgendamentoPage() {
           </AlertDescription>
         </Alert>
 
-        <SchedulingForm />
+        <FormularioAgendamento />
         
       </div>
     </div>

@@ -29,170 +29,167 @@ import { Loader2, Info, XCircle, CalendarPlus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO, startOfToday, addHours } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import BlockSlotsForm, { ReservedBooking, ManuallyBlockedSlot } from '@/components/block-slots-form';
-import { updateBookingStatus } from '@/app/actions';
+import FormularioBloqueioHorarios, { ReservaExistente, BloqueioManual } from '@/components/formulario-bloqueio-horarios';
+import { atualizarStatusReserva } from '@/app/actions';
 import Link from 'next/link';
 
-interface Booking {
+interface Reserva {
   id: string;
-  fullName: string;
+  nomeCompleto: string;
   email: string;
-  phone: string;
-  recordingTitle?: string;
-  organizationType: 'interno' | 'externo';
-  department?: string;
-  externalOrganization?: string;
-  bookingModalities: string;
-  requiredMaterials?: string;
-  participantCount: number;
-  tableCount: number;
-  chairCount: number;
-  selectedSlots: Record<string, string[]>;
-  status: 'pending' | 'approved' | 'rejected';
-  createdAt: Timestamp;
-  bookingDate: string; // YYYY-MM-DD
+  telefone: string;
+  tituloGravacao?: string;
+  tipoOrgao: 'interno' | 'externo';
+  departamento?: string;
+  organizacaoExterna?: string;
+  modalidadesReserva: string;
+  materiaisNecessarios?: string;
+  numeroParticipantes: number;
+  numeroMesas: number;
+  numeroCadeiras: number;
+  horariosSelecionados: Record<string, string[]>;
+  status: 'pendente' | 'aprovado' | 'rejeitado';
+  criadoEm: Timestamp;
+  dataReserva: string; // YYYY-MM-DD
 }
 
-async function getPendingBookings(): Promise<Booking[]> {
-  const bookingsRef = collection(clientDb, "bookings");
+async function getReservasPendentes(): Promise<Reserva[]> {
+  const reservasRef = collection(clientDb, "reservas");
   const q = query(
-    bookingsRef,
-    where("status", "==", "pending"),
-    orderBy("createdAt", "desc")
+    reservasRef,
+    where("status", "==", "pendente"),
+    orderBy("criadoEm", "desc")
   );
   const querySnapshot = await getDocs(q);
-  const bookings = querySnapshot.docs.map((doc) => ({
+  const reservas = querySnapshot.docs.map((doc) => ({
     id: doc.id,
     ...doc.data(),
-  })) as Booking[];
-  return bookings;
+  })) as Reserva[];
+  return reservas;
 }
 
-async function getApprovedBookings(): Promise<Booking[]> {
-  const today = format(startOfToday(), 'yyyy-MM-dd');
-  const bookingsRef = collection(clientDb, "bookings");
+async function getReservasAprovadas(): Promise<Reserva[]> {
+  const hoje = format(startOfToday(), 'yyyy-MM-dd');
+  const reservasRef = collection(clientDb, "reservas");
 
   const q = query(
-    bookingsRef,
-    where("status", "==", "approved"),
-    where("bookingDate", ">=", today),
-    orderBy("bookingDate", "asc")
+    reservasRef,
+    where("status", "==", "aprovado"),
+    where("dataReserva", ">=", hoje),
+    orderBy("dataReserva", "asc")
   );
   const querySnapshot = await getDocs(q);
-  const bookings = querySnapshot.docs.map((doc) => ({
+  const reservas = querySnapshot.docs.map((doc) => ({
     id: doc.id,
     ...doc.data(),
-  })) as Booking[];
+  })) as Reserva[];
 
-  // Additional client-side sort by time if needed, as Firestore can only order by one field in a range query
-  bookings.sort((a, b) => {
-    const timeA = a.selectedSlots[a.bookingDate]?.[0] || '00:00';
-    const timeB = b.selectedSlots[b.bookingDate]?.[0] || '00:00';
-    if (a.bookingDate < b.bookingDate) return -1;
-    if (a.bookingDate > b.bookingDate) return 1;
+  reservas.sort((a, b) => {
+    const timeA = a.horariosSelecionados[a.dataReserva]?.[0] || '00:00';
+    const timeB = b.horariosSelecionados[b.dataReserva]?.[0] || '00:00';
+    if (a.dataReserva < b.dataReserva) return -1;
+    if (a.dataReserva > b.dataReserva) return 1;
     return timeA.localeCompare(timeB);
   });
   
-  return bookings;
+  return reservas;
 }
 
-async function getReservedBookingsForBlocking(): Promise<ReservedBooking[]> {
-  const bookingsRef = collection(clientDb, "bookings");
+async function getReservasParaBloqueio(): Promise<ReservaExistente[]> {
+  const reservasRef = collection(clientDb, "reservas");
   const q = query(
-    bookingsRef,
-    where("status", "in", ["pending", "approved"])
+    reservasRef,
+    where("status", "in", ["pendente", "aprovado"])
   );
   const querySnapshot = await getDocs(q);
-  const reservedSlots: ReservedBooking[] = [];
+  const slotsReservados: ReservaExistente[] = [];
   querySnapshot.forEach((doc) => {
       const data = doc.data();
-      const slots = data.selectedSlots as Record<string, string[]>;
-      const status = data.status as 'pending' | 'approved';
+      const slots = data.horariosSelecionados as Record<string, string[]>;
+      const status = data.status as 'pendente' | 'aprovado';
       for (const date in slots) {
-          reservedSlots.push({ date, times: slots[date], status });
+          slotsReservados.push({ date, times: slots[date], status });
       }
   });
-  return reservedSlots;
+  return slotsReservados;
 }
 
-async function getManuallyBlockedSlots(): Promise<ManuallyBlockedSlot[]> {
-    const blockedSlotsRef = collection(clientDb, "blockedSlots");
-    const querySnapshot = await getDocs(blockedSlotsRef);
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as ManuallyBlockedSlot);
+async function getBloqueiosManuais(): Promise<BloqueioManual[]> {
+    const bloqueiosRef = collection(clientDb, "blockedSlots");
+    const querySnapshot = await getDocs(bloqueiosRef);
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as BloqueioManual);
 }
 
 
-export default function DashboardPage() {
-  const [user, setUser] = useState<User | null>(null);
-  const [initialLoading, setInitialLoading] = useState(true);
+export default function PaginaPainel() {
+  const [usuario, setUsuario] = useState<User | null>(null);
+  const [carregamentoInicial, setCarregamentoInicial] = useState(true);
   
-  // States for each section's data
-  const [pendingBookings, setPendingBookings] = useState<Booking[]>([]);
-  const [approvedBookings, setApprovedBookings] = useState<Booking[] | null>(null);
-  const [blockSlotsData, setBlockSlotsData] = useState<{ reserved: ReservedBooking[], manual: ManuallyBlockedSlot[] } | null>(null);
+  const [reservasPendentes, setReservasPendentes] = useState<Reserva[]>([]);
+  const [reservasAprovadas, setReservasAprovadas] = useState<Reserva[] | null>(null);
+  const [dadosBloqueio, setDadosBloqueio] = useState<{ reserved: ReservaExistente[], manual: BloqueioManual[] } | null>(null);
   
-  // States for loading indicators for each section
-  const [loadingPending, setLoadingPending] = useState(true);
-  const [loadingApproved, setLoadingApproved] = useState(false);
-  const [loadingBlockSlots, setLoadingBlockSlots] = useState(false);
+  const [carregandoPendentes, setCarregandoPendentes] = useState(true);
+  const [carregandoAprovados, setCarregandoAprovados] = useState(false);
+  const [carregandoBloqueio, setCarregandoBloqueio] = useState(false);
   
-  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [reservaSelecionada, setReservaSelecionada] = useState<Reserva | null>(null);
   const router = useRouter();
   const { toast } = useToast();
 
-  const fetchPendingBookings = () => {
-    setLoadingPending(true);
-    getPendingBookings().then(data => {
-        setPendingBookings(data);
-        setLoadingPending(false);
-        setInitialLoading(false);
+  const buscarReservasPendentes = () => {
+    setCarregandoPendentes(true);
+    getReservasPendentes().then(data => {
+        setReservasPendentes(data);
+        setCarregandoPendentes(false);
+        setCarregamentoInicial(false);
     }).catch(err => {
-        console.error("Error fetching pending bookings:", err);
+        console.error("Erro ao buscar reservas pendentes:", err);
         toast({ title: "Erro ao buscar pendentes", description: err.message, variant: "destructive"});
-        setLoadingPending(false);
-        setInitialLoading(false);
+        setCarregandoPendentes(false);
+        setCarregamentoInicial(false);
     });
   };
 
-  const fetchApprovedBookings = () => {
-    if (approvedBookings) return; // Don't refetch if already loaded
-    setLoadingApproved(true);
-    getApprovedBookings().then(data => {
-        setApprovedBookings(data);
-        setLoadingApproved(false);
+  const buscarReservasAprovadas = () => {
+    if (reservasAprovadas) return; 
+    setCarregandoAprovados(true);
+    getReservasAprovadas().then(data => {
+        setReservasAprovadas(data);
+        setCarregandoAprovados(false);
     }).catch(err => {
-        console.error("Error fetching approved bookings:", err);
+        console.error("Erro ao buscar reservas aprovadas:", err);
         toast({ title: "Erro ao buscar aprovados", description: err.message, variant: "destructive"});
-        setLoadingApproved(false);
+        setCarregandoAprovados(false);
     });
   };
 
-  const fetchBlockSlotsData = () => {
-    if (blockSlotsData) return; // Don't refetch
-    setLoadingBlockSlots(true);
-    Promise.all([getReservedBookingsForBlocking(), getManuallyBlockedSlots()]).then(([reserved, manual]) => {
-        setBlockSlotsData({ reserved, manual });
-        setLoadingBlockSlots(false);
+  const buscarDadosBloqueio = () => {
+    if (dadosBloqueio) return; 
+    setCarregandoBloqueio(true);
+    Promise.all([getReservasParaBloqueio(), getBloqueiosManuais()]).then(([reserved, manual]) => {
+        setDadosBloqueio({ reserved, manual });
+        setCarregandoBloqueio(false);
     }).catch(err => {
-        console.error("Error fetching block slots data:", err);
+        console.error("Erro ao buscar dados de bloqueio:", err);
         toast({ title: "Erro ao buscar dados de bloqueio", description: err.message, variant: "destructive"});
-        setLoadingBlockSlots(false);
+        setCarregandoBloqueio(false);
     });
   };
 
-  const handleAccordionChange = (value: string) => {
-    if (value === "approved" && !approvedBookings) {
-      fetchApprovedBookings();
-    } else if (value === "block-slots" && !blockSlotsData) {
-      fetchBlockSlotsData();
+  const handleMudancaAccordion = (value: string) => {
+    if (value === "aprovado" && !reservasAprovadas) {
+      buscarReservasAprovadas();
+    } else if (value === "block-slots" && !dadosBloqueio) {
+      buscarDadosBloqueio();
     }
   };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
-        setUser(user);
-        fetchPendingBookings(); // Load pending bookings by default
+        setUsuario(user);
+        buscarReservasPendentes(); 
       } else {
         router.push('/login');
       }
@@ -201,21 +198,20 @@ export default function DashboardPage() {
     return () => unsubscribe();
   }, [router]);
 
-  const handleStatusUpdate = async (id: string, status: 'approved' | 'rejected') => {
+  const handleAtualizacaoStatus = async (id: string, status: 'aprovado' | 'rejeitado') => {
     try {
-        await updateBookingStatus(id, status);
+        await atualizarStatusReserva(id, status);
         toast({
             title: "Sucesso!",
-            description: `Agendamento ${status === 'approved' ? 'aprovado' : 'rejeitado'}.`,
+            description: `Agendamento ${status === 'aprovado' ? 'aprovado' : 'rejeitado'}.`,
         });
-        // Refetch relevant data after update
-        fetchPendingBookings();
-        if (approvedBookings || status === 'approved') {
-            setApprovedBookings(null); // Force refetch
-            fetchApprovedBookings();
+        buscarReservasPendentes();
+        if (reservasAprovadas || status === 'aprovado') {
+            setReservasAprovadas(null); 
+            buscarReservasAprovadas();
         }
     } catch (error: any) {
-        console.error("Error updating booking status:", error);
+        console.error("Erro ao atualizar status da reserva:", error);
         toast({
             title: "Erro",
             description: error.message || "Não foi possível atualizar o status do agendamento.",
@@ -224,7 +220,7 @@ export default function DashboardPage() {
     }
   }
 
-  if (initialLoading && !user) {
+  if (carregamentoInicial && !usuario) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -232,49 +228,48 @@ export default function DashboardPage() {
     );
   }
 
-  if (!user) {
+  if (!usuario) {
     return null;
   }
   
-  const formatDateForDisplay = (dateString: string) => {
+  const formatarDataParaExibicao = (dateString: string) => {
       try {
         const date = parseISO(dateString);
         return format(date, "dd 'de' MMMM, yyyy", { locale: ptBR });
       } catch (error) {
-        console.error("Invalid date format:", dateString);
+        console.error("Formato de data inválido:", dateString);
         return "Data inválida";
       }
   };
 
-  const createGoogleCalendarLink = (booking: Booking): string => {
-    const date = Object.keys(booking.selectedSlots)[0];
-    const startTimeStr = booking.selectedSlots[date]?.[0];
-    const endTimeStr = booking.selectedSlots[date]?.[booking.selectedSlots[date].length - 1];
+  const criarLinkGoogleAgenda = (reserva: Reserva): string => {
+    const date = Object.keys(reserva.horariosSelecionados)[0];
+    const startTimeStr = reserva.horariosSelecionados[date]?.[0];
+    const endTimeStr = reserva.horariosSelecionados[date]?.[reserva.horariosSelecionados[date].length - 1];
 
     if (!date || !startTimeStr || !endTimeStr) return '';
 
     const startDateTime = parseISO(`${date}T${startTimeStr}:00`);
     const endDateTime = addHours(parseISO(`${date}T${endTimeStr}:00`), 1);
 
-    const formatForGoogle = (d: Date) => format(d, "yyyyMMdd'T'HHmmss");
+    const formatarParaGoogle = (d: Date) => format(d, "yyyyMMdd'T'HHmmss");
 
-    const dates = `${formatForGoogle(startDateTime)}/${formatForGoogle(endDateTime)}`;
-    const text = `Gravação: ${booking.recordingTitle || booking.fullName} - ${booking.bookingModalities}`;
+    const dates = `${formatarParaGoogle(startDateTime)}/${formatarParaGoogle(endDateTime)}`;
+    const text = `Gravação: ${reserva.tituloGravacao || reserva.nomeCompleto} - ${reserva.modalidadesReserva}`;
     
-    const organization = booking.organizationType === 'interno' ? booking.department : booking.externalOrganization;
+    const orgao = reserva.tipoOrgao === 'interno' ? reserva.departamento : reserva.organizacaoExterna;
     
-    // Helper to format details, replacing falsy values with '-'
-    const formatDetail = (value: any) => (value ? value : '-');
-    const formatMaterials = (value: any) => (value && value.toLowerCase() !== 'nenhum' ? value : '-');
+    const formatarDetalhe = (value: any) => (value ? value : '-');
+    const formatarMateriais = (value: any) => (value && value.toLowerCase() !== 'nenhum' ? value : '-');
 
     const details = `Agendamento no Centro de Mídias.
-Solicitante: ${formatDetail(booking.fullName)}
-Órgão: ${formatDetail(organization)}
-Modalidade: ${formatDetail(booking.bookingModalities)}
-Participantes: ${formatDetail(booking.participantCount)}
-Mesas: ${formatDetail(booking.tableCount)}
-Cadeiras: ${formatDetail(booking.chairCount)}
-Materiais: ${formatMaterials(booking.requiredMaterials)}`;
+Solicitante: ${formatarDetalhe(reserva.nomeCompleto)}
+Órgão: ${formatarDetalhe(orgao)}
+Modalidade: ${formatarDetalhe(reserva.modalidadesReserva)}
+Participantes: ${formatarDetalhe(reserva.numeroParticipantes)}
+Mesas: ${formatarDetalhe(reserva.numeroMesas)}
+Cadeiras: ${formatarDetalhe(reserva.numeroCadeiras)}
+Materiais: ${formatarMateriais(reserva.materiaisNecessarios)}`;
 
     const params = new URLSearchParams({
         action: 'TEMPLATE',
@@ -308,7 +303,7 @@ Materiais: ${formatMaterials(booking.requiredMaterials)}`;
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {loadingPending ? (
+            {carregandoPendentes ? (
                  <div className="flex items-center justify-center h-40">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                  </div>
@@ -324,27 +319,27 @@ Materiais: ${formatMaterials(booking.requiredMaterials)}`;
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {pendingBookings.length > 0 ? (
-                    pendingBookings.map((booking) => {
-                        const date = Object.keys(booking.selectedSlots)[0];
-                        const formattedDate = formatDateForDisplay(date);
-                        const times = booking.selectedSlots[date].join(', ');
+                    {reservasPendentes.length > 0 ? (
+                    reservasPendentes.map((reserva) => {
+                        const date = Object.keys(reserva.horariosSelecionados)[0];
+                        const formattedDate = formatarDataParaExibicao(date);
+                        const times = reserva.horariosSelecionados[date].join(', ');
                         return (
-                        <TableRow key={booking.id}>
-                            <TableCell className="font-medium">{booking.fullName}<br/><span className="text-xs text-muted-foreground">{booking.email}</span></TableCell>
+                        <TableRow key={reserva.id}>
+                            <TableCell className="font-medium">{reserva.nomeCompleto}<br/><span className="text-xs text-muted-foreground">{reserva.email}</span></TableCell>
                             <TableCell>{formattedDate}</TableCell>
                             <TableCell>{times}</TableCell>
-                            <TableCell>{booking.bookingModalities}</TableCell>
+                            <TableCell>{reserva.modalidadesReserva}</TableCell>
                             <TableCell className="text-right space-x-2">
                                <Dialog>
                                 <DialogTrigger asChild>
-                                   <Button variant="ghost" size="icon" onClick={() => setSelectedBooking(booking)}>
+                                   <Button variant="ghost" size="icon" onClick={() => setReservaSelecionada(reserva)}>
                                     <Info className="h-4 w-4" />
                                    </Button>
                                 </DialogTrigger>
                                </Dialog>
-                              <Button variant="outline" size="sm" onClick={() => handleStatusUpdate(booking.id, 'approved')}>Aprovar</Button>
-                              <Button variant="destructive" size="sm" onClick={() => handleStatusUpdate(booking.id, 'rejected')}>Rejeitar</Button>
+                              <Button variant="outline" size="sm" onClick={() => handleAtualizacaoStatus(reserva.id, 'aprovado')}>Aprovar</Button>
+                              <Button variant="destructive" size="sm" onClick={() => handleAtualizacaoStatus(reserva.id, 'rejeitado')}>Rejeitar</Button>
                             </TableCell>
                         </TableRow>
                         );
@@ -362,8 +357,8 @@ Materiais: ${formatMaterials(booking.requiredMaterials)}`;
           </CardContent>
         </Card>
 
-        <Accordion type="single" collapsible onValueChange={handleAccordionChange}>
-            <AccordionItem value="approved">
+        <Accordion type="single" collapsible onValueChange={handleMudancaAccordion}>
+            <AccordionItem value="aprovado">
                 <Card>
                     <AccordionTrigger className="p-6">
                         <div className="text-left">
@@ -373,40 +368,40 @@ Materiais: ${formatMaterials(booking.requiredMaterials)}`;
                     </AccordionTrigger>
                     <AccordionContent>
                         <CardContent>
-                            {loadingApproved ? (
+                            {carregandoAprovados ? (
                                 <div className="flex items-center justify-center h-40">
                                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                                 </div>
-                            ) : approvedBookings && approvedBookings.length > 0 ? (
+                            ) : reservasAprovadas && reservasAprovadas.length > 0 ? (
                                 <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 pt-6">
-                                    {approvedBookings.map((booking) => {
-                                        const date = Object.keys(booking.selectedSlots)[0];
-                                        const formattedDate = formatDateForDisplay(date);
-                                        const times = booking.selectedSlots[date].join(', ');
-                                        const calendarLink = createGoogleCalendarLink(booking);
-                                        const organization = booking.organizationType === 'interno' ? booking.department : booking.externalOrganization;
+                                    {reservasAprovadas.map((reserva) => {
+                                        const date = Object.keys(reserva.horariosSelecionados)[0];
+                                        const formattedDate = formatarDataParaExibicao(date);
+                                        const times = reserva.horariosSelecionados[date].join(', ');
+                                        const calendarLink = criarLinkGoogleAgenda(reserva);
+                                        const organization = reserva.tipoOrgao === 'interno' ? reserva.departamento : reserva.organizacaoExterna;
 
                                         return (
-                                            <Card key={booking.id} className="flex flex-col">
+                                            <Card key={reserva.id} className="flex flex-col">
                                                 <CardHeader className="pb-4">
-                                                    <CardTitle className="text-xl font-headline">{booking.recordingTitle || 'Sem Título'}</CardTitle>
-                                                    <CardDescription>{booking.fullName} - {organization}</CardDescription>
+                                                    <CardTitle className="text-xl font-headline">{reserva.tituloGravacao || 'Sem Título'}</CardTitle>
+                                                    <CardDescription>{reserva.nomeCompleto} - {organization}</CardDescription>
                                                 </CardHeader>
                                                 <CardContent className="flex-grow space-y-2 text-sm">
                                                     <p><strong>Data:</strong> {formattedDate}</p>
                                                     <p><strong>Horários:</strong> {times}</p>
-                                                    <p><strong>Modalidade:</strong> {booking.bookingModalities}</p>
+                                                    <p><strong>Modalidade:</strong> {reserva.modalidadesReserva}</p>
                                                 </CardContent>
                                                 <CardFooter className="flex-col items-start gap-2">
                                                     <div className='flex gap-2 w-full'>
                                                         <Dialog>
                                                             <DialogTrigger asChild>
-                                                                <Button variant="outline" className="w-full" onClick={() => setSelectedBooking(booking)}>
+                                                                <Button variant="outline" className="w-full" onClick={() => setReservaSelecionada(reserva)}>
                                                                     <Info className="mr-2 h-4 w-4" /> Ver
                                                                 </Button>
                                                             </DialogTrigger>
                                                         </Dialog>
-                                                        <Button variant="destructive" className="w-full" onClick={() => handleStatusUpdate(booking.id, 'rejected')}>
+                                                        <Button variant="destructive" className="w-full" onClick={() => handleAtualizacaoStatus(reserva.id, 'rejeitado')}>
                                                             <XCircle className="mr-2 h-4 w-4" /> Cancelar
                                                         </Button>
                                                     </div>
@@ -438,17 +433,16 @@ Materiais: ${formatMaterials(booking.requiredMaterials)}`;
                     </AccordionTrigger>
                     <AccordionContent>
                         <CardContent>
-                           {loadingBlockSlots ? (
+                           {carregandoBloqueio ? (
                                  <div className="flex items-center justify-center h-40">
                                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                                  </div>
-                            ) : blockSlotsData ? (
-                                <BlockSlotsForm 
-                                    initialReservedBookings={blockSlotsData.reserved}
-                                    initialManuallyBlockedSlots={blockSlotsData.manual}
+                            ) : dadosBloqueio ? (
+                                <FormularioBloqueioHorarios 
+                                    reservasIniciais={dadosBloqueio.reserved}
+                                    bloqueiosManuaisIniciais={dadosBloqueio.manual}
                                 />
                             ) : (
-                                // This case should ideally not be hit if the accordion triggers the load
                                 <div className="text-center text-muted-foreground py-8">Clique para carregar o calendário.</div>
                             )}
                         </CardContent>
@@ -458,8 +452,8 @@ Materiais: ${formatMaterials(booking.requiredMaterials)}`;
         </Accordion>
       </div>
 
-       {selectedBooking && (
-        <Dialog open={!!selectedBooking} onOpenChange={(isOpen) => !isOpen && setSelectedBooking(null)}>
+       {reservaSelecionada && (
+        <Dialog open={!!reservaSelecionada} onOpenChange={(isOpen) => !isOpen && setReservaSelecionada(null)}>
             <DialogContent className="sm:max-w-[625px]">
                 <DialogHeader>
                     <DialogTitle className="font-headline">Detalhes do Agendamento</DialogTitle>
@@ -467,64 +461,64 @@ Materiais: ${formatMaterials(booking.requiredMaterials)}`;
                 <div className="grid gap-4 py-4 text-sm max-h-[70vh] overflow-y-auto pr-4">
                     <div className="grid grid-cols-[150px_1fr] items-center gap-4">
                         <span className="font-semibold text-right">Título:</span>
-                        <span>{selectedBooking.recordingTitle}</span>
+                        <span>{reservaSelecionada.tituloGravacao}</span>
                     </div>
                     <div className="grid grid-cols-[150px_1fr] items-center gap-4">
                         <span className="font-semibold text-right">Solicitante:</span>
-                        <span>{selectedBooking.fullName}</span>
+                        <span>{reservaSelecionada.nomeCompleto}</span>
                     </div>
                     <div className="grid grid-cols-[150px_1fr] items-center gap-4">
                         <span className="font-semibold text-right">E-mail:</span>
-                        <span>{selectedBooking.email}</span>
+                        <span>{reservaSelecionada.email}</span>
                     </div>
                     <div className="grid grid-cols-[150px_1fr] items-center gap-4">
                         <span className="font-semibold text-right">Telefone:</span>
-                        <span>{selectedBooking.phone}</span>
+                        <span>{reservaSelecionada.telefone}</span>
                     </div>
                      <div className="grid grid-cols-[150px_1fr] items-center gap-4">
                         <span className="font-semibold text-right">Data:</span>
-                        <span>{formatDateForDisplay(Object.keys(selectedBooking.selectedSlots)[0])}</span>
+                        <span>{formatarDataParaExibicao(Object.keys(reservaSelecionada.horariosSelecionados)[0])}</span>
                     </div>
                      <div className="grid grid-cols-[150px_1fr] items-center gap-4">
                         <span className="font-semibold text-right">Horários:</span>
-                        <span>{Object.values(selectedBooking.selectedSlots)[0].join(', ')}</span>
+                        <span>{Object.values(reservaSelecionada.horariosSelecionados)[0].join(', ')}</span>
                     </div>
                     <div className="grid grid-cols-[150px_1fr] items-center gap-4">
                         <span className="font-semibold text-right">Órgão:</span>
-                        <span>{selectedBooking.organizationType === 'interno' ? 'Interno (SEDUC)' : 'Externo'}</span>
+                        <span>{reservaSelecionada.tipoOrgao === 'interno' ? 'Interno (SEDUC)' : 'Externo'}</span>
                     </div>
-                    {selectedBooking.department && (
+                    {reservaSelecionada.departamento && (
                          <div className="grid grid-cols-[150px_1fr] items-center gap-4">
                             <span className="font-semibold text-right">Departamento:</span>
-                            <span>{selectedBooking.department}</span>
+                            <span>{reservaSelecionada.departamento}</span>
                         </div>
                     )}
-                     {selectedBooking.externalOrganization && (
+                     {reservaSelecionada.organizacaoExterna && (
                          <div className="grid grid-cols-[150px_1fr] items-center gap-4">
                             <span className="font-semibold text-right">Órgão Externo:</span>
-                            <span>{selectedBooking.externalOrganization}</span>
+                            <span>{reservaSelecionada.organizacaoExterna}</span>
                         </div>
                     )}
                     <div className="grid grid-cols-[150px_1fr] items-center gap-4">
                         <span className="font-semibold text-right">Modalidade:</span>
-                        <span>{selectedBooking.bookingModalities}</span>
+                        <span>{reservaSelecionada.modalidadesReserva}</span>
                     </div>
                      <div className="grid grid-cols-[150px_1fr] items-center gap-4">
                         <span className="font-semibold text-right">Participantes:</span>
-                        <span>{selectedBooking.participantCount}</span>
+                        <span>{reservaSelecionada.numeroParticipantes}</span>
                     </div>
                      <div className="grid grid-cols-[150px_1fr] items-center gap-4">
                         <span className="font-semibold text-right">Mesas:</span>
-                        <span>{selectedBooking.tableCount}</span>
+                        <span>{reservaSelecionada.numeroMesas}</span>
                     </div>
                      <div className="grid grid-cols-[150px_1fr] items-center gap-4">
                         <span className="font-semibold text-right">Cadeiras:</span>
-                        <span>{selectedBooking.chairCount}</span>
+                        <span>{reservaSelecionada.numeroCadeiras}</span>
                     </div>
-                    {selectedBooking.requiredMaterials && (
+                    {reservaSelecionada.materiaisNecessarios && (
                          <div className="grid grid-cols-[150px_1fr] items-start gap-4">
                             <span className="font-semibold text-right">Materiais:</span>
-                            <span className="break-words">{selectedBooking.requiredMaterials}</span>
+                            <span className="break-words">{reservaSelecionada.materiaisNecessarios}</span>
                         </div>
                     )}
                 </div>

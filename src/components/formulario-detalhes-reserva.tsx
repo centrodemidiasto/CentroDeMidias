@@ -4,7 +4,6 @@
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { useState } from 'react';
-import { useFormStatus } from 'react-dom';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -12,86 +11,67 @@ import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { handleBookingRequest } from '@/app/actions';
-import { SelectedSlots } from './scheduling-form';
+import { handleSolicitacaoReserva } from '@/app/actions';
+import { HorariosSelecionados } from './formulario-agendamento';
 
-// The schema is now only used for type inference on the client
-const BookingDetailsSchema = z.object({
-    fullName: z.string(),
+const DetalhesReservaSchema = z.object({
+    nomeCompleto: z.string(),
     email: z.string(),
-    phone: z.string(),
-    recordingTitle: z.string(),
-    organizationType: z.enum(["interno", "externo"]),
-    department: z.string().optional(),
-    externalOrganization: z.string().optional(),
-    bookingModalities: z.string(),
-    requiredMaterials: z.string().optional(),
-    participantCount: z.coerce.number(),
-    tableCount: z.coerce.number(),
-    chairCount: z.coerce.number(),
+    telefone: z.string(),
+    tituloGravacao: z.string(),
+    tipoOrgao: z.enum(["interno", "externo"]),
+    departamento: z.string().optional(),
+    organizacaoExterna: z.string().optional(),
+    modalidadesReserva: z.string(),
+    materiaisNecessarios: z.string().optional(),
+    numeroParticipantes: z.coerce.number(),
+    numeroMesas: z.coerce.number(),
+    numeroCadeiras: z.coerce.number(),
 });
 
-
-const bookingModalities = [
+const MODALIDADES_RESERVA = [
     { id: 'audio_video', label: 'Gravação de áudio e vídeo' },
     { id: 'audio_only', label: 'Gravação de áudio' },
     { id: 'live_stream', label: 'Transmissão ao vivo (Live)' },
 ];
 
-function SubmitButton() {
-    const { pending } = useFormStatus();
-    return (
-        <Button type="submit" disabled={pending} className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
-            {pending ? (
-                <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Enviando Solicitação...
-                </>
-            ) : (
-                'Finalizar Agendamento'
-            )}
-        </Button>
-    );
-}
-
-function formatPhoneNumber(value: string) {
+function formatarTelefone(value: string) {
     if (!value) return value;
-    const phoneNumber = value.replace(/[^\d]/g, '');
-    const phoneNumberLength = phoneNumber.length;
-    if (phoneNumberLength < 3) return `(${phoneNumber}`;
-    if (phoneNumberLength < 8) return `(${phoneNumber.slice(0, 2)}) ${phoneNumber.slice(2)}`;
-    return `(${phoneNumber.slice(0, 2)}) ${phoneNumber.slice(2, 7)}-${phoneNumber.slice(7, 11)}`;
+    const numeros = value.replace(/[^\d]/g, '');
+    const tamanho = numeros.length;
+    if (tamanho < 3) return `(${numeros}`;
+    if (tamanho < 8) return `(${numeros.slice(0, 2)}) ${numeros.slice(2)}`;
+    return `(${numeros.slice(0, 2)}) ${numeros.slice(2, 7)}-${numeros.slice(7, 11)}`;
 }
 
-interface BookingDetailsFormProps {
-    selectedSlots: SelectedSlots;
-    onBookingSuccess: () => void;
+interface FormularioDetalhesReservaProps {
+    horariosSelecionados: HorariosSelecionados;
+    onSucessoReserva: () => void;
 }
 
-export default function BookingDetailsForm({ selectedSlots, onBookingSuccess }: BookingDetailsFormProps) {
-    const [isSubmitting, setIsSubmitting] = useState(false);
+export default function FormularioDetalhesReserva({ horariosSelecionados, onSucessoReserva }: FormularioDetalhesReservaProps) {
+    const [enviando, setEnviando] = useState(false);
     const { toast } = useToast();
     
-    const form = useForm<z.infer<typeof BookingDetailsSchema>>({
-        // resolver: zodResolver(BookingDetailsSchema), // Removed resolver to prevent client-side validation
+    const form = useForm<z.infer<typeof DetalhesReservaSchema>>({
         defaultValues: {
-            fullName: '',
+            nomeCompleto: '',
             email: '',
-            phone: '',
-            recordingTitle: '',
-            organizationType: undefined,
-            department: '',
-            externalOrganization: '',
-            bookingModalities: undefined,
-            requiredMaterials: '',
-            participantCount: 1,
-            tableCount: 0,
-            chairCount: 0,
+            telefone: '',
+            tituloGravacao: '',
+            tipoOrgao: undefined,
+            departamento: '',
+            organizacaoExterna: '',
+            modalidadesReserva: undefined,
+            materiaisNecessarios: '',
+            numeroParticipantes: 1,
+            numeroMesas: 0,
+            numeroCadeiras: 0,
         },
     });
 
-    const formAction = async (data: z.infer<typeof BookingDetailsSchema>) => {
-        setIsSubmitting(true);
+    const formAction = async (data: z.infer<typeof DetalhesReservaSchema>) => {
+        setEnviando(true);
         const formData = new FormData();
         Object.entries(data).forEach(([key, value]) => {
             if (value !== undefined && value !== null) {
@@ -99,24 +79,24 @@ export default function BookingDetailsForm({ selectedSlots, onBookingSuccess }: 
             }
         });
 
-        const result = await handleBookingRequest(selectedSlots, null, formData);
+        const resultado = await handleSolicitacaoReserva(horariosSelecionados, null, formData);
         
-        if (result && result.message) {
-            const variant = result.success ? 'default' : 'destructive';
+        if (resultado && resultado.mensagem) {
+            const variant = resultado.sucesso ? 'default' : 'destructive';
             toast({
-                title: result.success ? 'Sucesso!' : 'Erro na Solicitação',
-                description: <div className="whitespace-pre-wrap">{result.message}</div>,
+                title: resultado.sucesso ? 'Sucesso!' : 'Erro na Solicitação',
+                description: <div className="whitespace-pre-wrap">{resultado.mensagem}</div>,
                 variant: variant,
             });
-             if (result.success) {
+             if (resultado.sucesso) {
                 form.reset();
-                onBookingSuccess();
+                onSucessoReserva();
             }
         }
-        setIsSubmitting(false);
+        setEnviando(false);
     };
     
-    const organizationType = form.watch('organizationType');
+    const tipoOrgao = form.watch('tipoOrgao');
 
     return (
         <Form {...form}>
@@ -124,7 +104,7 @@ export default function BookingDetailsForm({ selectedSlots, onBookingSuccess }: 
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
                         control={form.control}
-                        name="fullName"
+                        name="nomeCompleto"
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Nome/Sobrenome</FormLabel>
@@ -137,7 +117,7 @@ export default function BookingDetailsForm({ selectedSlots, onBookingSuccess }: 
                     />
                     <FormField
                         control={form.control}
-                        name="phone"
+                        name="telefone"
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Número de telefone</FormLabel>
@@ -146,8 +126,8 @@ export default function BookingDetailsForm({ selectedSlots, onBookingSuccess }: 
                                         placeholder="(00) 00000-0000"
                                         {...field}
                                         onChange={(e) => {
-                                            const formatted = formatPhoneNumber(e.target.value);
-                                            field.onChange(formatted);
+                                            const formatado = formatarTelefone(e.target.value);
+                                            field.onChange(formatado);
                                         }}
                                     />
                                 </FormControl>
@@ -159,7 +139,7 @@ export default function BookingDetailsForm({ selectedSlots, onBookingSuccess }: 
 
                 <FormField
                     control={form.control}
-                    name="recordingTitle"
+                    name="tituloGravacao"
                     render={({ field }) => (
                         <FormItem>
                             <FormLabel>Título da Gravação</FormLabel>
@@ -187,7 +167,7 @@ export default function BookingDetailsForm({ selectedSlots, onBookingSuccess }: 
                 
                 <FormField
                     control={form.control}
-                    name="organizationType"
+                    name="tipoOrgao"
                     render={({ field }) => (
                         <FormItem className="space-y-3">
                             <FormLabel>Órgão</FormLabel>
@@ -217,10 +197,10 @@ export default function BookingDetailsForm({ selectedSlots, onBookingSuccess }: 
                     )}
                 />
 
-                {organizationType === 'interno' && (
+                {tipoOrgao === 'interno' && (
                     <FormField
                         control={form.control}
-                        name="department"
+                        name="departamento"
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Informe o Departamento</FormLabel>
@@ -233,10 +213,10 @@ export default function BookingDetailsForm({ selectedSlots, onBookingSuccess }: 
                     />
                 )}
 
-                {organizationType === 'externo' && (
+                {tipoOrgao === 'externo' && (
                     <FormField
                         control={form.control}
-                        name="externalOrganization"
+                        name="organizacaoExterna"
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Informe o Órgão/Departamento</FormLabel>
@@ -251,7 +231,7 @@ export default function BookingDetailsForm({ selectedSlots, onBookingSuccess }: 
 
                 <FormField
                     control={form.control}
-                    name="bookingModalities"
+                    name="modalidadesReserva"
                     render={({ field }) => (
                         <FormItem className="space-y-3">
                             <FormLabel>Modalidade do Agendamento</FormLabel>
@@ -262,7 +242,7 @@ export default function BookingDetailsForm({ selectedSlots, onBookingSuccess }: 
                                     className="flex flex-col space-y-2"
                                     name={field.name}
                                 >
-                                    {bookingModalities.map((item) => (
+                                    {MODALIDADES_RESERVA.map((item) => (
                                         <FormItem key={item.id} className="flex items-center space-x-2 space-y-0">
                                             <FormControl>
                                                 <RadioGroupItem value={item.label} id={item.id} />
@@ -279,7 +259,7 @@ export default function BookingDetailsForm({ selectedSlots, onBookingSuccess }: 
 
                 <FormField
                     control={form.control}
-                    name="requiredMaterials"
+                    name="materiaisNecessarios"
                     render={({ field }) => (
                         <FormItem>
                             <FormLabel>Materiais necessários (Opcional)</FormLabel>
@@ -297,7 +277,7 @@ export default function BookingDetailsForm({ selectedSlots, onBookingSuccess }: 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                      <FormField
                         control={form.control}
-                        name="participantCount"
+                        name="numeroParticipantes"
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Nº de Participantes</FormLabel>
@@ -310,7 +290,7 @@ export default function BookingDetailsForm({ selectedSlots, onBookingSuccess }: 
                     />
                      <FormField
                         control={form.control}
-                        name="tableCount"
+                        name="numeroMesas"
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Nº de Mesas</FormLabel>
@@ -323,7 +303,7 @@ export default function BookingDetailsForm({ selectedSlots, onBookingSuccess }: 
                     />
                      <FormField
                         control={form.control}
-                        name="chairCount"
+                        name="numeroCadeiras"
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Nº de Cadeiras</FormLabel>
@@ -337,8 +317,8 @@ export default function BookingDetailsForm({ selectedSlots, onBookingSuccess }: 
                 </div>
                 
                 <div className="pt-4">
-                     <Button type="submit" disabled={isSubmitting} className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
-                        {isSubmitting ? (
+                     <Button type="submit" disabled={enviando} className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
+                        {enviando ? (
                             <>
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                 Enviando Solicitação...

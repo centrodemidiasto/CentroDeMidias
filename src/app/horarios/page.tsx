@@ -8,52 +8,51 @@ import { Clock, User, Building, Video } from "lucide-react";
 import CurrentTime from "@/components/current-time";
 import Image from "next/image";
 
-interface Booking {
+interface Reserva {
   id: string;
-  fullName: string;
-  organizationType: 'interno' | 'externo';
-  department?: string;
-  externalOrganization?: string;
-  bookingModalities: string;
-  selectedSlots: Record<string, string[]>;
-  status: 'pending' | 'approved' | 'rejected';
-  createdAt: Timestamp;
-  bookingDate: string; // YYYY-MM-DD
+  nomeCompleto: string;
+  tipoOrgao: 'interno' | 'externo';
+  departamento?: string;
+  organizacaoExterna?: string;
+  modalidadesReserva: string;
+  horariosSelecionados: Record<string, string[]>;
+  status: 'pendente' | 'aprovado' | 'rejeitado';
+  criadoEm: Timestamp;
+  dataReserva: string; // YYYY-MM-DD
 }
 
-async function getUpcomingBookings(): Promise<Booking[]> {
-  const today = format(startOfToday(), 'yyyy-MM-dd');
-  const thirtyDaysFromNow = format(addDays(new Date(), 30), 'yyyy-MM-dd');
-  const bookingsRef = collection(clientDb, "bookings");
+async function getProximasReservas(): Promise<Reserva[]> {
+  const hoje = format(startOfToday(), 'yyyy-MM-dd');
+  const trintaDiasAFrente = format(addDays(new Date(), 30), 'yyyy-MM-dd');
+  const reservasRef = collection(clientDb, "reservas");
   
   const q = query(
-    bookingsRef,
-    where("status", "==", "approved"),
-    where("bookingDate", ">=", today),
-    where("bookingDate", "<=", thirtyDaysFromNow),
-    orderBy("bookingDate", "asc")
+    reservasRef,
+    where("status", "==", "aprovado"),
+    where("dataReserva", ">=", hoje),
+    where("dataReserva", "<=", trintaDiasAFrente),
+    orderBy("dataReserva", "asc")
   );
   
   const querySnapshot = await getDocs(q);
-  const bookingsData = querySnapshot.docs.map((doc) => ({
+  const dadosReservas = querySnapshot.docs.map((doc) => ({
     id: doc.id,
     ...doc.data(),
-  })) as Booking[];
+  })) as Reserva[];
 
-  // Additional client-side sort by time if needed
-  bookingsData.sort((a, b) => {
-    const timeA = a.selectedSlots[a.bookingDate]?.[0] || '00:00';
-    const timeB = b.selectedSlots[b.bookingDate]?.[0] || '00:00';
-    if (a.bookingDate < b.bookingDate) return -1;
-    if (a.bookingDate > b.bookingDate) return 1;
+  dadosReservas.sort((a, b) => {
+    const timeA = a.horariosSelecionados[a.dataReserva]?.[0] || '00:00';
+    const timeB = b.horariosSelecionados[b.dataReserva]?.[0] || '00:00';
+    if (a.dataReserva < b.dataReserva) return -1;
+    if (a.dataReserva > b.dataReserva) return 1;
     return timeA.localeCompare(timeB);
   });
 
-  return bookingsData;
+  return dadosReservas;
 }
 
 
-function formatBookingDate(dateString: string) {
+function formatarDataReserva(dateString: string) {
     const date = parseISO(dateString);
     if (isToday(date)) {
       return `Hoje, ${format(date, "d 'de' MMMM", { locale: ptBR })}`;
@@ -65,8 +64,8 @@ function formatBookingDate(dateString: string) {
 }
 
 
-export default async function HorariosPage() {
-  const upcomingBookings = await getUpcomingBookings();
+export default async function PaginaHorarios() {
+  const proximasReservas = await getProximasReservas();
 
   return (
     <div className="bg-gray-900 text-white min-h-screen p-8 font-sans">
@@ -86,27 +85,27 @@ export default async function HorariosPage() {
       </header>
 
       <main>
-        {upcomingBookings.length > 0 ? (
+        {proximasReservas.length > 0 ? (
           <div className="space-y-8">
-            {upcomingBookings.map((booking) => {
-                const date = Object.keys(booking.selectedSlots)[0];
-                const formattedDate = formatBookingDate(date);
-                const times = booking.selectedSlots[date].join(' - ');
-                const organization = booking.organizationType === 'interno' ? booking.department : booking.externalOrganization;
+            {proximasReservas.map((reserva) => {
+                const date = Object.keys(reserva.horariosSelecionados)[0];
+                const formattedDate = formatarDataReserva(date);
+                const times = reserva.horariosSelecionados[date].join(' - ');
+                const organization = reserva.tipoOrgao === 'interno' ? reserva.departamento : reserva.organizacaoExterna;
 
                 return(
-                    <Card key={booking.id} className="bg-gray-800 border-blue-500/50 shadow-lg rounded-xl overflow-hidden transform transition-all duration-300 hover:scale-[1.02] hover:shadow-blue-500/30">
+                    <Card key={reserva.id} className="bg-gray-800 border-blue-500/50 shadow-lg rounded-xl overflow-hidden transform transition-all duration-300 hover:scale-[1.02] hover:shadow-blue-500/30">
                         <CardContent className="p-8 grid grid-cols-1 md:grid-cols-[1fr_auto] gap-8 items-center">
                             <div>
                                 <CardTitle className="text-4xl font-bold text-blue-300 flex items-center gap-4">
-                                   <User className="w-10 h-10"/> {booking.fullName}
+                                   <User className="w-10 h-10"/> {reserva.nomeCompleto}
                                 </CardTitle>
                                 <CardDescription className="text-xl text-gray-400 mt-2 flex items-center gap-3">
                                    <Building className="w-6 h-6" /> {organization}
                                 </CardDescription>
                                 <div className="mt-6 flex items-center gap-3 text-2xl text-gray-300">
                                    <Video className="w-8 h-8 text-orange-400"/>
-                                   <span>{booking.bookingModalities}</span>
+                                   <span>{reserva.modalidadesReserva}</span>
                                  </div>
                             </div>
                             <div className="text-right flex flex-col justify-center items-end">
