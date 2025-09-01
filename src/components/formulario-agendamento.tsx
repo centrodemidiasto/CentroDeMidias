@@ -7,7 +7,6 @@ import {
   format,
   startOfWeek,
   eachDayOfInterval,
-  isWeekend,
   isBefore,
   startOfToday,
   addWeeks,
@@ -135,7 +134,6 @@ export default function FormularioAgendamento() {
     const primeiroDiaPossivel = startOfWeek(primeiraDataAgendavel, { locale: ptBR });
     const semanaAtualComecaAntes = isBefore(primeiroDiaSemanaAtual, primeiroDiaPossivel);
 
-    // Lógica para permitir voltar se a semana atual não for a primeira disponível
     if (isBefore(primeiroDiaPossivel, primeiroDiaSemanaAtual)) {
       return false;
     }
@@ -144,8 +142,8 @@ export default function FormularioAgendamento() {
 
 
   const desabilitarBtnProximaSemana = useMemo(() => {
-    const primeiroDiaProximaSemana = addDays(startOfWeek(dataAtual, { locale: ptBR }), 7);
-    return isAfter(primeiroDiaProximaSemana, ultimaDataAgendavel);
+    const primeiroDiaSemanaAtual = startOfWeek(dataAtual, { locale: ptBR });
+    return isAfter(primeiroDiaSemanaAtual, ultimaDataAgendavel);
   }, [dataAtual, ultimaDataAgendavel]);
   
   const calendarioForaDoIntervalo = useMemo(() => {
@@ -229,7 +227,7 @@ export default function FormularioAgendamento() {
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : calendarioForaDoIntervalo ? (
-           <div className="flex flex-col items-center justify-center h-48 text-center text-muted-foreground bg-muted/50 rounded-lg">
+           <div className="flex flex-col items-center justify-center h-48 text-center text-muted-foreground bg-muted/50 rounded-lg p-4">
                 <CalendarX2 className="w-12 h-12 mb-4"/>
                 <h3 className="font-bold text-lg">Indisponível</h3>
                 <p className="text-sm max-w-xs">Não é possível realizar agendamentos com mais de {MAX_SEMANAS_ANTECEDENCIA} semanas de antecedência.</p>
@@ -269,7 +267,6 @@ export default function FormularioAgendamento() {
                         );
                       }
                       
-                      // Visão para o público (não logado)
                       if (!usuario) {
                          if (bloqueadoManualmente || (slotReservado && slotReservado.status === 'aprovado')) {
                            return (
@@ -294,7 +291,6 @@ export default function FormularioAgendamento() {
                          }
                       }
 
-                      // Visão para Admins (logados)
                       if (usuario && (bloqueadoManualmente || slotReservado)) {
                           const estaPendente = slotReservado?.status === 'pendente';
                           const estaAprovado = slotReservado?.status === 'aprovado';
@@ -391,5 +387,3 @@ export default function FormularioAgendamento() {
     </Card>
   );
 }
-
-    
