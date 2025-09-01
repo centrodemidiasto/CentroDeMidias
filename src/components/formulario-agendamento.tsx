@@ -147,6 +147,11 @@ export default function FormularioAgendamento() {
     const primeiroDiaProximaSemana = addDays(startOfWeek(dataAtual, { locale: ptBR }), 7);
     return isAfter(primeiroDiaProximaSemana, ultimaDataAgendavel);
   }, [dataAtual, ultimaDataAgendavel]);
+  
+  const calendarioForaDoIntervalo = useMemo(() => {
+     return isAfter(diasDaSemana[0], ultimaDataAgendavel);
+  }, [diasDaSemana, ultimaDataAgendavel]);
+
 
   const handleSelecaoHorario = (dia: Date, horario: string) => {
     const chaveData = format(dia, "yyyy-MM-dd");
@@ -190,7 +195,6 @@ export default function FormularioAgendamento() {
     buscarTodasReservas();
   }
 
-  const calendarioForaDoIntervalo = isAfter(diasDaSemana[0], ultimaDataAgendavel);
 
   return (
     <Card>
