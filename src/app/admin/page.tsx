@@ -25,12 +25,13 @@ import {
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
-import { Loader2, Info, XCircle } from 'lucide-react';
+import { Loader2, Info, XCircle, CalendarPlus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { format, parseISO, startOfToday } from 'date-fns';
+import { format, parseISO, startOfToday, addHours } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import BlockSlotsForm, { ReservedBooking, ManuallyBlockedSlot } from '@/components/block-slots-form';
 import { updateBookingStatus } from '@/app/actions';
+import Link from 'next/link';
 
 interface Booking {
   id: string;
@@ -208,7 +209,8 @@ export default function DashboardPage() {
         });
         // Refetch relevant data after update
         fetchPendingBookings();
-        if (approvedBookings) { // If approved bookings were loaded, refresh them
+        if (approvedBookings || status === 'approved') {
+            setApprovedBookings(null); // Force refetch
             fetchApprovedBookings();
         }
     } catch (error: any) {
@@ -242,6 +244,43 @@ export default function DashboardPage() {
         return "Data inválida";
       }
   };
+
+  const createGoogleCalendarLink = (booking: Booking): string => {
+    const date = Object.keys(booking.selectedSlots)[0];
+    const startTimeStr = booking.selectedSlots[date][0];
+    const endTimeStr = booking.selectedSlots[date][booking.selectedSlots[date].length - 1];
+
+    if (!date || !startTimeStr) return '';
+
+    const startDateTime = parseISO(`${date}T${startTimeStr}:00`);
+    // Assuming each slot is 1 hour, the end time is 1 hour after the last selected slot's start time
+    const endDateTime = addHours(parseISO(`${date}T${endTimeStr}:00`), 1);
+
+    const formatForGoogle = (d: Date) => format(d, "yyyyMMdd'T'HHmmss");
+
+    const dates = `${formatForGoogle(startDateTime)}/${formatForGoogle(endDateTime)}`;
+    const text = `Gravação: ${booking.fullName} - ${booking.bookingModalities}`;
+    const organization = booking.organizationType === 'interno' ? booking.department : booking.externalOrganization;
+    const details = `Agendamento no Centro de Mídias.
+Solicitante: ${booking.fullName}
+Órgão: ${organization}
+Modalidade: ${booking.bookingModalities}
+Participantes: ${booking.participantCount}
+Mesas: ${booking.tableCount}
+Cadeiras: ${booking.chairCount}
+Materiais: ${booking.requiredMaterials || 'Nenhum'}`;
+
+    const params = new URLSearchParams({
+        action: 'TEMPLATE',
+        text,
+        dates,
+        details,
+        location: 'Centro de Mídias Educacionais - Palmas, TO',
+        // ctz: 'America/Sao_Paulo' // Optional: specify timezone
+    });
+
+    return `https://www.google.com/calendar/render?${params.toString()}`;
+  }
 
 
   return (
@@ -339,6 +378,7 @@ export default function DashboardPage() {
                                         const date = Object.keys(booking.selectedSlots)[0];
                                         const formattedDate = formatDateForDisplay(date);
                                         const times = booking.selectedSlots[date].join(', ');
+                                        const calendarLink = createGoogleCalendarLink(booking);
 
                                         return (
                                             <Card key={booking.id} className="flex flex-col">
@@ -351,16 +391,24 @@ export default function DashboardPage() {
                                                     <p><strong>Horários:</strong> {times}</p>
                                                     <p><strong>Modalidade:</strong> {booking.bookingModalities}</p>
                                                 </CardContent>
-                                                <CardFooter className="flex gap-2">
-                                                    <Dialog>
-                                                        <DialogTrigger asChild>
-                                                            <Button variant="outline" className="w-full" onClick={() => setSelectedBooking(booking)}>
-                                                                <Info className="mr-2 h-4 w-4" /> Ver Detalhes
-                                                            </Button>
-                                                        </DialogTrigger>
-                                                    </Dialog>
-                                                     <Button variant="destructive" className="w-full" onClick={() => handleStatusUpdate(booking.id, 'rejected')}>
-                                                        <XCircle className="mr-2 h-4 w-4" /> Cancelar
+                                                <CardFooter className="flex-col items-start gap-2">
+                                                    <div className='flex gap-2 w-full'>
+                                                        <Dialog>
+                                                            <DialogTrigger asChild>
+                                                                <Button variant="outline" className="w-full" onClick={() => setSelectedBooking(booking)}>
+                                                                    <Info className="mr-2 h-4 w-4" /> Ver
+                                                                </Button>
+                                                            </DialogTrigger>
+                                                        </Dialog>
+                                                        <Button variant="destructive" className="w-full" onClick={() => handleStatusUpdate(booking.id, 'rejected')}>
+                                                            <XCircle className="mr-2 h-4 w-4" /> Cancelar
+                                                        </Button>
+                                                    </div>
+                                                    <Button asChild variant="secondary" className="w-full">
+                                                        <Link href={calendarLink} target="_blank" rel="noopener noreferrer">
+                                                            <CalendarPlus className="mr-2 h-4 w-4" />
+                                                            Google Agenda
+                                                        </Link>
                                                     </Button>
                                                 </CardFooter>
                                             </Card>
@@ -476,3 +524,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
