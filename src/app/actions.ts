@@ -148,3 +148,52 @@ export async function handleSolicitacaoReservaAdmin(
        return { sucesso: false, mensagem: "Ocorreu um erro inesperado. Tente novamente." };
     }
 }
+
+
+export async function handleSolicitacaoReservaRecorrente(
+    datasSelecionadas: string[],
+    horariosSelecionados: string[],
+    estadoAnterior: EstadoFormulario,
+    formData: FormData
+): Promise<EstadoFormulario> {
+    const dadosParseados = ReservaAdminSchema.safeParse(
+      Object.fromEntries(formData.entries())
+    );
+
+    if (!dadosParseados.success) {
+        const mensagensErro = dadosParseados.error.errors.map(e => `- ${e.message}`).join("\n");
+        return { sucesso: false, mensagem: `Por favor, corrija os seguintes erros:\n${mensagensErro}` };
+    }
+    
+    const dados = dadosParseados.data;
+
+    if (!datasSelecionadas || datasSelecionadas.length === 0 || !horariosSelecionados || horariosSelecionados.length === 0) {
+        return { sucesso: false, mensagem: "Nenhuma data ou horário selecionado." };
+    }
+
+    try {
+        const batch = adminDb.batch();
+        const reservasRef = adminDb.collection("reservas");
+
+        datasSelecionadas.forEach(data => {
+            const novaReservaRef = reservassRef.doc();
+            batch.set(novaReservaRef, {
+                ...dados,
+                tipoOrgao: 'interno',
+                email: 'centrodemidias@seduc.to.gov.br',
+                horariosSelecionados: { [data]: horariosSelecionados },
+                dataReserva: data, 
+                criadoEm: FieldValue.serverTimestamp(),
+                status: "aprovado"
+            });
+        });
+
+       await batch.commit();
+
+       return { sucesso: true, mensagem: `${datasSelecionadas.length} agendamentos recorrentes realizados e aprovados com sucesso!` };
+
+    } catch (error) {
+       console.error("Erro em handleSolicitacaoReservaRecorrente:", error);
+       return { sucesso: false, mensagem: "Ocorreu um erro inesperado. Tente novamente." };
+    }
+}

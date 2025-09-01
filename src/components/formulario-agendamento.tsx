@@ -15,35 +15,37 @@ import {
 import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChevronLeft, ChevronRight, Loader2, Info, CalendarX2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, Info, CalendarX2, CalendarPlus, Repeat } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import FormularioDetalhesReserva from "./formulario-detalhes-reserva";
 import FormularioReservaAdmin from "./formulario-reserva-admin";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
 import LegendaCalendario from "./legenda-calendario";
+import FormularioAgendamentoEspecial from "./formulario-agendamento-especial";
+import FormularioAgendamentoRecorrente from "./formulario-agendamento-recorrente";
 
 export type HorariosSelecionados = {
   [key: string]: string[];
 };
 
-type ReservaExistente = {
+export type ReservaExistente = {
     data: string;
     horarios: string[];
     status: 'pendente' | 'aprovado';
 }
 
-type BloqueioManual = {
+export type BloqueioManual = {
     data: string;
     horarios: string[];
 }
 
-const SLOTS_DE_TEMPO = Array.from({ length: 9 }, (_, i) => `${String(i + 9).padStart(2, "0")}:00`);
+export const SLOTS_DE_TEMPO = Array.from({ length: 9 }, (_, i) => `${String(i + 9).padStart(2, "0")}:00`);
 const DIAS_MIN_ANTECEDENCIA = 5;
 const MAX_SEMANAS_ANTECEDENCIA = 8;
 
@@ -90,6 +92,8 @@ export default function FormularioAgendamento() {
   const [carregandoReservas, setCarregandoReservas] = useState(true);
   const [usuario, setUsuario] = useState<User | null>(null);
   const [clienteRenderizou, setClienteRenderizou] = useState(false);
+  const [modalEspecialAberto, setModalEspecialAberto] = useState(false);
+  const [modalRecorrenteAberto, setModalRecorrenteAberto] = useState(false);
 
   const { toast } = useToast();
   
@@ -126,7 +130,7 @@ export default function FormularioAgendamento() {
 
   const diasDaSemana = useMemo(() => {
     const inicioDaSemana = startOfWeek(dataAtual, { locale: ptBR });
-    const segundaFeira = addDays(inicioDaSemana, 1); 
+    const segundaFeira = addDays(inicioDaSemana, 1);
     return eachDayOfInterval({ start: segundaFeira, end: addDays(segundaFeira, 4) });
   }, [dataAtual]);
   
@@ -139,12 +143,14 @@ export default function FormularioAgendamento() {
 
 
   const desabilitarBtnProximaSemana = useMemo(() => {
-    const proximaSemana = addDays(diasDaSemana[0], 7);
-    return isAfter(proximaSemana, ultimaDataAgendavel);
+    const ultimaDataVisivel = diasDaSemana[diasDaSemana.length - 1];
+    return isAfter(ultimaDataVisivel, ultimaDataAgendavel);
   }, [diasDaSemana, ultimaDataAgendavel]);
+
   
   const calendarioForaDoIntervalo = useMemo(() => {
-     return isAfter(diasDaSemana[0], ultimaDataAgendavel);
+     const primeiraDataVisivel = diasDaSemana[0];
+     return isAfter(primeiraDataVisivel, ultimaDataAgendavel);
   }, [diasDaSemana, ultimaDataAgendavel]);
 
 
@@ -187,6 +193,8 @@ export default function FormularioAgendamento() {
   const onSucessoReserva = () => {
     setHorariosSelecionados({});
     setModalAberto(false);
+    setModalEspecialAberto(false);
+    setModalRecorrenteAberto(false);
     buscarTodasReservas();
   }
 
@@ -194,7 +202,7 @@ export default function FormularioAgendamento() {
   return (
     <Card>
       {usuario && (
-         <div className="p-4 border-b">
+         <div className="p-4 border-b space-y-4">
             <Alert variant="default" className="bg-primary/5 border-primary/20">
                 <Info className="h-4 w-4 text-primary" />
                 <AlertTitle className="font-headline text-primary">Modo de Agendamento Simplificado</AlertTitle>
@@ -202,6 +210,49 @@ export default function FormularioAgendamento() {
                     Você está autenticado com uma conta do Centro de Mídias. Os agendamentos realizados serão aprovados automaticamente e usarão um formulário simplificado.
                 </AlertDescription>
             </Alert>
+            <div className="flex flex-col sm:flex-row gap-4">
+                 <Dialog open={modalEspecialAberto} onOpenChange={setModalEspecialAberto}>
+                    <DialogTrigger asChild>
+                        <Button variant="outline" className="w-full">
+                           <CalendarPlus className="mr-2 h-4 w-4" /> Agendamento Especial
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-4xl">
+                        <DialogHeader>
+                            <DialogTitle>Agendamento Especial</DialogTitle>
+                             <DialogDescription>
+                                Selecione uma data e horário sem as restrições normais de antecedência.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <FormularioAgendamentoEspecial
+                           reservasExistentes={reservasExistentes}
+                           bloqueiosManuais={bloqueiosManuais}
+                           onSucessoReserva={onSucessoReserva}
+                        />
+                    </DialogContent>
+                 </Dialog>
+
+                 <Dialog open={modalRecorrenteAberto} onOpenChange={setModalRecorrenteAberto}>
+                    <DialogTrigger asChild>
+                         <Button variant="outline" className="w-full">
+                            <Repeat className="mr-2 h-4 w-4" /> Agendamento Recorrente
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-4xl">
+                         <DialogHeader>
+                            <DialogTitle>Agendamento Recorrente</DialogTitle>
+                            <DialogDescription>
+                                Selecione um horário e depois marque todas as datas desejadas para esse mesmo agendamento.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <FormularioAgendamentoRecorrente
+                           reservasExistentes={reservasExistentes}
+                           bloqueiosManuais={bloqueiosManuais}
+                           onSucessoReserva={onSucessoReserva}
+                        />
+                    </DialogContent>
+                 </Dialog>
+            </div>
          </div>
       )}
       <CardHeader>
