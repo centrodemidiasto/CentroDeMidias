@@ -176,7 +176,7 @@ export async function handleSolicitacaoReservaRecorrente(
         const reservasRef = adminDb.collection("reservas");
 
         datasSelecionadas.forEach(data => {
-            const novaReservaRef = reservassRef.doc();
+            const novaReservaRef = reservasRef.doc();
             batch.set(novaReservaRef, {
                 ...dados,
                 tipoOrgao: 'interno',
