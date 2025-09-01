@@ -68,7 +68,7 @@ async function getReservasExistentes(): Promise<ReservaExistente[]> {
 }
 
 async function getBloqueiosManuais(): Promise<BloqueioManual[]> {
-    const bloqueiosRef = collection(db, "blockedSlots");
+    const bloqueiosRef = collection(db, "horariosBloqueados");
     const querySnapshot = await getDocs(bloqueiosRef);
     return querySnapshot.docs.map(doc => doc.data() as BloqueioManual);
 }
@@ -122,8 +122,7 @@ export default function FormularioAgendamento() {
 
   const diasDaSemana = useMemo(() => {
     const inicio = startOfWeek(dataAtual, { locale: ptBR });
-    const fim = addDays(inicio, 6);
-    return eachDayOfInterval({ start: inicio, end: fim }).filter(day => !isWeekend(day));
+    return eachDayOfInterval({ start: inicio, end: addDays(inicio, 4) });
   }, [dataAtual]);
   
   const desabilitarBtnSemanaAnterior = useMemo(() => {
@@ -133,15 +132,21 @@ export default function FormularioAgendamento() {
         const ultimoDiaSemanaAnterior = addDays(primeiroDiaSemanaAtual, -1);
         return isBefore(ultimoDiaSemanaAnterior, hoje);
     }
-    const primeiroDiaPossivel = startOfWeek(primeiraDataAgendavelInicial, { locale: ptBR });
-    return isBefore(primeiroDiaSemanaAtual, primeiroDiaPossivel);
-  }, [dataAtual, primeiraDataAgendavelInicial, usuario, hoje, clienteRenderizou]);
+    const primeiroDiaPossivel = startOfWeek(primeiraDataAgendavel, { locale: ptBR });
+    const semanaAtualComecaAntes = isBefore(primeiroDiaSemanaAtual, primeiroDiaPossivel);
+
+    // Lógica para permitir voltar se a semana atual não for a primeira disponível
+    if (isBefore(primeiroDiaPossivel, primeiroDiaSemanaAtual)) {
+      return false;
+    }
+    return semanaAtualComecaAntes;
+  }, [dataAtual, primeiraDataAgendavel, usuario, hoje, clienteRenderizou]);
+
 
   const desabilitarBtnProximaSemana = useMemo(() => {
-    if (usuario) return false;
     const primeiroDiaProximaSemana = addDays(startOfWeek(dataAtual, { locale: ptBR }), 7);
     return isAfter(primeiroDiaProximaSemana, ultimaDataAgendavel);
-  }, [dataAtual, ultimaDataAgendavel, usuario]);
+  }, [dataAtual, ultimaDataAgendavel]);
 
   const handleSelecaoHorario = (dia: Date, horario: string) => {
     const chaveData = format(dia, "yyyy-MM-dd");
@@ -185,7 +190,7 @@ export default function FormularioAgendamento() {
     buscarTodasReservas();
   }
 
-  const calendarioForaDoIntervalo = !usuario && isAfter(diasDaSemana[0], ultimaDataAgendavel);
+  const calendarioForaDoIntervalo = isAfter(diasDaSemana[0], ultimaDataAgendavel);
 
   return (
     <Card>
@@ -223,13 +228,15 @@ export default function FormularioAgendamento() {
            <div className="flex flex-col items-center justify-center h-48 text-center text-muted-foreground bg-muted/50 rounded-lg">
                 <CalendarX2 className="w-12 h-12 mb-4"/>
                 <h3 className="font-bold text-lg">Indisponível</h3>
-                <p className="text-sm">Não é possível realizar agendamentos com mais de 8 semanas de antecedência.</p>
+                <p className="text-sm max-w-xs">Não é possível realizar agendamentos com mais de {MAX_SEMANAS_ANTECEDENCIA} semanas de antecedência.</p>
            </div>
         ) : (
             <div className="grid grid-cols-1 md:grid-cols-5 gap-px bg-border overflow-hidden rounded-lg border">
             {diasDaSemana.map(dia => {
-                const diaAnteriorPrimeiraDataAgendavel = isBefore(dia, primeiraDataAgendavel);
-                let diaDesabilitado = usuario ? isBefore(dia, hoje) : diaAnteriorPrimeiraDataAgendavel;
+                let diaDesabilitado = isBefore(dia, primeiraDataAgendavel);
+                if (usuario) {
+                   diaDesabilitado = isBefore(dia, hoje);
+                }
                 const chaveDataParaReserva = format(dia, "yyyy-MM-dd");
                 
                 return (
@@ -380,3 +387,5 @@ export default function FormularioAgendamento() {
     </Card>
   );
 }
+
+    

@@ -107,15 +107,15 @@ async function getReservasParaBloqueio(): Promise<ReservaExistente[]> {
       const data = doc.data();
       const slots = data.horariosSelecionados as Record<string, string[]>;
       const status = data.status as 'pendente' | 'aprovado';
-      for (const date in slots) {
-          slotsReservados.push({ date, times: slots[date], status });
+      for (const data in slots) {
+          slotsReservados.push({ data, horarios: slots[data], status });
       }
   });
   return slotsReservados;
 }
 
 async function getBloqueiosManuais(): Promise<BloqueioManual[]> {
-    const bloqueiosRef = collection(clientDb, "blockedSlots");
+    const bloqueiosRef = collection(clientDb, "horariosBloqueados");
     const querySnapshot = await getDocs(bloqueiosRef);
     return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as BloqueioManual);
 }
@@ -528,3 +528,5 @@ Materiais: ${formatarMateriais(reserva.materiaisNecessarios)}`;
     </div>
   );
 }
+
+    

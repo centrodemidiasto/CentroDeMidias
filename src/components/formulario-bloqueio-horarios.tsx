@@ -7,10 +7,8 @@ import {
   format,
   startOfWeek,
   eachDayOfInterval,
-  isWeekend,
   isBefore,
   startOfToday,
-  endOfWeek
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -28,15 +26,15 @@ type HorariosSelecionados = {
 };
 
 export type ReservaExistente = {
-    date: string;
-    times: string[];
+    data: string;
+    horarios: string[];
     status: 'pendente' | 'aprovado';
 }
 
 export type BloqueioManual = {
     id: string; 
-    date: string;
-    times: string[];
+    data: string;
+    horarios: string[];
 }
 
 interface FormularioBloqueioHorariosProps {
@@ -59,7 +57,7 @@ export default function FormularioBloqueioHorarios({ reservasIniciais, bloqueios
   const { toast } = useToast();
   
   const buscarBloqueiosManuais = async () => {
-    const bloqueiosRef = collection(clientDb, "blockedSlots");
+    const bloqueiosRef = collection(clientDb, "horariosBloqueados");
     const querySnapshot = await getDocs(bloqueiosRef);
     const novosBloqueios = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as BloqueioManual);
     setBloqueiosManuais(novosBloqueios);
@@ -104,14 +102,14 @@ export default function FormularioBloqueioHorarios({ reservasIniciais, bloqueios
     setEnviando(true);
     try {
       const batch = writeBatch(clientDb);
-      const bloqueiosRef = collection(clientDb, 'blockedSlots');
+      const bloqueiosRef = collection(clientDb, 'horariosBloqueados');
       
       const mudancasPorData: Record<string, { paraBloquear: string[], paraDesbloquear: string[] }> = {};
 
       for (const data in horariosSelecionados) {
         mudancasPorData[data] = { paraBloquear: [], paraDesbloquear: [] };
         for (const horario of horariosSelecionados[data]) {
-          const estaBloqueadoAtualmente = bloqueiosManuais.some(b => b.date === data && b.times.includes(horario));
+          const estaBloqueadoAtualmente = bloqueiosManuais.some(b => b.data === data && b.horarios.includes(horario));
           if (estaBloqueadoAtualmente) {
             mudancasPorData[data].paraDesbloquear.push(horario);
           } else {
@@ -122,8 +120,8 @@ export default function FormularioBloqueioHorarios({ reservasIniciais, bloqueios
 
       for (const data in mudancasPorData) {
         const { paraBloquear, paraDesbloquear } = mudancasPorData[data];
-        const docExistente = bloqueiosManuais.find(d => d.date === data);
-        const horariosExistentes = docExistente?.times || [];
+        const docExistente = bloqueiosManuais.find(d => d.data === data);
+        const horariosExistentes = docExistente?.horarios || [];
         
         let horariosFinais = [...horariosExistentes];
         
@@ -133,12 +131,12 @@ export default function FormularioBloqueioHorarios({ reservasIniciais, bloqueios
 
         if (docExistente) {
           if (horariosFinais.length > 0) {
-            batch.update(doc(bloqueiosRef, docExistente.id), { times: horariosFinais });
+            batch.update(doc(bloqueiosRef, docExistente.id), { horarios: horariosFinais });
           } else {
             batch.delete(doc(bloqueiosRef, docExistente.id));
           }
         } else if (horariosFinais.length > 0) {
-          batch.set(doc(collection(clientDb, "blockedSlots")), { date: data, times: horariosFinais });
+          batch.set(doc(collection(clientDb, "horariosBloqueados")), { data: data, horarios: horariosFinais });
         }
       }
 
@@ -196,8 +194,8 @@ export default function FormularioBloqueioHorarios({ reservasIniciais, bloqueios
                       {SLOTS_DE_TEMPO.map(horario => {
                         const chaveData = format(dia, "yyyy-MM-dd");
                         const estaSelecionado = horariosSelecionados[chaveData]?.includes(horario);
-                        const slotReservado = reservasExistentes.find(b => b.date === chaveDataParaReserva && b.times.includes(horario));
-                        const bloqueadoManualmente = bloqueiosManuais.find(b => b.date === chaveDataParaReserva && b.times.includes(horario));
+                        const slotReservado = reservasIniciais.find(r => r.data === chaveDataParaReserva && r.horarios.includes(horario));
+                        const bloqueadoManualmente = bloqueiosManuais.find(b => b.data === chaveDataParaReserva && b.horarios.includes(horario));
 
                         let classeBotao = "";
                         let estaDesabilitado = diaPassado;
@@ -300,3 +298,5 @@ export default function FormularioBloqueioHorarios({ reservasIniciais, bloqueios
     </>
   );
 }
+
+    
