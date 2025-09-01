@@ -11,6 +11,8 @@ import {
   startOfToday,
   addWeeks,
   isAfter,
+  isMonday,
+  nextMonday,
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -129,28 +131,28 @@ export default function FormularioAgendamento() {
   }, []);
 
   const diasDaSemana = useMemo(() => {
-    const inicioDaSemana = startOfWeek(dataAtual, { locale: ptBR });
+    const inicioDaSemana = startOfWeek(dataAtual, { weekStartsOn: 1 });
     return eachDayOfInterval({ start: inicioDaSemana, end: addDays(inicioDaSemana, 4) });
   }, [dataAtual]);
   
   const desabilitarBtnSemanaAnterior = useMemo(() => {
     if (!clienteRenderizou) return true;
     const primeiraDataVisivel = diasDaSemana[0];
-    const primeiroDiaPermitido = startOfWeek(primeiraDataAgendavel, { locale: ptBR });
+    const primeiroDiaPermitido = startOfWeek(primeiraDataAgendavel, { weekStartsOn: 1 });
     return isBefore(primeiraDataVisivel, primeiroDiaPermitido);
   }, [diasDaSemana, primeiraDataAgendavel, clienteRenderizou]);
 
 
   const desabilitarBtnProximaSemana = useMemo(() => {
     const primeiraDataVisivel = diasDaSemana[0];
-    const ultimoDiaMostravel = startOfWeek(ultimaDataAgendavel, { locale: ptBR });
+    const ultimoDiaMostravel = startOfWeek(ultimaDataAgendavel, { weekStartsOn: 1 });
     return !isBefore(primeiraDataVisivel, ultimoDiaMostravel);
   }, [diasDaSemana, ultimaDataAgendavel]);
 
   
   const calendarioForaDoIntervalo = useMemo(() => {
      const primeiraDataVisivel = diasDaSemana[0];
-     const ultimoDiaMostravel = startOfWeek(ultimaDataAgendavel, { locale: ptBR });
+     const ultimoDiaMostravel = addWeeks(startOfWeek(ultimaDataAgendavel, {weekStartsOn: 1}), 1);
      return isAfter(primeiraDataVisivel, ultimoDiaMostravel);
   }, [diasDaSemana, ultimaDataAgendavel]);
 
