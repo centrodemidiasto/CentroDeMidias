@@ -22,16 +22,16 @@ export default function CurrentTime() {
   }, []);
 
   if (!time) {
-    return <div className="h-8"></div>; // Placeholder for initial render
+    return <div className="h-10 mt-4"></div>; // Placeholder for initial render
   }
 
   const formattedDate = format(time, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR });
   const formattedTime = format(time, "HH:mm:ss");
 
   return (
-    <div className="fixed bottom-4 right-8 bg-gray-900/80 backdrop-blur-sm text-white py-2 px-4 rounded-lg shadow-lg">
-      <p className="text-xl capitalize">{formattedDate}</p>
-      <p className="text-3xl font-bold text-center tracking-wider">{formattedTime}</p>
+    <div className="mt-4 text-center">
+      <p className="text-xl capitalize text-gray-300">{formattedDate}</p>
+      <p className="text-3xl font-bold tracking-wider text-gray-400">{formattedTime}</p>
     </div>
   );
 }

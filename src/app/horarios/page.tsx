@@ -82,6 +82,7 @@ export default async function PaginaHorarios() {
         <h1 className="text-6xl font-bold tracking-tight text-blue-300">
           Próximas Gravações
         </h1>
+        <CurrentTime />
       </header>
 
       <main>
@@ -127,7 +128,7 @@ export default async function PaginaHorarios() {
         )}
       </main>
        <footer className="text-center text-gray-500 mt-16 text-lg">
-            <CurrentTime />
+            <p>Horários sujeitos a alteração sem aviso prévio.</p>
         </footer>
     </div>
   );
