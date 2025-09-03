@@ -33,6 +33,7 @@ const MODALIDADES_RESERVA = [
     { id: 'audio_video', label: 'Gravação de áudio e vídeo' },
     { id: 'audio_only', label: 'Gravação de áudio' },
     { id: 'live_stream', label: 'Transmissão ao vivo (Live)' },
+    { id: 'podcast', label: 'Podcast' },
 ];
 
 function formatarTelefone(value: string) {

@@ -37,6 +37,7 @@ const MODALIDADES_RESERVA = [
     { id: 'admin_audio_video', label: 'Gravação de áudio e vídeo' },
     { id: 'admin_audio_only', label: 'Gravação de áudio' },
     { id: 'admin_live_stream', label: 'Transmissão ao vivo (Live)' },
+    { id: 'admin_podcast', label: 'Podcast' },
 ];
 
 
