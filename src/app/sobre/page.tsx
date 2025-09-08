@@ -23,19 +23,19 @@ export default function SobrePage() {
               </CardHeader>
               <CardContent className="p-0">
                 <p className="text-muted-foreground font-body text-justify">
-                  Os Núcleos de Produção de Recursos Educacionais Digitais da Gerência de Mídias Educacionais e Acompanhamento aos Centros de Mídias – GMEACM, tem estrutura para gravação e transmissão de vídeo-aulas além de contribuir com a formação de docentes e suas interfaces para as inovações curriculares.
+                Os Núcleos de Produção de Recursos Educacionais Digitais da Gerência de Mídias Educacionais e Acompanhamento aos Centros de Mídias – GMEACM, tem estrutura para gravação e transmissão de vídeo-aulas além de contribuir com a formação de docentes e suas interfaces para as inovações curriculares.
                 </p>
                 <p className="mt-4 text-muted-foreground font-body text-justify">
-                  O Centro de Mídias Educacionais do Tocantins destina-se ao corpo  docente, discente e  técnico-administrativo da Seduc. O seu uso deve ser normatizado para garantir o fluxo de produção bem como a qualidade da produção audiovisual, e deve ser utilizado preferencialmente para atender às dimensões de ensino, pesquisa e extensão da Seduc.
+                O Centro de Mídias Educacionais do Tocantins é destinado ao corpo docente, discente e técnico-administrativo da Seduc. Seu uso será regulamentado a fim de assegurar a organização dos processos e a qualidade das produções audiovisuais, sendo prioritariamente voltado às ações de ensino, pesquisa e extensão desenvolvidas pela Secretaria.
                 </p>
               </CardContent>
             </div>
             <Image
-              src="https://picsum.photos/600/400?grayscale"
+              src="/img/EstudioUm.jpg"
               width={600}
               height={400}
-              alt="Prédio histórico do Centro de Mídias"
-              data-ai-hint="building history"
+              alt="Estúdio de gravação com fundo de madeira e equipamentos"
+              data-ai-hint="recording studio"
               className="w-full h-full object-cover rounded-r-lg"
             />
           </div>
@@ -44,11 +44,11 @@ export default function SobrePage() {
         <Card>
             <div className="grid md:grid-cols-2 gap-6 items-center">
                 <Image
-                    src="https://picsum.photos/601/400"
+                    src="/img/EstudioChroma.jpg"
                     width={600}
                     height={400}
-                    alt="Pessoas trabalhando em estúdio"
-                    data-ai-hint="people working studio"
+                    alt="Estúdio com fundo verde de chroma key"
+                    data-ai-hint="chroma key studio"
                     className="w-full h-full object-cover rounded-l-lg"
                 />
                 <div className="p-6">
