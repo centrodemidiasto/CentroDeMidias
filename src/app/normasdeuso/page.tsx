@@ -4,13 +4,15 @@ import { BookText, ListOrdered, MicVocal, Camera, Sparkles, AlertTriangle, Ban }
 import Link from "next/link";
 
 export default function NormasDeUsoPage() {
+  const linkClassName = "text-primary hover:underline";
+  
   const normasAgendamento = [
-    "O agendamento deverá ocorrer com pelo menos sete dias de antecedência e estará sujeito a disponibilidade de data e horário e será ser feito por meio do link centrodemidiasto.vercel.app;",
-    "A desistência na utilização do Estúdio deve ser comunicada com, pelo menos, três dias de antecedência. Deste modo, usuários inscritos em eventual lista de espera poderão ser avisados, a tempo de fazerem uso do espaço;",
-    "O material da apresentação deverá ser enviado com 72 horas de antecedência a gravação e/ou transmissão e deve seguir as orientações constantes no Anexo I;",
-    "Os slides devem contemplar o espaço destinado ao tradutor de libras quando necessário, como no modelo do Anexo II;",
-    "Os slides ou apresentação devem estar revisados e prontos para apresentação para evitar atrasos nos horários agendados previamente;",
-    "Para o melhor aproveitamento do tempo no Estúdio, é exigido aos usuários o planejamento prévio de suas atividades. Não será iniciado nenhum trabalho em que o usuário não tenha uma pauta ou um roteiro pronto. É imprescindível que o diretor de estúdio da GMEACM, possua uma cópia que deve ser providenciada pelo usuário e entregue com antecedência mínima de cinco dias;",
+    <>O agendamento deverá ocorrer com pelo menos sete dias de antecedência e estará sujeito a disponibilidade de data e horário e será ser feito por meio do link centrodemidiasto.vercel.app;</>,
+    <>A desistência na utilização do Estúdio deve ser comunicada com, pelo menos, três dias de antecedência. Deste modo, usuários inscritos em eventual lista de espera poderão ser avisados, a tempo de fazerem uso do espaço;</>,
+    <>O material da apresentação deverá ser enviado com 72 horas de antecedência a gravação e/ou transmissão e deve seguir as orientações constantes no <a href="/docs/Anexo I - Produção de Slides CME.pdf" className={linkClassName} download>Anexo I</a>;</>,
+    <>Os slides devem contemplar o espaço destinado ao tradutor de libras quando necessário, como no modelo do <a href="/docs/Anexo II - Termo de Consentimento CME.pdf" className={linkClassName} download>Anexo II</a>;</>,
+    <>Os slides ou apresentação devem estar revisados e prontos para apresentação para evitar atrasos nos horários agendados previamente;</>,
+    <>Para o melhor aproveitamento do tempo no Estúdio, é exigido aos usuários o planejamento prévio de suas atividades. Não será iniciado nenhum trabalho em que o usuário não tenha uma pauta ou um roteiro pronto. É imprescindível que o diretor de estúdio da GMEACM, possua uma cópia que deve ser providenciada pelo usuário e entregue com antecedência mínima de cinco dias;</>,
   ];
 
   const normasNoEstudio = [
@@ -165,17 +167,17 @@ export default function NormasDeUsoPage() {
             </CardHeader>
             <CardContent>
                 <ol className="list-decimal space-y-3 pl-5 text-muted-foreground font-body text-justify">
-                     <li>Nas gravações os participantes deverão preencher o termo de autorização do uso de imagem baseado na LGPD conforme modelo no Anexo II;</li>
+                     <li>Nas gravações os participantes deverão preencher o termo de autorização do uso de imagem baseado na LGPD conforme modelo no <a href="/docs/Anexo II - Termo de Consentimento CME.pdf" className={linkClassName} download>Anexo II</a>;</li>
                      <li>
                         Danos e extravios dos equipamentos em posse dos usuários do Estúdio estão sujeitos à cobrança equivalente ao prejuízo causado. 
-                        <Link 
+                        <a 
                             href="https://www2.camara.leg.br/legin/fed/declei/1940-1949/decreto-lei-2848-7-dezembro-1940-412868-normaatualizada-pe.html" 
                             target="_blank" 
                             rel="noopener noreferrer" 
                             className="text-primary hover:underline ml-1"
                         >
                            (Art. 163, da Lei nº 2.848, de 7 de dezembro de 1940).
-                        </Link>
+                        </a>
                     </li>
                 </ol>
             </CardContent>
