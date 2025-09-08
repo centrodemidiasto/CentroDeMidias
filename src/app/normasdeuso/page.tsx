@@ -1,6 +1,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BookText, ListOrdered, MicVocal, Camera, Sparkles, AlertTriangle } from "lucide-react";
+import Link from "next/link";
 
 export default function NormasDeUsoPage() {
   const normasAgendamento = [
@@ -42,11 +43,6 @@ export default function NormasDeUsoPage() {
     "Para garantir o pleno controle técnico e operacional durante as transmissões ao vivo via Google Meet, é indispensável que a criação das salas de reunião seja realizada exclusivamente pelo CME (Centro de Mídias Educacionais). Salas criadas fora do ambiente do CME não poderão ser controladas por nossos operadores, comprometendo diretamente o desempenho da live e inviabilizando ações essenciais como: Controle de áudio e vídeo dos participantes; Gerenciamento de acessos e permissões; Estabilização da transmissão; Apoio técnico em tempo real.",
     "Transmissões realizadas sem o devido controle podem sofrer falhas e interrupções, afetando a qualidade do conteúdo e o engajamento dos participantes. Contamos com a colaboração de todos para que as salas sejam sempre criadas dentro dos padrões operacionais definidos, assegurando a excelência nas transmissões;",
     "Após a finalização da gravação a equipe de edição terá cinco dias para edição e disponibilização do conteúdo nas plataformas;",
-  ];
-
-  const normasLegais = [
-    "Nas gravações os participantes deverão preencher o termo de autorização do uso de imagem baseado na LGPD conforme modelo no Anexo II;",
-    "Danos e extravios dos equipamentos em posse dos usuários do Estúdio estão sujeitos à cobrança equivalente ao prejuízo causado. (Art. 163, da Lei nº 2.848, de 7 de dezembro de 1940).",
   ];
 
 
@@ -147,7 +143,18 @@ export default function NormasDeUsoPage() {
             </CardHeader>
             <CardContent>
                 <ol className="list-decimal space-y-3 pl-5 text-muted-foreground font-body text-justify">
-                     {normasLegais.map((norma, index) => <li key={`legal-${index}`}>{norma}</li>)}
+                     <li>Nas gravações os participantes deverão preencher o termo de autorização do uso de imagem baseado na LGPD conforme modelo no Anexo II;</li>
+                     <li>
+                        Danos e extravios dos equipamentos em posse dos usuários do Estúdio estão sujeitos à cobrança equivalente ao prejuízo causado. 
+                        <Link 
+                            href="https://www2.camara.leg.br/legin/fed/declei/1940-1949/decreto-lei-2848-7-dezembro-1940-412868-normaatualizada-pe.html" 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="text-primary hover:underline ml-1"
+                        >
+                           (Art. 163, da Lei nº 2.848, de 7 de dezembro de 1940).
+                        </Link>
+                    </li>
                 </ol>
             </CardContent>
         </Card>
