@@ -56,11 +56,11 @@ export default function Home() {
               <Card className="overflow-hidden">
                 <CardContent className="p-0">
                   <Image
-                    src="https://picsum.photos/400/300"
+                    src="/img/EstudioChroma.jpg"
                     width={400}
                     height={300}
-                    alt="Estúdio de Gravação"
-                    data-ai-hint="recording studio"
+                    alt="Estúdio de Gravação com fundo verde (chromakey)"
+                    data-ai-hint="chroma key studio"
                     className="w-full h-auto object-cover"
                   />
                   <div className="p-4">
