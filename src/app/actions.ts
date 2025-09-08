@@ -20,6 +20,9 @@ const DetalhesReservaSchema = z.object({
     numeroParticipantes: z.coerce.number().min(1, { message: "Informe o número de participantes." }),
     numeroMesas: z.coerce.number().min(0, "Mínimo 0.").max(3, "Máximo 3 mesas."),
     numeroCadeiras: z.coerce.number().min(0, "Mínimo 0.").max(10, "Máximo 10 cadeiras."),
+    termosDeUso: z.literal(true, {
+        errorMap: () => ({ message: "Você deve aceitar as normas de uso para continuar." }),
+    })
 }).superRefine((data, ctx) => {
     if (data.tipoOrgao === 'interno' && (!data.departamento || data.departamento.trim().length === 0)) {
         ctx.addIssue({
@@ -67,17 +70,21 @@ export async function handleSolicitacaoReserva(
     estadoAnterior: EstadoFormulario,
     formData: FormData
 ): Promise<EstadoFormulario> {
+    
+    const rawData = Object.fromEntries(formData.entries());
+    const parsedData = {
+      ...rawData,
+      termosDeUso: rawData.termosDeUso === 'on',
+    };
 
-    const dadosParseados = DetalhesReservaSchema.safeParse(
-      Object.fromEntries(formData.entries())
-    );
+    const dadosParseados = DetalhesReservaSchema.safeParse(parsedData);
 
     if (!dadosParseados.success) {
         const mensagensErro = dadosParseados.error.errors.map(e => `- ${e.message}`).join("\n");
         return { sucesso: false, mensagem: `Por favor, corrija os seguintes erros:\n${mensagensErro}` };
     }
 
-    const dados = dadosParseados.data;
+    const { termosDeUso, ...dados } = dadosParseados.data;
     
     if (!horariosSelecionados || Object.keys(horariosSelecionados).length === 0) {
         return { sucesso: false, mensagem: "Nenhum horário selecionado." };

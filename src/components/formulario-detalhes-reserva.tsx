@@ -13,6 +13,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { handleSolicitacaoReserva } from '@/app/actions';
 import { HorariosSelecionados } from './formulario-agendamento';
+import { Checkbox } from './ui/checkbox';
+import Link from 'next/link';
 
 const DetalhesReservaSchema = z.object({
     nomeCompleto: z.string(),
@@ -27,6 +29,7 @@ const DetalhesReservaSchema = z.object({
     numeroParticipantes: z.coerce.number(),
     numeroMesas: z.coerce.number(),
     numeroCadeiras: z.coerce.number(),
+    termosDeUso: z.boolean(),
 });
 
 const MODALIDADES_RESERVA = [
@@ -68,6 +71,7 @@ export default function FormularioDetalhesReserva({ horariosSelecionados, onSuce
             numeroParticipantes: 1,
             numeroMesas: 0,
             numeroCadeiras: 0,
+            termosDeUso: false,
         },
     });
 
@@ -76,7 +80,11 @@ export default function FormularioDetalhesReserva({ horariosSelecionados, onSuce
         const formData = new FormData();
         Object.entries(data).forEach(([key, value]) => {
             if (value !== undefined && value !== null) {
-                formData.append(key, String(value));
+                 if (typeof value === 'boolean') {
+                    formData.append(key, value ? 'on' : 'off');
+                } else {
+                    formData.append(key, String(value));
+                }
             }
         });
 
@@ -316,6 +324,27 @@ export default function FormularioDetalhesReserva({ horariosSelecionados, onSuce
                         )}
                     />
                 </div>
+
+                <FormField
+                    control={form.control}
+                    name="termosDeUso"
+                    render={({ field }) => (
+                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 shadow">
+                            <FormControl>
+                                <Checkbox
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                                <FormLabel>
+                                    Eu li e concordo com as <Link href="/normasdeuso" target="_blank" className="text-primary hover:underline">normas de uso</Link> do estúdio.
+                                </FormLabel>
+                                <FormMessage />
+                            </div>
+                        </FormItem>
+                    )}
+                />
                 
                 <div className="pt-4">
                      <Button type="submit" disabled={enviando} className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
