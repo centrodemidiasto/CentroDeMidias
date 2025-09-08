@@ -1,6 +1,6 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookText, ListOrdered, MicVocal, Camera, Sparkles, AlertTriangle } from "lucide-react";
+import { BookText, ListOrdered, MicVocal, Camera, Sparkles, AlertTriangle, Ban } from "lucide-react";
 import Link from "next/link";
 
 export default function NormasDeUsoPage() {
@@ -43,6 +43,14 @@ export default function NormasDeUsoPage() {
     "Para garantir o pleno controle técnico e operacional durante as transmissões ao vivo via Google Meet, é indispensável que a criação das salas de reunião seja realizada exclusivamente pelo CME (Centro de Mídias Educacionais). Salas criadas fora do ambiente do CME não poderão ser controladas por nossos operadores, comprometendo diretamente o desempenho da live e inviabilizando ações essenciais como: Controle de áudio e vídeo dos participantes; Gerenciamento de acessos e permissões; Estabilização da transmissão; Apoio técnico em tempo real.",
     "Transmissões realizadas sem o devido controle podem sofrer falhas e interrupções, afetando a qualidade do conteúdo e o engajamento dos participantes. Contamos com a colaboração de todos para que as salas sejam sempre criadas dentro dos padrões operacionais definidos, assegurando a excelência nas transmissões;",
     "Após a finalização da gravação a equipe de edição terá cinco dias para edição e disponibilização do conteúdo nas plataformas;",
+  ];
+
+  const restricoes = [
+    "Não é permitido fumar, comer ou beber no interior do estúdio.",
+    "Não recebemos apresentações na hora e nem em pen drive.",
+    "Não é permitido instalar, copiar ou apagar fontes, programas e arquivos dos computadores do Estúdio.",
+    "Nenhum trabalho poderá ser executado sem a presença do técnico da GMEACM.",
+    "Fica proibido tirar fotos com flash durante as gravações."
   ];
 
 
@@ -130,6 +138,20 @@ export default function NormasDeUsoPage() {
             <CardContent>
                 <ol className="list-decimal space-y-3 pl-5 text-muted-foreground font-body text-justify">
                     {normasTecnicas.map((norma, index) => <li key={`tecnica-${index}`}>{norma}</li>)}
+                </ol>
+            </CardContent>
+        </Card>
+        
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-2xl font-headline">
+                    <Ban className="w-6 h-6 text-primary" />
+                    Restrições
+                </CardTitle>
+            </CardHeader>
+            <CardContent>
+                <ol className="list-decimal space-y-3 pl-5 text-muted-foreground font-body text-justify">
+                    {restricoes.map((norma, index) => <li key={`restricao-${index}`}>{norma}</li>)}
                 </ol>
             </CardContent>
         </Card>
