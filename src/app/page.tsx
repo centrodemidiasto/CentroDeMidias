@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { MoveRight } from "lucide-react";
@@ -8,35 +9,36 @@ export default function Home() {
   return (
     <div className="flex flex-col min-h-screen">
       <main className="flex-1">
-        <section className="w-full py-12 md:py-24 lg:py-32 xl:py-48">
-          <div className="container px-4 md:px-6">
-            <div className="grid gap-6 lg:grid-cols-[1fr_400px] lg:gap-12 xl:grid-cols-[1fr_600px]">
-              <div className="flex flex-col justify-center space-y-4">
-                <div className="space-y-2">
-                  <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none font-headline">
-                    Centro de Mídias Educacionais do Tocantins
-                  </h1>
-                  <p className="max-w-[600px] text-muted-foreground md:text-xl font-body">
-                    Agende seu horário para utilizar nossos estúdios e recursos audiovisuais de ponta. Transforme suas ideias em realidade.
-                  </p>
-                </div>
-                <div className="flex flex-col gap-2 min-[400px]:flex-row">
-                  <Button asChild size="lg" className="bg-accent hover:bg-accent/90 text-accent-foreground">
-                    <Link href="/agendamento">
-                      Agendar Agora
-                      <MoveRight className="ml-2 h-5 w-5" />
-                    </Link>
-                  </Button>
-                </div>
+        <section className="relative w-full h-[60vh] md:h-[80vh] flex items-center justify-center text-white overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-full z-[-2]">
+            <iframe
+              className="absolute top-1/2 left-1/2 w-full h-full -translate-x-1/2 -translate-y-1/2"
+              style={{ minWidth: '177.77vh', minHeight: '100vw' }} // Maintain 16:9 aspect ratio
+              src="https://www.youtube.com/embed/IJIuLF5ThD4?autoplay=1&mute=1&loop=1&playlist=IJIuLF5ThD4&controls=0&showinfo=0&autohide=1&modestbranding=1"
+              frameBorder="0"
+              allow="autoplay; encrypted-media"
+              allowFullScreen
+            ></iframe>
+          </div>
+          <div className="absolute top-0 left-0 w-full h-full bg-black/60 z-[-1]"></div>
+          <div className="container px-4 md:px-6 z-10">
+            <div className="flex flex-col justify-center items-center space-y-4 text-center">
+              <div className="space-y-2">
+                <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none font-headline">
+                  Centro de Mídias Educacionais do Tocantins
+                </h1>
+                <p className="max-w-[600px] text-gray-200 md:text-xl font-body">
+                  Agende seu horário para utilizar nossos estúdios e recursos audiovisuais de ponta. Transforme suas ideias em realidade.
+                </p>
               </div>
-              <Image
-                src="/img/centrologo.png"
-                width={600}
-                height={400}
-                alt="Hero"
-                data-ai-hint="media studio"
-                className="mx-auto aspect-video overflow-hidden rounded-xl object-contain sm:w-full lg:order-last"
-              />
+              <div className="flex flex-col gap-2 min-[400px]:flex-row">
+                <Button asChild size="lg" className="bg-accent hover:bg-accent/90 text-accent-foreground">
+                  <Link href="/agendamento">
+                    Agendar Agora
+                    <MoveRight className="ml-2 h-5 w-5" />
+                  </Link>
+                </Button>
+              </div>
             </div>
           </div>
         </section>
