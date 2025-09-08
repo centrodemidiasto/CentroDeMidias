@@ -9,7 +9,7 @@ export default function Home() {
   return (
     <div className="flex flex-col min-h-screen">
       <main className="flex-1">
-        <section className="relative w-full h-[60vh] md:h-[80vh] flex items-center justify-center text-white overflow-hidden">
+        <section className="relative w-full h-[60vh] md:h-[80vh] flex items-center justify-start text-white overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-full z-[-2]">
             <iframe
               className="absolute top-1/2 left-1/2 w-full h-full -translate-x-1/2 -translate-y-1/2"
@@ -22,7 +22,7 @@ export default function Home() {
           </div>
           <div className="absolute top-0 left-0 w-full h-full bg-black/60 z-[-1]"></div>
           <div className="container px-4 md:px-6 z-10">
-            <div className="flex flex-col justify-center items-center space-y-4 text-center">
+            <div className="flex flex-col justify-center items-center space-y-4 text-center pt-16 md:pt-24">
               <div className="space-y-2">
                 <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none font-headline">
                   Centro de Mídias Educacionais do Tocantins
