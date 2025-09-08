@@ -72,7 +72,7 @@ export default function Home() {
               <Card className="overflow-hidden">
                 <CardContent className="p-0">
                   <Image
-                    src="https://picsum.photos/400/301"
+                    src="/img/CentralProd.jpg"
                     width={400}
                     height={300}
                     alt="Ilha de Edição"
