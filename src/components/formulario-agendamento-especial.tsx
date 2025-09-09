@@ -19,7 +19,12 @@ interface FormularioAgendamentoEspecialProps {
     onSucessoReserva: () => void;
 }
 
-const SLOTS_DE_TEMPO_ESPECIAL = Array.from({ length: 14 }, (_, i) => `${String(i + 8).padStart(2, "0")}:00`);
+const SLOTS_DE_TEMPO_ESPECIAL = Array.from({ length: (22 - 8) * 2 }, (_, i) => {
+    const hour = Math.floor(i / 2) + 8;
+    const minute = i % 2 === 0 ? '00' : '30';
+    return `${String(hour).padStart(2, '0')}:${minute}`;
+});
+
 
 const LegendaItem = ({ cor, texto }: { cor: string, texto: string }) => (
     <div className="flex items-center gap-2">
@@ -99,7 +104,7 @@ export default function FormularioAgendamentoEspecial({
                             <h3 className="text-lg font-medium text-center">
                                 Horários para {format(dataSelecionada, "dd/MM/yyyy")}
                             </h3>
-                            <div className="grid grid-cols-3 lg:grid-cols-4 gap-2">
+                            <div className="grid grid-cols-4 gap-2">
                                 {SLOTS_DE_TEMPO_ESPECIAL.map(horario => {
                                     const slotReservado = reservasExistentes.find(r => r.data === chaveData && r.horarios.includes(horario));
                                     const bloqueadoManualmente = bloqueiosManuais.find(b => b.data === chaveData && b.horarios.includes(horario));
