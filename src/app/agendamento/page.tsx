@@ -5,6 +5,56 @@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ListChecks, Clock, AlertTriangle } from "lucide-react";
 import FormularioAgendamento from "@/components/formulario-agendamento";
+import { Card, CardContent } from "@/components/ui/card";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import Image from "next/image";
+
+const estudio1Images = [
+    '/img/estudio1/00.jpeg',
+    '/img/estudio1/01.jpeg',
+    '/img/estudio1/02.jpeg',
+    '/img/estudio1/03.jpeg',
+];
+
+const estudio2Images = [
+    '/img/estudio2/00.jpeg',
+    '/img/estudio2/01.jpeg',
+    '/img/estudio2/02.jpeg',
+    '/img/estudio2/03.jpeg',
+];
+
+
+const StudioShowcase = ({ title, images }: { title: string; images: string[] }) => (
+    <Card className="overflow-hidden">
+      <CardContent className="p-4">
+        <h3 className="text-2xl font-bold font-headline mb-4 text-center">{title}</h3>
+        <Carousel className="w-full">
+          <CarouselContent>
+            {images.map((src, index) => (
+              <CarouselItem key={index}>
+                <div className="p-1">
+                  <Card>
+                    <CardContent className="flex aspect-video items-center justify-center p-0 overflow-hidden rounded-lg">
+                       <Image
+                          src={src}
+                          alt={`${title} - Imagem ${index + 1}`}
+                          width={600}
+                          height={400}
+                          className="w-full h-full object-cover"
+                       />
+                    </CardContent>
+                  </Card>
+                </div>
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+          <CarouselPrevious className="ml-12" />
+          <CarouselNext className="mr-12" />
+        </Carousel>
+      </CardContent>
+    </Card>
+);
+
 
 export default function PaginaAgendamento() {
 
@@ -44,6 +94,16 @@ export default function PaginaAgendamento() {
             </ul>
           </AlertDescription>
         </Alert>
+        
+        <div className="space-y-6">
+            <div className="text-center">
+                <h2 className="text-3xl font-bold tracking-tight sm:text-4xl font-headline">Conheça Nossos Estúdios</h2>
+            </div>
+             <div className="grid md:grid-cols-2 gap-8">
+                <StudioShowcase title="Estúdio 1" images={estudio1Images} />
+                <StudioShowcase title="Estúdio 2" images={estudio2Images} />
+            </div>
+        </div>
 
         <FormularioAgendamento />
         
