@@ -9,17 +9,17 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import Image from "next/image";
 
 const estudio1Images: string[] = [
-    "/img/EstudioUm.jpg",
-    "/img/EstudioUm01.jpeg",
-    "/img/EstudioUm02.jpeg",
-    "/img/EstudioUm03.jpeg",
+    "/img/E1-1.jpg",
+    "/img/E1-2.jpg",
+    "/img.E1-3.jpg",
+    "/img/E1-4.jpg",
 ];
 
 const estudio2Images: string[] = [
-    "/img/EstudioChroma.jpg",
-    "/img/EstudioDois01.jpeg",
-    "/img/EstudioDois02.jpeg",
-    "/img/EstudioDois03.jpeg",
+    "/img/E2-1.jpg",
+    "/img/E2-2.jpg",
+    "/img/E2-3.jpg",
+    "/img/E2-4.jpg",
 ];
 
 const StudioShowcase = ({ title, images }: { title: string; images: string[] }) => (
@@ -60,7 +60,7 @@ export default function PaginaAgendamento() {
     <div className="container mx-auto max-w-7xl px-4 py-12 md:px-6 md:py-16">
       <div className="space-y-8">
         <div className="text-center">
-          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl font-headline">
+          <h1 className="text-3xl font.bold tracking-tight sm:text-4xl md:text-5xl font-headline">
             Agendamento de Horários
           </h1>
           <div className="mt-4 flex items-center justify-center gap-2 text-muted-foreground font-body">
