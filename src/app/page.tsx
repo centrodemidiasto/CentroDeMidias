@@ -61,7 +61,7 @@ export default function Home() {
                     height={300}
                     alt="Estúdio de Gravação com fundo verde (chromakey)"
                     data-ai-hint="chroma key studio"
-                    className="w-full h-auto object-cover"
+                    className="w-full h-56 object-cover"
                   />
                   <div className="p-4">
                     <h3 className="text-lg font-bold font-headline">Estúdio Principal</h3>
@@ -77,7 +77,7 @@ export default function Home() {
                     height={300}
                     alt="Ilha de Edição"
                     data-ai-hint="editing suite"
-                    className="w-full h-auto object-cover"
+                    className="w-full h-56 object-cover"
                   />
                   <div className="p-4">
                     <h3 className="text-lg font-bold font-headline">Ilha de Edição</h3>
@@ -93,7 +93,7 @@ export default function Home() {
                     height={300}
                     alt="Sala de Colaboração"
                     data-ai-hint="collaboration room"
-                    className="w-full h-auto object-cover"
+                    className="w-full h-56 object-cover"
                   />
                   <div className="p-4">
                     <h3 className="text-lg font-bold font-headline">Sala de Colaboração</h3>
