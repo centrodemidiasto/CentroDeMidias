@@ -88,11 +88,11 @@ export default function Home() {
               <Card className="overflow-hidden">
                 <CardContent className="p-0">
                   <Image
-                    src="https://picsum.photos/400/302"
+                    src="/img/SalaColab.jpeg"
                     width={400}
                     height={300}
-                    alt="Sala de Reunião"
-                    data-ai-hint="meeting room"
+                    alt="Sala de Colaboração"
+                    data-ai-hint="collaboration room"
                     className="w-full h-auto object-cover"
                   />
                   <div className="p-4">
