@@ -2,11 +2,13 @@
 'use client'; 
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { ListChecks, Clock, AlertTriangle } from "lucide-react";
+import { ListChecks, Clock, AlertTriangle, ArrowRight } from "lucide-react";
 import FormularioAgendamento from "@/components/formulario-agendamento";
 import { Card, CardContent } from "@/components/ui/card";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import Image from "next/image";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 const estudio1Images: string[] = [
     "/img/EstudioUm.jpg",
@@ -24,10 +26,21 @@ const estudio2Images: string[] = [
     "/img/E2-4.jpg",
 ];
 
-const StudioShowcase = ({ title, images }: { title: string; images: string[] }) => (
-    <Card className="overflow-hidden">
-      <CardContent className="p-4">
-        <h3 className="text-2xl font-bold font-headline mb-4 text-center">{title}</h3>
+interface StudioShowcaseProps {
+  title: string;
+  subtitle: string;
+  description: string;
+  images: string[];
+  buttonLink: string;
+}
+
+const StudioShowcase = ({ title, subtitle, description, images, buttonLink }: StudioShowcaseProps) => (
+    <Card className="overflow-hidden flex flex-col">
+      <CardContent className="p-4 flex-grow">
+        <div className="text-center mb-4">
+            <h3 className="text-2xl font-bold font-headline">{title}</h3>
+            <p className="text-sm text-muted-foreground">{subtitle}</p>
+        </div>
         <Carousel className="w-full">
           <CarouselContent>
             {images.map((src, index) => (
@@ -51,7 +64,17 @@ const StudioShowcase = ({ title, images }: { title: string; images: string[] }) 
           <CarouselPrevious className="ml-12" />
           <CarouselNext className="mr-12" />
         </Carousel>
+        <div className="mt-4 text-sm text-muted-foreground text-justify">
+            <p>{description}</p>
+        </div>
       </CardContent>
+      <div className="p-4 pt-0">
+        <Button asChild className="w-full" variant="outline">
+            <Link href={buttonLink}>
+                Saiba mais sobre os estúdios <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
+        </Button>
+      </div>
     </Card>
 );
 
@@ -100,8 +123,20 @@ export default function PaginaAgendamento() {
                 <h2 className="text-3xl font-bold tracking-tight sm:text-4xl font-headline">Conheça Nossos Estúdios</h2>
             </div>
              <div className="grid md:grid-cols-2 gap-8">
-                <StudioShowcase title="Estúdio 1" images={estudio1Images} />
-                <StudioShowcase title="Estúdio 2" images={estudio2Images} />
+                <StudioShowcase 
+                    title="Estúdio 1"
+                    subtitle="Estúdio Convencional / Podcast"
+                    description="Este estúdio, com suas paredes revestidas de espuma acústica, é projetado para um controle de áudio superior, minimizando ecos e reverberações. O fundo é neutro e profissional, com a opção de usar o monitor de TV para exibir imagens, logos ou apresentações."
+                    images={estudio1Images} 
+                    buttonLink="/sobre"
+                />
+                <StudioShowcase 
+                    title="Estúdio 2" 
+                    subtitle="Estúdio Chromakey"
+                    description="O destaque deste estúdio é o fundo verde infinito (chromakey). Essa tecnologia permite que, na pós-produção, o fundo verde seja substituído digitalmente por qualquer imagem, vídeo ou cenário virtual."
+                    images={estudio2Images}
+                    buttonLink="/sobre"
+                />
             </div>
         </div>
 
