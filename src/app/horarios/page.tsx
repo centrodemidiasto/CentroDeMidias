@@ -10,7 +10,6 @@ import CurrentTime from "@/components/current-time";
 import Image from "next/image";
 import RefreshButton from "@/components/refresh-button";
 import { Badge } from "@/components/ui/badge";
-import { group } from "console";
 
 export const revalidate = 60; // Revalida a cada 60 segundos
 export const dynamic = 'force-dynamic';
@@ -100,18 +99,18 @@ export default async function PaginaHorarios() {
   const reservasAgrupadas = agruparReservasPorData(proximasReservasRaw);
 
   return (
-    <div className="bg-gray-900 text-white min-h-screen p-8 font-sans relative">
-      <header className="text-center mb-12 flex flex-col items-center">
-         <div className="mb-4">
+    <div className="bg-gray-900 text-white min-h-screen p-6 font-sans relative">
+      <header className="text-center mb-8 flex flex-col items-center">
+         <div className="mb-2">
             <Image
                 src="/img/centrologo.png"
-                width={300}
-                height={100}
+                width={250}
+                height={80}
                 alt="Logotipo do Centro de Mídias Educacionais"
                 className="object-contain"
             />
         </div>
-        <h1 className="text-6xl font-bold tracking-tight text-blue-300">
+        <h1 className="text-4xl font-bold tracking-tight text-blue-300">
           Próximas Gravações
         </h1>
         <CurrentTime />
@@ -121,42 +120,40 @@ export default async function PaginaHorarios() {
 
       <main>
         {reservasAgrupadas.length > 0 ? (
-          <div className="space-y-12">
+          <div className="space-y-8">
             {reservasAgrupadas.map(({ data, reservas }) => (
               <div key={data}>
-                <h2 className="text-4xl font-bold capitalize text-orange-400 mb-6 text-center border-b-2 border-orange-400/30 pb-3">
+                <h2 className="text-3xl font-bold capitalize text-orange-400 mb-4 text-center border-b-2 border-orange-400/30 pb-2">
                   {formatarDataReserva(data)}
                 </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {reservas.map((reserva) => {
                       const times = reserva.horariosSelecionados[reserva.dataReserva].join(' - ');
                       const organization = reserva.tipoOrgao === 'interno' ? reserva.departamento : reserva.organizacaoExterna;
       
                       return(
-                          <Card key={reserva.id} className="bg-gray-800 border-blue-500/50 shadow-lg rounded-xl overflow-hidden transform transition-all duration-300 hover:scale-[1.02] hover:shadow-blue-500/30">
-                              <CardHeader>
+                          <Card key={reserva.id} className="bg-gray-800 border-blue-500/50 shadow-lg rounded-lg overflow-hidden flex flex-col">
+                              <CardHeader className="p-4">
                                   <div className="flex justify-between items-start">
-                                    <CardTitle className="text-4xl font-bold text-blue-300 flex items-center gap-4">
-                                      <User className="w-10 h-10"/> {reserva.nomeCompleto}
+                                    <CardTitle className="text-2xl font-bold text-blue-300 flex items-center gap-3">
+                                      <User className="w-6 h-6"/> {reserva.nomeCompleto}
                                     </CardTitle>
-                                    <Badge variant="secondary" className="text-lg">
-                                       <Tv className="w-5 h-5 mr-2" /> {reserva.estudio || 'Estúdio'}
+                                    <Badge variant="secondary" className="text-sm whitespace-nowrap">
+                                       <Tv className="w-4 h-4 mr-1.5" /> {reserva.estudio || 'Estúdio'}
                                     </Badge>
                                   </div>
-                                  <CardDescription className="text-xl text-gray-400 mt-2 flex items-center gap-3">
-                                      <Building className="w-6 h-6" /> {organization}
+                                  <CardDescription className="text-base text-gray-400 mt-1 flex items-center gap-2">
+                                      <Building className="w-5 h-5" /> {organization}
                                   </CardDescription>
                               </CardHeader>
-                              <CardContent className="p-8 pt-4 grid grid-cols-1 md:grid-cols-[1fr_auto] gap-8 items-center">
-                                  <div>
-                                      <div className="flex items-center gap-3 text-2xl text-gray-300">
-                                        <Video className="w-8 h-8 text-orange-400"/>
-                                        <span>{reserva.modalidadesReserva}</span>
-                                      </div>
+                              <CardContent className="p-4 pt-0 flex-grow grid grid-cols-[1fr_auto] gap-4 items-center">
+                                  <div className="flex items-center gap-2 text-lg text-gray-300">
+                                    <Video className="w-6 h-6 text-orange-400"/>
+                                    <span className="text-base">{reserva.modalidadesReserva}</span>
                                   </div>
-                                  <div className="text-right flex flex-col justify-center items-end">
-                                      <div className="mt-2 text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-300 to-blue-500 flex items-center gap-3">
-                                        <Clock className="w-12 h-12"/>
+                                  <div className="text-right">
+                                      <div className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-300 to-blue-500 flex items-center gap-2">
+                                        <Clock className="w-8 h-8"/>
                                         <span>{times}</span>
                                       </div>
                                   </div>
@@ -169,12 +166,12 @@ export default async function PaginaHorarios() {
             ))}
           </div>
         ) : (
-          <div className="text-center py-20">
-            <p className="text-3xl text-gray-500">Nenhuma gravação agendada para os próximos dias.</p>
+          <div className="text-center py-16">
+            <p className="text-2xl text-gray-500">Nenhuma gravação agendada para os próximos dias.</p>
           </div>
         )}
       </main>
-       <footer className="text-center text-gray-500 mt-16 text-lg">
+       <footer className="text-center text-gray-500 mt-12 text-base">
             <p>Horários sujeitos a alteração sem aviso prévio.</p>
         </footer>
     </div>
