@@ -1,4 +1,5 @@
 
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { db as clientDb } from "@/lib/firebase";
 import { collection, getDocs, query, where, orderBy, Timestamp } from "firebase/firestore";
@@ -58,8 +59,8 @@ async function getProximasReservas(): Promise<Reserva[]> {
     if (a.dataReserva < b.dataReserva) return -1;
     if (a.dataReserva > b.dataReserva) return 1;
 
-    const estudioA = parseInt(a.estudio.replace('Estúdio ', ''));
-    const estudioB = parseInt(b.estudio.replace('Estúdio ', ''));
+    const estudioA = a.estudio ? parseInt(a.estudio.replace('Estúdio ', ''), 10) : 0;
+    const estudioB = b.estudio ? parseInt(b.estudio.replace('Estúdio ', ''), 10) : 0;
     if (estudioA < estudioB) return -1;
     if (estudioA > estudioB) return 1;
 
@@ -139,7 +140,7 @@ export default async function PaginaHorarios() {
                                       <User className="w-10 h-10"/> {reserva.nomeCompleto}
                                     </CardTitle>
                                     <Badge variant="secondary" className="text-lg">
-                                       <Tv className="w-5 h-5 mr-2" /> {reserva.estudio}
+                                       <Tv className="w-5 h-5 mr-2" /> {reserva.estudio || 'Estúdio'}
                                     </Badge>
                                   </div>
                                   <CardDescription className="text-xl text-gray-400 mt-2 flex items-center gap-3">
