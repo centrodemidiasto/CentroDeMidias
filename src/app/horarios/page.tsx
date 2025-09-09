@@ -7,6 +7,9 @@ import { ptBR } from 'date-fns/locale';
 import { Clock, User, Building, Video } from "lucide-react";
 import CurrentTime from "@/components/current-time";
 import Image from "next/image";
+import RefreshButton from "@/components/refresh-button";
+
+export const revalidate = 60; // Revalida a cada 60 segundos
 
 interface Reserva {
   id: string;
@@ -68,7 +71,7 @@ export default async function PaginaHorarios() {
   const proximasReservas = await getProximasReservas();
 
   return (
-    <div className="bg-gray-900 text-white min-h-screen p-8 font-sans">
+    <div className="bg-gray-900 text-white min-h-screen p-8 font-sans relative">
       <header className="text-center mb-12 flex flex-col items-center">
          <div className="mb-4">
             <Image
@@ -84,6 +87,8 @@ export default async function PaginaHorarios() {
         </h1>
         <CurrentTime />
       </header>
+
+      <RefreshButton />
 
       <main>
         {proximasReservas.length > 0 ? (
