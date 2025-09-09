@@ -98,21 +98,43 @@ export default function SobrePage() {
              <div className="grid md:grid-cols-2 gap-8">
                 <StudioShowcase 
                     title="Estúdio 1"
-                    subtitle="Estúdio Convencional / Podcast"
+                    subtitle="Ambiente Controlado"
                     description={
-                      <p>
-                        Este estúdio, com suas paredes revestidas de espuma acústica, é projetado para um controle de áudio superior, minimizando ecos e reverberações. O fundo é neutro e profissional, com a opção de usar o monitor de TV para exibir imagens, logos ou apresentações.
-                      </p>
+                      <div className="space-y-4">
+                        <p>
+                          Este estúdio é o ideal para a produção de conteúdo que exige clareza, foco e alta qualidade de áudio. O tratamento acústico nas paredes garante que a voz do educador seja captada de forma limpa e sem ruídos, facilitando a compreensão do aluno. O ambiente neutro e profissional mantém a atenção totalmente no conteúdo apresentado.
+                        </p>
+                        <div>
+                          <h4 className="font-bold text-card-foreground mb-2">Formatos Educacionais Ideais:</h4>
+                          <ul className="list-disc pl-5 space-y-2">
+                            <li><strong>Videoaulas e Aulas Expositivas:</strong> Perfeito para aulas focadas no professor e no conteúdo, onde o monitor ao fundo pode exibir slides, gráficos, e pontos-chave da matéria.</li>
+                            <li><strong>Podcasts Educacionais e Entrevistas:</strong> Essencial para a gravação de material em áudio ou vídeo com especialistas, garantindo um som profissional para os ouvintes.</li>
+                            <li><strong>Formação de Professores e Tutoriais:</strong> Ideal para criar materiais de capacitação e guias passo a passo para educadores da rede.</li>
+                            <li><strong>Comunicados e Mensagens Institucionais:</strong> Garante um cenário sóbrio e profissional para a comunicação oficial da Secretaria com a comunidade escolar.</li>
+                          </ul>
+                        </div>
+                      </div>
                     }
                     images={estudio1Images} 
                 />
                 <StudioShowcase 
                     title="Estúdio 2" 
-                    subtitle="Estúdio Chromakey"
+                    subtitle="Chromakey"
                     description={
-                      <p>
-                        O destaque deste estúdio é o fundo verde infinito (chromakey). Essa tecnologia permite que, na pós-produção, o fundo verde seja substituído digitalmente por qualquer imagem, vídeo ou cenário virtual.
-                      </p>
+                      <div className="space-y-4">
+                        <p>
+                          Este estúdio com fundo verde é uma poderosa ferramenta para a criatividade e o engajamento no processo de ensino-aprendizagem. A tecnologia chromakey permite substituir o fundo por qualquer imagem ou vídeo, transportando os alunos para cenários virtuais e ilustrando conceitos complexos de forma visual e dinâmica.
+                        </p>
+                        <div>
+                          <h4 className="font-bold text-card-foreground mb-2">Formatos Educacionais Ideais:</h4>
+                          <ul className="list-disc pl-5 space-y-2">
+                            <li><strong>Aulas Imersivas e Contextualizadas:</strong> Permite ao professor lecionar diretamente de locais históricos, biomas do Tocantins, dentro de uma célula humana ou em qualquer cenário que enriqueça o conteúdo.</li>
+                            <li><strong>Ilustração de Conceitos Abstratos:</strong> Facilita a visualização de fórmulas matemáticas, reações químicas, mapas geográficos e outros elementos gráficos que podem ser sobrepostos e com os quais o professor pode interagir.</li>
+                            <li><strong>Contação de Histórias e Aulas Lúdicas:</strong> Ideal para a educação infantil e fundamental, criando ambientes mágicos e cenários que capturam a imaginação e a atenção dos alunos.</li>
+                            <li><strong>Simulações e Laboratórios Virtuais:</strong> Ótimo para demonstrar experimentos científicos ou procedimentos que seriam difíceis ou inviáveis de realizar em uma sala de aula física.</li>
+                          </ul>
+                        </div>
+                      </div>
                     }
                     images={estudio2Images}
                 />
