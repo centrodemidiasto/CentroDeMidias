@@ -22,7 +22,8 @@ const DetalhesReservaSchema = z.object({
     numeroCadeiras: z.coerce.number().min(0, "Mínimo 0.").max(10, "Máximo 10 cadeiras."),
     termosDeUso: z.literal(true, {
         errorMap: () => ({ message: "Você deve aceitar as normas de uso para continuar." }),
-    })
+    }),
+    estudio: z.string() // Adicionado para identificar o estúdio
 }).superRefine((data, ctx) => {
     if (data.tipoOrgao === 'interno' && (!data.departamento || data.departamento.trim().length === 0)) {
         ctx.addIssue({
@@ -44,6 +45,7 @@ const ReservaAdminSchema = z.object({
     nomeCompleto: z.string().min(3, { message: "Nome do responsável é obrigatório." }),
     departamento: z.string().min(2, { message: "Setor/Departamento é obrigatório." }),
     modalidadesReserva: z.string({ required_error: "Selecione uma modalidade." }),
+    estudio: z.string() // Adicionado para identificar o estúdio
 });
 
 
@@ -163,7 +165,8 @@ export async function handleSolicitacaoReservaRecorrente(
     estadoAnterior: EstadoFormulario,
     formData: FormData
 ): Promise<EstadoFormulario> {
-    const dadosParseados = ReservaAdminSchema.safeParse(
+    const ReservaAdminRecorrenteSchema = ReservaAdminSchema.omit({ estudio: true });
+     const dadosParseados = ReservaAdminRecorrenteSchema.safeParse(
       Object.fromEntries(formData.entries())
     );
 
@@ -173,9 +176,10 @@ export async function handleSolicitacaoReservaRecorrente(
     }
     
     const dados = dadosParseados.data;
+    const estudio = formData.get('estudio') as string;
 
-    if (!datasSelecionadas || datasSelecionadas.length === 0 || !horariosSelecionados || horariosSelecionados.length === 0) {
-        return { sucesso: false, mensagem: "Nenhuma data ou horário selecionado." };
+    if (!datasSelecionadas || datasSelecionadas.length === 0 || !horariosSelecionados || horariosSelecionados.length === 0 || !estudio) {
+        return { sucesso: false, mensagem: "Nenhuma data, horário ou estúdio selecionado." };
     }
 
     try {
@@ -189,7 +193,8 @@ export async function handleSolicitacaoReservaRecorrente(
                 tipoOrgao: 'interno',
                 email: 'centrodemidias@seduc.to.gov.br',
                 horariosSelecionados: { [data]: horariosSelecionados },
-                dataReserva: data, 
+                dataReserva: data,
+                estudio: estudio, 
                 criadoEm: FieldValue.serverTimestamp(),
                 status: "aprovado"
             });

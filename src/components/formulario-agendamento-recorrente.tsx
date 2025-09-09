@@ -20,6 +20,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "./ui/input";
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 import { Loader2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 
 interface FormularioAgendamentoRecorrenteProps {
     reservasExistentes: ReservaExistente[];
@@ -31,6 +32,7 @@ const ReservaAdminSchema = z.object({
     nomeCompleto: z.string().min(3, { message: "Nome do responsável é obrigatório." }),
     departamento: z.string().min(2, { message: "Setor/Departamento é obrigatório." }),
     modalidadesReserva: z.string({ required_error: "Selecione uma modalidade." }),
+    estudio: z.string({ required_error: "Selecione um estúdio."})
 });
 
 const MODALIDADES_RESERVA = [
@@ -58,32 +60,35 @@ export default function FormularioAgendamentoRecorrente({
             nomeCompleto: '',
             departamento: 'GMEACM',
             modalidadesReserva: undefined,
+            estudio: undefined,
         },
     });
 
-    const isSlotDisabled = (date: Date, horario: string) => {
+    const isSlotDisabled = (date: Date, horario: string, estudio: string) => {
         const chaveData = format(date, "yyyy-MM-dd");
-        const slotReservado = reservasExistentes.find(r => r.data === chaveData && r.horarios.includes(horario));
-        const bloqueadoManualmente = bloqueiosManuais.find(b => b.data === chaveData && b.horarios.includes(horario));
+        const slotReservado = reservasExistentes.find(r => r.data === chaveData && r.horarios.includes(horario) && r.estudio === estudio);
+        const bloqueadoManualmente = bloqueiosManuais.find(b => b.data === chaveData && b.horarios.includes(horario) && b.estudio === estudio);
         return !!slotReservado || !!bloqueadoManualmente;
     }
     
+    const estudioSelecionado = form.watch('estudio');
+
     const disabledDays = useMemo(() => {
-        if (horariosSelecionados.length === 0) return [];
+        if (horariosSelecionados.length === 0 || !estudioSelecionado) return [{ before: new Date(0) }]; // Disable all if no time/studio
         
         let disabled: Date[] = [];
         // Simular um range grande de dias para checar, poderia otimizar
         for (let i = 0; i < 365; i++) {
             const date = new Date();
             date.setDate(date.getDate() + i);
-            const todosHorariosOcupados = horariosSelecionados.every(horario => isSlotDisabled(date, horario));
+            const todosHorariosOcupados = horariosSelecionados.every(horario => isSlotDisabled(date, horario, estudioSelecionado));
             if (todosHorariosOcupados) {
                 disabled.push(date);
             }
         }
         return disabled;
 
-    }, [horariosSelecionados, reservasExistentes, bloqueiosManuais]);
+    }, [horariosSelecionados, estudioSelecionado, reservasExistentes, bloqueiosManuais]);
 
 
     const handleSelecaoHorario = (horario: string) => {
@@ -140,27 +145,29 @@ export default function FormularioAgendamentoRecorrente({
         <form onSubmit={form.handleSubmit(formAction)} className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-4">
                 <div className="space-y-2">
-                    <h3 className="font-medium">1. Selecione os Horários</h3>
-                     <div className="grid grid-cols-3 gap-2">
-                        {SLOTS_DE_TEMPO.map(horario => {
-                            const estaSelecionado = horariosSelecionados.includes(horario);
-                            return (
-                                <Button
-                                    key={horario}
-                                    type="button"
-                                    variant={estaSelecionado ? "default" : "outline"}
-                                    className={cn("h-9 text-xs", estaSelecionado && "bg-primary hover:bg-primary/90")}
-                                    onClick={() => handleSelecaoHorario(horario)}
-                                >
-                                    {horario}
-                                </Button>
-                            );
-                        })}
-                    </div>
-                </div>
-                 <div className="space-y-2">
-                    <h3 className="font-medium">3. Detalhes da Reserva</h3>
+                    <h3 className="font-medium">1. Detalhes da Reserva</h3>
                     <div className="space-y-4 rounded-md border p-4">
+                         <FormField
+                            control={form.control}
+                            name="estudio"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Estúdio</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Selecione o estúdio" />
+                                    </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                    <SelectItem value="Estúdio 1">Estúdio 1</SelectItem>
+                                    <SelectItem value="Estúdio 2">Estúdio 2</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
                         <FormField
                             control={form.control}
                             name="nomeCompleto"
@@ -216,6 +223,26 @@ export default function FormularioAgendamentoRecorrente({
                         />
                     </div>
                  </div>
+                <div className="space-y-2">
+                    <h3 className="font-medium">2. Selecione os Horários</h3>
+                     <div className="grid grid-cols-3 gap-2">
+                        {SLOTS_DE_TEMPO.map(horario => {
+                            const estaSelecionado = horariosSelecionados.includes(horario);
+                            return (
+                                <Button
+                                    key={horario}
+                                    type="button"
+                                    variant={estaSelecionado ? "default" : "outline"}
+                                    className={cn("h-9 text-xs", estaSelecionado && "bg-primary hover:bg-primary/90")}
+                                    onClick={() => handleSelecaoHorario(horario)}
+                                >
+                                    {horario}
+                                </Button>
+                            );
+                        })}
+                    </div>
+                </div>
+                 
                  <Button type="submit" disabled={enviando} className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
                     {enviando ? (
                         <>
@@ -229,9 +256,9 @@ export default function FormularioAgendamentoRecorrente({
             </div>
             <div className="space-y-2">
                 <div className="p-2 border rounded-md text-center">
-                    <h3 className="font-medium">2. Selecione as Datas</h3>
+                    <h3 className="font-medium">3. Selecione as Datas</h3>
                 </div>
-                {horariosSelecionados.length > 0 ? (
+                {horariosSelecionados.length > 0 && estudioSelecionado ? (
                     <div className="flex justify-center">
                         <Calendar
                             mode="multiple"
@@ -245,9 +272,9 @@ export default function FormularioAgendamentoRecorrente({
                 ): (
                     <Alert>
                         <Clock className="h-4 w-4" />
-                        <AlertTitle>Selecione um horário</AlertTitle>
+                        <AlertTitle>Selecione um Estúdio e Horários</AlertTitle>
                         <AlertDescription>
-                            Primeiro, escolha um ou mais horários para habilitar o calendário.
+                            Primeiro, escolha um estúdio e um ou mais horários para habilitar o calendário.
                         </AlertDescription>
                     </Alert>
                 )}

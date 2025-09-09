@@ -41,16 +41,19 @@ export type ReservaExistente = {
     data: string;
     horarios: string[];
     status: 'pendente' | 'aprovado';
+    estudio: string;
 }
 
 export type BloqueioManual = {
     data: string;
     horarios: string[];
+    estudio: string;
 }
 
 export const SLOTS_DE_TEMPO = Array.from({ length: 9 }, (_, i) => `${String(i + 9).padStart(2, "0")}:00`);
 const DIAS_MIN_ANTECEDENCIA = 5;
 const MAX_SEMANAS_ANTECEDENCIA = 8;
+const ESTUDIOS = ["Estúdio 1", "Estúdio 2"];
 
 async function getReservasExistentes(): Promise<ReservaExistente[]> {
   const reservasRef = collection(db, "reservas");
@@ -64,8 +67,9 @@ async function getReservasExistentes(): Promise<ReservaExistente[]> {
       const data = doc.data();
       const horarios = data.horariosSelecionados as Record<string, string[]>;
       const status = data.status as 'pendente' | 'aprovado';
+      const estudio = data.estudio as string;
       for (const data in horarios) {
-          slotsReservados.push({ data, horarios: horarios[data], status });
+          slotsReservados.push({ data, horarios: horarios[data], status, estudio });
       }
   });
   return slotsReservados;
@@ -77,7 +81,7 @@ async function getBloqueiosManuais(): Promise<BloqueioManual[]> {
     const bloqueios: BloqueioManual[] = [];
     querySnapshot.forEach(doc => {
         const data = doc.data();
-        bloqueios.push({ data: data.data, horarios: data.horarios });
+        bloqueios.push({ data: data.data, horarios: data.horarios, estudio: data.estudio });
     });
     return bloqueios;
 }
@@ -89,6 +93,7 @@ export default function FormularioAgendamento() {
 
   const [dataAtual, setDataAtual] = useState(primeiraDataAgendavelInicial);
   const [horariosSelecionados, setHorariosSelecionados] = useState<HorariosSelecionados>({});
+  const [estudioSelecionado, setEstudioSelecionado] = useState<string | null>(null);
   const [modalAberto, setModalAberto] = useState(false);
   const [reservasExistentes, setReservasExistentes] = useState<ReservaExistente[]>([]);
   const [bloqueiosManuais, setBloqueiosManuais] = useState<BloqueioManual[]>([]);
@@ -159,7 +164,7 @@ export default function FormularioAgendamento() {
   }, [diasDaSemana, ultimaDataAgendavel]);
 
 
-  const handleSelecaoHorario = (dia: Date, horario: string) => {
+  const handleSelecaoHorario = (dia: Date, horario: string, estudio: string) => {
     const chaveData = format(dia, "yyyy-MM-dd");
     const diasSelecionados = Object.keys(horariosSelecionados).filter(
       (chave) => horariosSelecionados[chave].length > 0
@@ -168,10 +173,19 @@ export default function FormularioAgendamento() {
     if (diasSelecionados.length > 0 && !diasSelecionados.includes(chaveData)) {
       toast({
         title: "Atenção",
-        description: "Você só pode selecionar horários para um único dia. O agendamento deve ser feito por dia.",
+        description: "Você só pode selecionar horários para um único dia.",
         variant: "destructive",
       });
       return;
+    }
+
+    if (estudioSelecionado && estudioSelecionado !== estudio) {
+        toast({
+            title: "Atenção",
+            description: "Você só pode selecionar horários para um único estúdio por vez.",
+            variant: "destructive",
+        });
+        return;
     }
   
     setHorariosSelecionados((prev) => {
@@ -181,9 +195,11 @@ export default function FormularioAgendamento() {
         const novosHorarios = { ...prev, [chaveData]: novosHorariosDia };
         if (novosHorariosDia.length === 0) {
           delete novosHorarios[chaveData];
+          setEstudioSelecionado(null);
         }
         return novosHorarios;
       } else {
+        setEstudioSelecionado(estudio);
         return { ...prev, [chaveData]: [...horariosDoDia, horario] };
       }
     });
@@ -197,6 +213,7 @@ export default function FormularioAgendamento() {
   
   const onSucessoReserva = () => {
     setHorariosSelecionados({});
+    setEstudioSelecionado(null);
     setModalAberto(false);
     setModalEspecialAberto(false);
     setModalRecorrenteAberto(false);
@@ -300,109 +317,89 @@ export default function FormularioAgendamento() {
                     {format(dia, "EEE", { locale: ptBR })}
                     <div className="font-normal text-sm text-muted-foreground">{format(dia, "d/MM")}</div>
                 </div>
+                <div className="text-center text-xs py-1 border-b grid grid-cols-2 gap-px">
+                    <div className="bg-background">Estúdio 1</div>
+                    <div className="bg-background">Estúdio 2</div>
+                </div>
+
                 <div className="flex flex-col p-1 gap-1">
-                    {SLOTS_DE_TEMPO.map(horario => {
-                      const chaveData = format(dia, "yyyy-MM-dd");
-                      const estaSelecionado = horariosSelecionados[chaveData]?.includes(horario);
-                      const slotReservado = reservasExistentes.find(r => r.data === chaveDataParaReserva && r.horarios.includes(horario));
-                      const bloqueadoManualmente = bloqueiosManuais.find(b => b.data === chaveDataParaReserva && b.horarios.includes(horario));
+                    {SLOTS_DE_TEMPO.map(horario => (
+                        <div key={horario} className="grid grid-cols-2 gap-1">
+                            {ESTUDIOS.map(estudio => {
+                                const chaveData = format(dia, "yyyy-MM-dd");
+                                const estaSelecionado = horariosSelecionados[chaveData]?.includes(horario) && estudioSelecionado === estudio;
+                                const slotReservado = reservasExistentes.find(r => r.data === chaveDataParaReserva && r.horarios.includes(horario) && r.estudio === estudio);
+                                const bloqueadoManualmente = bloqueiosManuais.find(b => b.data === chaveDataParaReserva && b.horarios.includes(horario) && b.estudio === estudio);
 
-                      if (diaDesabilitado) {
-                        return (
-                          <Button
-                              key={horario}
-                              variant="outline"
-                              className="h-8 w-full text-xs bg-muted cursor-not-allowed"
-                              disabled
-                          >
-                              {horario}
-                          </Button>
-                        );
-                      }
-                      
-                      if (!usuario) {
-                         if (bloqueadoManualmente || (slotReservado && slotReservado.status === 'aprovado')) {
-                           return (
-                              <Button key={horario} variant="outline" className="h-8 w-full text-xs bg-muted cursor-not-allowed" disabled>
-                                {horario}
-                              </Button>
-                           );
-                         }
-                         if (slotReservado && slotReservado.status === 'pendente') {
-                             return (
-                                <Tooltip key={horario}>
-                                  <TooltipTrigger asChild>
-                                    <span tabIndex={0}>
-                                        <Button variant="outline" className="h-8 w-full text-xs bg-accent/80 hover:bg-accent/80 text-accent-foreground cursor-not-allowed" disabled>
-                                          {horario}
-                                        </Button>
-                                    </span>
-                                  </TooltipTrigger>
-                                  <TooltipContent><p>Aguardando Aprovação</p></TooltipContent>
-                                </Tooltip>
-                             );
-                         }
-                      }
+                                if (diaDesabilitado) {
+                                return ( <Button key={estudio} variant="outline" className="h-8 w-full text-xs bg-muted cursor-not-allowed" disabled> {horario} </Button> );
+                                }
+                                
+                                if (!usuario) {
+                                    if (bloqueadoManualmente || (slotReservado && slotReservado.status === 'aprovado')) {
+                                    return ( <Button key={estudio} variant="outline" className="h-8 w-full text-xs bg-muted cursor-not-allowed" disabled> {horario} </Button> );
+                                    }
+                                    if (slotReservado && slotReservado.status === 'pendente') {
+                                        return (
+                                            <Tooltip key={estudio}>
+                                            <TooltipTrigger asChild>
+                                                <span tabIndex={0} className="w-full">
+                                                    <Button variant="outline" className="h-8 w-full text-xs bg-accent/80 hover:bg-accent/80 text-accent-foreground cursor-not-allowed" disabled> {horario} </Button>
+                                                </span>
+                                            </TooltipTrigger>
+                                            <TooltipContent><p>Aguardando Aprovação</p></TooltipContent>
+                                            </Tooltip>
+                                        );
+                                    }
+                                }
 
-                      if (usuario && (bloqueadoManualmente || slotReservado)) {
-                          const estaPendente = slotReservado?.status === 'pendente';
-                          const estaAprovado = slotReservado?.status === 'aprovado';
-                          const estaBloqueado = bloqueadoManualmente;
+                                if (usuario && (bloqueadoManualmente || slotReservado)) {
+                                    const estaPendente = slotReservado?.status === 'pendente';
+                                    const estaAprovado = slotReservado?.status === 'aprovado';
+                                    const estaBloqueado = bloqueadoManualmente;
 
-                          let tooltipContent = "";
-                          let buttonColorClass = "";
+                                    let tooltipContent = "";
+                                    let buttonColorClass = "";
 
-                          if (estaPendente) {
-                            tooltipContent = "Agendamento pendente de aprovação";
-                            buttonColorClass = "bg-accent/80 hover:bg-accent/80 text-accent-foreground cursor-not-allowed";
-                          } else if (estaAprovado) {
-                            tooltipContent = "Agendamento já realizado e confirmado para este horário";
-                            buttonColorClass = "bg-green-400 hover:bg-green-400 text-green-900 cursor-not-allowed";
-                          } else if (estaBloqueado) {
-                             return (
-                                <Button key={horario} variant="outline" className="h-8 w-full text-xs bg-muted cursor-not-allowed" disabled>
+                                    if (estaPendente) {
+                                        tooltipContent = "Agendamento pendente";
+                                        buttonColorClass = "bg-accent/80 hover:bg-accent/80 text-accent-foreground cursor-not-allowed";
+                                    } else if (estaAprovado) {
+                                        tooltipContent = "Horário confirmado";
+                                        buttonColorClass = "bg-green-400 hover:bg-green-400 text-green-900 cursor-not-allowed";
+                                    } else if (estaBloqueado) {
+                                        return ( <Button key={estudio} variant="outline" className="h-8 w-full text-xs bg-muted cursor-not-allowed" disabled> {horario} </Button> );
+                                    }
+
+                                    return (
+                                        <div key={estudio}>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <span tabIndex={0} className="w-full">
+                                                        <Button variant="outline" className={cn("h-8 w-full text-xs", buttonColorClass)} disabled> {horario} </Button>
+                                                    </span>
+                                                </TooltipTrigger>
+                                                {tooltipContent && ( <TooltipContent><p>{tooltipContent}</p></TooltipContent> )}
+                                            </Tooltip>
+                                        </div>
+                                    )
+                                }
+                            
+                                return (
+                                    <Button
+                                        key={estudio}
+                                        type="button"
+                                        variant={estaSelecionado ? "default" : "outline"}
+                                        className={cn("h-8 text-xs", estaSelecionado && "bg-primary hover:bg-primary/90")}
+                                        onClick={() => handleSelecaoHorario(dia, horario, estudio)}
+                                        disabled={diaDesabilitado}
+                                    >
                                     {horario}
-                                </Button>
-                             );
-                          }
-
-                          return (
-                              <div key={horario}>
-                                  <Tooltip>
-                                      <TooltipTrigger asChild>
-                                          <span tabIndex={0}>
-                                              <Button
-                                                  variant="outline"
-                                                  className={cn("h-8 w-full text-xs", buttonColorClass)}
-                                                  disabled
-                                              >
-                                              {horario}
-                                              </Button>
-                                          </span>
-                                      </TooltipTrigger>
-                                      {tooltipContent && (
-                                        <TooltipContent>
-                                            <p>{tooltipContent}</p>
-                                        </TooltipContent>
-                                      )}
-                                  </Tooltip>
-                              </div>
-                          )
-                      }
-                    
-                      return (
-                         <Button
-                            key={horario}
-                            type="button"
-                            variant={estaSelecionado ? "default" : "outline"}
-                            className={cn("h-8 text-xs", estaSelecionado && "bg-primary hover:bg-primary/90")}
-                            onClick={() => handleSelecaoHorario(dia, horario)}
-                            disabled={diaDesabilitado}
-                          >
-                          {horario}
-                          </Button>
-                      );
-                    })}
+                                    </Button>
+                                );
+                            })}
+                        </div>
+                    ))}
                 </div>
                 </div>
             )})}
@@ -414,7 +411,7 @@ export default function FormularioAgendamento() {
       {totalHorariosSelecionados > 0 && (
         <CardFooter className="flex-col items-start gap-4 pt-4">
            <div className="text-sm text-muted-foreground">
-            {totalHorariosSelecionados} horário(s) selecionado(s).
+            {totalHorariosSelecionados} horário(s) selecionado(s) para o <span className="font-bold">{estudioSelecionado}</span>.
           </div>
           <Dialog open={modalAberto} onOpenChange={setModalAberto}>
             <DialogTrigger asChild>
@@ -427,11 +424,14 @@ export default function FormularioAgendamento() {
                 <DialogTitle className="font-headline">
                     {usuario ? "Agendamento Simplificado" : "Informações para o agendamento"}
                 </DialogTitle>
+                <DialogDescription>
+                    Agendamento para o {estudioSelecionado}.
+                </DialogDescription>
               </DialogHeader>
               {usuario ? (
-                 <FormularioReservaAdmin horariosSelecionados={horariosSelecionados} onSucessoReserva={onSucessoReserva}/>
+                 <FormularioReservaAdmin horariosSelecionados={horariosSelecionados} estudio={estudioSelecionado!} onSucessoReserva={onSucessoReserva}/>
               ) : (
-                 <FormularioDetalhesReserva horariosSelecionados={horariosSelecionados} onSucessoReserva={onSucessoReserva}/>
+                 <FormularioDetalhesReserva horariosSelecionados={horariosSelecionados} estudio={estudioSelecionado!} onSucessoReserva={onSucessoReserva}/>
               )}
             </DialogContent>
           </Dialog>

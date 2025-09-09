@@ -32,6 +32,7 @@ import { ptBR } from 'date-fns/locale';
 import FormularioBloqueioHorarios, { ReservaExistente, BloqueioManual } from '@/components/formulario-bloqueio-horarios';
 import { atualizarStatusReserva } from '@/app/actions';
 import Link from 'next/link';
+import { Badge } from '@/components/ui/badge';
 
 interface Reserva {
   id: string;
@@ -51,6 +52,7 @@ interface Reserva {
   status: 'pendente' | 'aprovado' | 'rejeitado';
   criadoEm: Timestamp;
   dataReserva: string; // YYYY-MM-DD
+  estudio: string;
 }
 
 async function getReservasPendentes(): Promise<Reserva[]> {
@@ -104,11 +106,12 @@ async function getReservasParaBloqueio(): Promise<ReservaExistente[]> {
   const querySnapshot = await getDocs(q);
   const slotsReservados: ReservaExistente[] = [];
   querySnapshot.forEach((doc) => {
-      const data = doc.data();
+      const data = doc.data() as Reserva;
       const slots = data.horariosSelecionados as Record<string, string[]>;
       const status = data.status as 'pendente' | 'aprovado';
+      const estudio = data.estudio;
       for (const data in slots) {
-          slotsReservados.push({ data, horarios: slots[data], status });
+          slotsReservados.push({ data, horarios: slots[data], status, estudio });
       }
   });
   return slotsReservados;
@@ -255,7 +258,7 @@ export default function PaginaPainel() {
     const formatarParaGoogle = (d: Date) => format(d, "yyyyMMdd'T'HHmmss");
 
     const dates = `${formatarParaGoogle(startDateTime)}/${formatarParaGoogle(endDateTime)}`;
-    const text = `Gravação: ${reserva.tituloGravacao || reserva.nomeCompleto} - ${reserva.modalidadesReserva}`;
+    const text = `Gravação: ${reserva.tituloGravacao || reserva.nomeCompleto} [${reserva.estudio}] - ${reserva.modalidadesReserva}`;
     
     const orgao = reserva.tipoOrgao === 'interno' ? reserva.departamento : reserva.organizacaoExterna;
     
@@ -263,6 +266,7 @@ export default function PaginaPainel() {
     const formatarMateriais = (value: any) => (value && value.toLowerCase() !== 'nenhum' ? value : '-');
 
     const details = `Agendamento no Centro de Mídias.
+Estúdio: ${formatarDetalhe(reserva.estudio)}
 Solicitante: ${formatarDetalhe(reserva.nomeCompleto)}
 Órgão: ${formatarDetalhe(orgao)}
 Modalidade: ${formatarDetalhe(reserva.modalidadesReserva)}
@@ -313,6 +317,7 @@ Materiais: ${formatarMateriais(reserva.materiaisNecessarios)}`;
                     <TableRow>
                     <TableHead>Solicitante</TableHead>
                     <TableHead>Data</TableHead>
+                    <TableHead>Estúdio</TableHead>
                     <TableHead>Horários</TableHead>
                     <TableHead>Modalidade</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
@@ -328,6 +333,7 @@ Materiais: ${formatarMateriais(reserva.materiaisNecessarios)}`;
                         <TableRow key={reserva.id}>
                             <TableCell className="font-medium">{reserva.nomeCompleto}<br/><span className="text-xs text-muted-foreground">{reserva.email}</span></TableCell>
                             <TableCell>{formattedDate}</TableCell>
+                            <TableCell><Badge variant="secondary">{reserva.estudio}</Badge></TableCell>
                             <TableCell>{times}</TableCell>
                             <TableCell>{reserva.modalidadesReserva}</TableCell>
                             <TableCell className="text-right space-x-2">
@@ -346,7 +352,7 @@ Materiais: ${formatarMateriais(reserva.materiaisNecessarios)}`;
                     })
                     ) : (
                     <TableRow>
-                        <TableCell colSpan={5} className="text-center">
+                        <TableCell colSpan={6} className="text-center">
                         Nenhum agendamento pendente.
                         </TableCell>
                     </TableRow>
@@ -385,7 +391,10 @@ Materiais: ${formatarMateriais(reserva.materiaisNecessarios)}`;
                                         return (
                                             <Card key={reserva.id} className="flex flex-col">
                                                 <CardHeader className="pb-4">
-                                                    <CardTitle className="text-xl font-headline">{cardTitle}</CardTitle>
+                                                    <div className="flex justify-between items-start">
+                                                        <CardTitle className="text-xl font-headline">{cardTitle}</CardTitle>
+                                                        <Badge variant="outline">{reserva.estudio}</Badge>
+                                                    </div>
                                                     <CardDescription>{reserva.nomeCompleto} - {organization}</CardDescription>
                                                 </CardHeader>
                                                 <CardContent className="flex-grow space-y-2 text-sm">
@@ -463,6 +472,10 @@ Materiais: ${formatarMateriais(reserva.materiaisNecessarios)}`;
                     <div className="grid grid-cols-[150px_1fr] items-center gap-4">
                         <span className="font-semibold text-right">Título:</span>
                         <span>{reservaSelecionada.tituloGravacao || reservaSelecionada.nomeCompleto}</span>
+                    </div>
+                     <div className="grid grid-cols-[150px_1fr] items-center gap-4">
+                        <span className="font-semibold text-right">Estúdio:</span>
+                        <Badge variant="default">{reservaSelecionada.estudio}</Badge>
                     </div>
                     <div className="grid grid-cols-[150px_1fr] items-center gap-4">
                         <span className="font-semibold text-right">Solicitante:</span>

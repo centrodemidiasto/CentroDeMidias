@@ -30,6 +30,7 @@ const DetalhesReservaSchema = z.object({
     numeroMesas: z.coerce.number(),
     numeroCadeiras: z.coerce.number(),
     termosDeUso: z.boolean(),
+    estudio: z.string(), // Campo adicionado
 });
 
 const MODALIDADES_RESERVA = [
@@ -50,10 +51,11 @@ function formatarTelefone(value: string) {
 
 interface FormularioDetalhesReservaProps {
     horariosSelecionados: HorariosSelecionados;
+    estudio: string;
     onSucessoReserva: () => void;
 }
 
-export default function FormularioDetalhesReserva({ horariosSelecionados, onSucessoReserva }: FormularioDetalhesReservaProps) {
+export default function FormularioDetalhesReserva({ horariosSelecionados, estudio, onSucessoReserva }: FormularioDetalhesReservaProps) {
     const [enviando, setEnviando] = useState(false);
     const { toast } = useToast();
     
@@ -72,6 +74,7 @@ export default function FormularioDetalhesReserva({ horariosSelecionados, onSuce
             numeroMesas: 0,
             numeroCadeiras: 0,
             termosDeUso: false,
+            estudio: estudio,
         },
     });
 
@@ -324,6 +327,18 @@ export default function FormularioDetalhesReserva({ horariosSelecionados, onSuce
                         )}
                     />
                 </div>
+                
+                <FormField
+                    control={form.control}
+                    name="estudio"
+                    render={({ field }) => (
+                        <FormItem className="hidden">
+                            <FormControl>
+                                <Input {...field} />
+                            </FormControl>
+                        </FormItem>
+                    )}
+                />
 
                 <FormField
                     control={form.control}

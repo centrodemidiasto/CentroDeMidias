@@ -4,12 +4,15 @@ import { db as clientDb } from "@/lib/firebase";
 import { collection, getDocs, query, where, orderBy, Timestamp } from "firebase/firestore";
 import { format, parseISO, startOfToday, isToday, isTomorrow, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Clock, User, Building, Video } from "lucide-react";
+import { Clock, User, Building, Video, Tv } from "lucide-react";
 import CurrentTime from "@/components/current-time";
 import Image from "next/image";
 import RefreshButton from "@/components/refresh-button";
+import { Badge } from "@/components/ui/badge";
+import { group } from "console";
 
 export const revalidate = 60; // Revalida a cada 60 segundos
+export const dynamic = 'force-dynamic';
 
 interface Reserva {
   id: string;
@@ -22,6 +25,12 @@ interface Reserva {
   status: 'pendente' | 'aprovado' | 'rejeitado';
   criadoEm: Timestamp;
   dataReserva: string; // YYYY-MM-DD
+  estudio: string;
+}
+
+interface ReservaAgrupada {
+    data: string;
+    reservas: Reserva[];
 }
 
 async function getProximasReservas(): Promise<Reserva[]> {
@@ -48,6 +57,12 @@ async function getProximasReservas(): Promise<Reserva[]> {
     const timeB = b.horariosSelecionados[b.dataReserva]?.[0] || '00:00';
     if (a.dataReserva < b.dataReserva) return -1;
     if (a.dataReserva > b.dataReserva) return 1;
+
+    const estudioA = parseInt(a.estudio.replace('Estúdio ', ''));
+    const estudioB = parseInt(b.estudio.replace('Estúdio ', ''));
+    if (estudioA < estudioB) return -1;
+    if (estudioA > estudioB) return 1;
+
     return timeA.localeCompare(timeB);
   });
 
@@ -66,9 +81,22 @@ function formatarDataReserva(dateString: string) {
     return format(date, "EEEE, d 'de' MMMM", { locale: ptBR });
 }
 
+function agruparReservasPorData(reservas: Reserva[]): ReservaAgrupada[] {
+    const agrupado: Record<string, Reserva[]> = {};
+    reservas.forEach(reserva => {
+        const data = reserva.dataReserva;
+        if (!agrupado[data]) {
+            agrupado[data] = [];
+        }
+        agrupado[data].push(reserva);
+    });
+    return Object.entries(agrupado).map(([data, reservas]) => ({ data, reservas }));
+}
+
 
 export default async function PaginaHorarios() {
-  const proximasReservas = await getProximasReservas();
+  const proximasReservasRaw = await getProximasReservas();
+  const reservasAgrupadas = agruparReservasPorData(proximasReservasRaw);
 
   return (
     <div className="bg-gray-900 text-white min-h-screen p-8 font-sans relative">
@@ -91,40 +119,53 @@ export default async function PaginaHorarios() {
       <RefreshButton />
 
       <main>
-        {proximasReservas.length > 0 ? (
-          <div className="space-y-8">
-            {proximasReservas.map((reserva) => {
-                const date = Object.keys(reserva.horariosSelecionados)[0];
-                const formattedDate = formatarDataReserva(date);
-                const times = reserva.horariosSelecionados[date].join(' - ');
-                const organization = reserva.tipoOrgao === 'interno' ? reserva.departamento : reserva.organizacaoExterna;
-
-                return(
-                    <Card key={reserva.id} className="bg-gray-800 border-blue-500/50 shadow-lg rounded-xl overflow-hidden transform transition-all duration-300 hover:scale-[1.02] hover:shadow-blue-500/30">
-                        <CardContent className="p-8 grid grid-cols-1 md:grid-cols-[1fr_auto] gap-8 items-center">
-                            <div>
-                                <CardTitle className="text-4xl font-bold text-blue-300 flex items-center gap-4">
-                                   <User className="w-10 h-10"/> {reserva.nomeCompleto}
-                                </CardTitle>
-                                <CardDescription className="text-xl text-gray-400 mt-2 flex items-center gap-3">
-                                   <Building className="w-6 h-6" /> {organization}
-                                </CardDescription>
-                                <div className="mt-6 flex items-center gap-3 text-2xl text-gray-300">
-                                   <Video className="w-8 h-8 text-orange-400"/>
-                                   <span>{reserva.modalidadesReserva}</span>
-                                 </div>
-                            </div>
-                            <div className="text-right flex flex-col justify-center items-end">
-                                <p className="text-3xl font-semibold capitalize text-orange-400">{formattedDate}</p>
-                                <div className="mt-2 text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-300 to-blue-500 flex items-center gap-3">
-                                   <Clock className="w-12 h-12"/>
-                                   <span>{times}</span>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                )
-            })}
+        {reservasAgrupadas.length > 0 ? (
+          <div className="space-y-12">
+            {reservasAgrupadas.map(({ data, reservas }) => (
+              <div key={data}>
+                <h2 className="text-4xl font-bold capitalize text-orange-400 mb-6 text-center border-b-2 border-orange-400/30 pb-3">
+                  {formatarDataReserva(data)}
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {reservas.map((reserva) => {
+                      const times = reserva.horariosSelecionados[reserva.dataReserva].join(' - ');
+                      const organization = reserva.tipoOrgao === 'interno' ? reserva.departamento : reserva.organizacaoExterna;
+      
+                      return(
+                          <Card key={reserva.id} className="bg-gray-800 border-blue-500/50 shadow-lg rounded-xl overflow-hidden transform transition-all duration-300 hover:scale-[1.02] hover:shadow-blue-500/30">
+                              <CardHeader>
+                                  <div className="flex justify-between items-start">
+                                    <CardTitle className="text-4xl font-bold text-blue-300 flex items-center gap-4">
+                                      <User className="w-10 h-10"/> {reserva.nomeCompleto}
+                                    </CardTitle>
+                                    <Badge variant="secondary" className="text-lg">
+                                       <Tv className="w-5 h-5 mr-2" /> {reserva.estudio}
+                                    </Badge>
+                                  </div>
+                                  <CardDescription className="text-xl text-gray-400 mt-2 flex items-center gap-3">
+                                      <Building className="w-6 h-6" /> {organization}
+                                  </CardDescription>
+                              </CardHeader>
+                              <CardContent className="p-8 pt-4 grid grid-cols-1 md:grid-cols-[1fr_auto] gap-8 items-center">
+                                  <div>
+                                      <div className="flex items-center gap-3 text-2xl text-gray-300">
+                                        <Video className="w-8 h-8 text-orange-400"/>
+                                        <span>{reserva.modalidadesReserva}</span>
+                                      </div>
+                                  </div>
+                                  <div className="text-right flex flex-col justify-center items-end">
+                                      <div className="mt-2 text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-300 to-blue-500 flex items-center gap-3">
+                                        <Clock className="w-12 h-12"/>
+                                        <span>{times}</span>
+                                      </div>
+                                  </div>
+                              </CardContent>
+                          </Card>
+                      )
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         ) : (
           <div className="text-center py-20">

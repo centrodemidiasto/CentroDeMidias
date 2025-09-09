@@ -29,12 +29,14 @@ export type ReservaExistente = {
     data: string;
     horarios: string[];
     status: 'pendente' | 'aprovado';
+    estudio: string;
 }
 
 export type BloqueioManual = {
     id: string; 
     data: string;
     horarios: string[];
+    estudio: string;
 }
 
 interface FormularioBloqueioHorariosProps {
@@ -44,12 +46,13 @@ interface FormularioBloqueioHorariosProps {
 
 
 const SLOTS_DE_TEMPO = Array.from({ length: 9 }, (_, i) => `${String(i + 9).padStart(2, "0")}:00`);
+const ESTUDIOS = ["Estúdio 1", "Estúdio 2"];
 
 
 export default function FormularioBloqueioHorarios({ reservasIniciais, bloqueiosManuaisIniciais }: FormularioBloqueioHorariosProps) {
   const hoje = startOfToday();
   const [dataAtual, setDataAtual] = useState(new Date());
-  const [horariosSelecionados, setHorariosSelecionados] = useState<HorariosSelecionados>({});
+  const [horariosSelecionados, setHorariosSelecionados] = useState<Record<string, Record<string, string[]>>>({});
   const [reservasExistentes] = useState<ReservaExistente[]>(reservasIniciais);
   const [bloqueiosManuais, setBloqueiosManuais] = useState<BloqueioManual[]>(bloqueiosManuaisIniciais);
   const [enviando, setEnviando] = useState(false);
@@ -74,21 +77,32 @@ export default function FormularioBloqueioHorarios({ reservasIniciais, bloqueios
     return isBefore(ultimoDiaSemanaAnterior, hoje);
   }, [dataAtual, hoje]);
 
-  const handleSelecaoHorario = (dia: Date, horario: string) => {
+  const handleSelecaoHorario = (dia: Date, horario: string, estudio: string) => {
     const chaveData = format(dia, "yyyy-MM-dd");
   
     setHorariosSelecionados((prev) => {
-      const horariosDoDia = prev[chaveData] ? [...prev[chaveData]] : [];
-      if (horariosDoDia.includes(horario)) {
-        const novosHorariosDoDia = horariosDoDia.filter((t) => t !== horario);
-        const novosHorarios = { ...prev, [chaveData]: novosHorariosDoDia };
-        if (novosHorariosDoDia.length === 0) {
-          delete novosHorarios[chaveData];
+        const horariosPorEstudio = prev[chaveData] || {};
+        const horariosDoEstudio = horariosPorEstudio[estudio] || [];
+        const novosHorarios = { ...prev };
+
+        if (horariosDoEstudio.includes(horario)) {
+            const novosHorariosDoEstudio = horariosDoEstudio.filter(h => h !== horario);
+            if (novosHorariosDoEstudio.length > 0) {
+                novosHorarios[chaveData][estudio] = novosHorariosDoEstudio;
+            } else {
+                delete novosHorarios[chaveData][estudio];
+                if (Object.keys(novosHorarios[chaveData]).length === 0) {
+                    delete novosHorarios[chaveData];
+                }
+            }
+        } else {
+             if (!novosHorarios[chaveData]) {
+                novosHorarios[chaveData] = {};
+            }
+            novosHorarios[chaveData][estudio] = [...horariosDoEstudio, horario];
         }
+      
         return novosHorarios;
-      } else {
-        return { ...prev, [chaveData]: [...horariosDoDia, horario] };
-      }
     });
   };
 
@@ -96,7 +110,12 @@ export default function FormularioBloqueioHorarios({ reservasIniciais, bloqueios
     setDataAtual(prev => addDays(prev, quantidade * 7));
   };
 
-  const totalHorariosSelecionados = Object.values(horariosSelecionados).reduce((acc, curr) => acc + curr.length, 0);
+  const totalHorariosSelecionados = Object.values(horariosSelecionados).reduce(
+    (total, horariosPorEstudio) => total + Object.values(horariosPorEstudio).reduce(
+      (subtotal, horarios) => subtotal + horarios.length, 0
+    ), 0
+  );
+
 
   const handleSalvarMudancas = async () => {
     setEnviando(true);
@@ -104,42 +123,59 @@ export default function FormularioBloqueioHorarios({ reservasIniciais, bloqueios
       const batch = writeBatch(clientDb);
       const bloqueiosRef = collection(clientDb, 'horariosBloqueados');
       
-      const mudancasPorData: Record<string, { paraBloquear: string[], paraDesbloquear: string[] }> = {};
-
+      const mudancas: { data: string, estudio: string, horario: string }[] = [];
       for (const data in horariosSelecionados) {
-        mudancasPorData[data] = { paraBloquear: [], paraDesbloquear: [] };
-        for (const horario of horariosSelecionados[data]) {
-          const estaBloqueadoAtualmente = bloqueiosManuais.some(b => b.data === data && b.horarios.includes(horario));
+        for (const estudio in horariosSelecionados[data]) {
+          for (const horario of horariosSelecionados[data][estudio]) {
+            mudancas.push({ data, estudio, horario });
+          }
+        }
+      }
+
+      // Agrupar mudanças por data e estudio
+      const mudancasAgrupadas: Record<string, { paraBloquear: string[], paraDesbloquear: string[] }> = {};
+      mudancas.forEach(({ data, estudio, horario }) => {
+          const key = `${data}_${estudio}`;
+          if (!mudancasAgrupadas[key]) {
+              mudancasAgrupadas[key] = { paraBloquear: [], paraDesbloquear: [] };
+          }
+          const estaBloqueadoAtualmente = bloqueiosManuais.some(b => b.data === data && b.estudio === estudio && b.horarios.includes(horario));
           if (estaBloqueadoAtualmente) {
-            mudancasPorData[data].paraDesbloquear.push(horario);
+              mudancasAgrupadas[key].paraDesbloquear.push(horario);
           } else {
-            mudancasPorData[data].paraBloquear.push(horario);
+              mudancasAgrupadas[key].paraBloquear.push(horario);
           }
-        }
-      }
-
-      for (const data in mudancasPorData) {
-        const { paraBloquear, paraDesbloquear } = mudancasPorData[data];
-        const docExistente = bloqueiosManuais.find(d => d.data === data);
-        const horariosExistentes = docExistente?.horarios || [];
+      });
+      
+      const promises = Object.keys(mudancasAgrupadas).map(async key => {
+        const [data, estudio] = key.split('_');
+        const { paraBloquear, paraDesbloquear } = mudancasAgrupadas[key];
         
-        let horariosFinais = [...horariosExistentes];
+        const q = query(bloqueiosRef, where("data", "==", data), where("estudio", "==", estudio));
+        const snapshot = await getDocs(q);
         
-        horariosFinais.push(...paraBloquear);
-        horariosFinais = horariosFinais.filter(horario => !paraDesbloquear.includes(horario));
-        horariosFinais = [...new Set(horariosFinais)].sort();
-
-        if (docExistente) {
+        if (snapshot.empty) {
+          if (paraBloquear.length > 0) {
+            batch.set(doc(bloqueiosRef), { data, estudio, horarios: paraBloquear.sort() });
+          }
+        } else {
+          const docRef = snapshot.docs[0].ref;
+          const docData = snapshot.docs[0].data();
+          const horariosExistentes: string[] = docData.horarios || [];
+          
+          let horariosFinais = [...horariosExistentes, ...paraBloquear];
+          horariosFinais = horariosFinais.filter(h => !paraDesbloquear.includes(h));
+          horariosFinais = [...new Set(horariosFinais)].sort();
+          
           if (horariosFinais.length > 0) {
-            batch.update(doc(bloqueiosRef, docExistente.id), { horarios: horariosFinais });
+            batch.update(docRef, { horarios: horariosFinais });
           } else {
-            batch.delete(doc(bloqueiosRef, docExistente.id));
+            batch.delete(docRef);
           }
-        } else if (horariosFinais.length > 0) {
-          batch.set(doc(collection(clientDb, "horariosBloqueados")), { data: data, horarios: horariosFinais });
         }
-      }
+      });
 
+      await Promise.all(promises);
       await batch.commit();
 
       toast({
@@ -190,89 +226,75 @@ export default function FormularioBloqueioHorarios({ reservasIniciais, bloqueios
                       {format(dia, "EEE", { locale: ptBR })}
                       <div className="font-normal text-sm text-muted-foreground">{format(dia, "d/MM")}</div>
                     </div>
+                     <div className="text-center text-xs py-1 border-b grid grid-cols-2 gap-px">
+                        <div className="bg-background">Estúdio 1</div>
+                        <div className="bg-background">Estúdio 2</div>
+                    </div>
+
                     <div className="flex flex-col p-1 gap-1">
-                      {SLOTS_DE_TEMPO.map(horario => {
-                        const chaveData = format(dia, "yyyy-MM-dd");
-                        const estaSelecionado = horariosSelecionados[chaveData]?.includes(horario);
-                        const slotReservado = reservasIniciais.find(r => r.data === chaveDataParaReserva && r.horarios.includes(horario));
-                        const bloqueadoManualmente = bloqueiosManuais.find(b => b.data === chaveDataParaReserva && b.horarios.includes(horario));
+                       {SLOTS_DE_TEMPO.map(horario => (
+                          <div key={horario} className="grid grid-cols-2 gap-1">
+                            {ESTUDIOS.map(estudio => {
+                                const chaveData = format(dia, "yyyy-MM-dd");
+                                const estaSelecionado = horariosSelecionados[chaveData]?.[estudio]?.includes(horario);
+                                const slotReservado = reservasIniciais.find(r => r.data === chaveDataParaReserva && r.horarios.includes(horario) && r.estudio === estudio);
+                                const bloqueadoManualmente = bloqueiosManuais.find(b => b.data === chaveDataParaReserva && b.horarios.includes(horario) && b.estudio === estudio);
 
-                        let classeBotao = "";
-                        let estaDesabilitado = diaPassado;
-                        let conteudoTooltip = "";
+                                let classeBotao = "";
+                                let estaDesabilitado = diaPassado;
+                                let conteudoTooltip = "";
 
-                        if (slotReservado) {
-                            estaDesabilitado = true;
-                            if (slotReservado.status === 'pendente') {
-                                classeBotao = "bg-accent/80 hover:bg-accent/80 text-accent-foreground cursor-not-allowed";
-                                conteudoTooltip = "Agendamento pendente de aprovação";
-                            } else {
-                                classeBotao = "bg-green-400 hover:bg-green-400 text-green-900 cursor-not-allowed";
-                                conteudoTooltip = "Agendamento confirmado";
-                            }
-                        } else if (bloqueadoManualmente) {
-                            classeBotao = "bg-destructive/80 hover:bg-destructive/80 text-destructive-foreground";
-                            conteudoTooltip = "Bloqueado pela equipe. Clique para selecionar/desbloquear.";
-                        }
-                        
-                        if (diaPassado && !slotReservado) {
-                           return (
-                              <Button
-                                key={horario}
-                                variant="outline"
-                                className="h-8 w-full text-xs bg-muted cursor-not-allowed"
-                                disabled
-                              >
-                                {horario}
-                              </Button>
-                           );
-                        }
+                                if (slotReservado) {
+                                    estaDesabilitado = true;
+                                    if (slotReservado.status === 'pendente') {
+                                        classeBotao = "bg-accent/80 hover:bg-accent/80 text-accent-foreground cursor-not-allowed";
+                                        conteudoTooltip = "Agendamento pendente";
+                                    } else {
+                                        classeBotao = "bg-green-400 hover:bg-green-400 text-green-900 cursor-not-allowed";
+                                        conteudoTooltip = "Agendamento confirmado";
+                                    }
+                                } else if (bloqueadoManualmente) {
+                                    classeBotao = "bg-destructive/80 hover:bg-destructive/80 text-destructive-foreground";
+                                    conteudoTooltip = "Bloqueado. Clique para desbloquear.";
+                                }
+                                
+                                if (diaPassado && !slotReservado) {
+                                return ( <Button key={estudio} variant="outline" className="h-8 w-full text-xs bg-muted cursor-not-allowed" disabled> {horario} </Button> );
+                                }
 
-                        if (estaDesabilitado) {
-                             return (
-                                <div key={horario}>
-                                  <Tooltip>
+                                if (estaDesabilitado) {
+                                    return (
+                                        <div key={estudio}>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                            <span tabIndex={0} className="w-full">
+                                                <Button variant="outline" className={cn("h-8 w-full text-xs", classeBotao)} disabled> {horario} </Button>
+                                            </span>
+                                            </TooltipTrigger>
+                                            {conteudoTooltip && ( <TooltipContent><p>{conteudoTooltip}</p></TooltipContent> )}
+                                        </Tooltip>
+                                        </div>
+                                    );
+                                }
+
+                                return (
+                                <Tooltip key={estudio}>
                                     <TooltipTrigger asChild>
-                                      <span tabIndex={0}>
                                         <Button
-                                          variant="outline"
-                                          className={cn("h-8 w-full text-xs", classeBotao)}
-                                          disabled
+                                            type="button"
+                                            variant={estaSelecionado ? "default" : "outline"}
+                                            className={cn("h-8 text-xs", estaSelecionado ? "bg-primary hover:bg-primary/90" : "", classeBotao)}
+                                            onClick={() => handleSelecaoHorario(dia, horario, estudio)}
                                         >
-                                          {horario}
+                                            {horario}
                                         </Button>
-                                      </span>
                                     </TooltipTrigger>
-                                    {conteudoTooltip && (
-                                    <TooltipContent>
-                                      <p>{conteudoTooltip}</p>
-                                    </TooltipContent>
-                                    )}
-                                  </Tooltip>
-                                </div>
-                              );
-                        }
-
-                        return (
-                          <Tooltip key={horario}>
-                            <TooltipTrigger asChild>
-                                <Button
-                                    type="button"
-                                    variant={estaSelecionado ? "default" : "outline"}
-                                    className={cn("h-8 text-xs", estaSelecionado ? "bg-primary hover:bg-primary/90" : "", classeBotao)}
-                                    onClick={() => handleSelecaoHorario(dia, horario)}
-                                >
-                                    {horario}
-                                </Button>
-                            </TooltipTrigger>
-                            {conteudoTooltip && (
-                                <TooltipContent>
-                                    <p>{conteudoTooltip}</p>
-                                </TooltipContent>
-                            )}
-                           </Tooltip>
-                        );
-                      })}
+                                    {conteudoTooltip && ( <TooltipContent><p>{conteudoTooltip}</p></TooltipContent> )}
+                                </Tooltip>
+                                );
+                            })}
+                          </div>
+                       ))}
                     </div>
                   </div>
                 );

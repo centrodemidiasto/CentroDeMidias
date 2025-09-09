@@ -17,6 +17,7 @@ const ReservaAdminSchema = z.object({
     nomeCompleto: z.string(),
     departamento: z.string(),
     modalidadesReserva: z.string(),
+    estudio: z.string(),
 });
 
 const MODALIDADES_RESERVA = [
@@ -28,10 +29,11 @@ const MODALIDADES_RESERVA = [
 
 interface FormularioReservaAdminProps {
     horariosSelecionados: HorariosSelecionados;
+    estudio: string;
     onSucessoReserva: () => void;
 }
 
-export default function FormularioReservaAdmin({ horariosSelecionados, onSucessoReserva }: FormularioReservaAdminProps) {
+export default function FormularioReservaAdmin({ horariosSelecionados, estudio, onSucessoReserva }: FormularioReservaAdminProps) {
     const [enviando, setEnviando] = useState(false);
     const { toast } = useToast();
     
@@ -40,6 +42,7 @@ export default function FormularioReservaAdmin({ horariosSelecionados, onSucesso
             nomeCompleto: '',
             departamento: 'GMEACM',
             modalidadesReserva: undefined,
+            estudio: estudio,
         },
     });
 
@@ -96,6 +99,18 @@ export default function FormularioReservaAdmin({ horariosSelecionados, onSucesso
                                 <Input placeholder="Ex: DTIE, GMEACM, etc." {...field} />
                             </FormControl>
                             <FormMessage />
+                        </FormItem>
+                    )}
+                />
+
+                 <FormField
+                    control={form.control}
+                    name="estudio"
+                    render={({ field }) => (
+                        <FormItem className="hidden">
+                            <FormControl>
+                                <Input {...field} />
+                            </FormControl>
                         </FormItem>
                     )}
                 />
