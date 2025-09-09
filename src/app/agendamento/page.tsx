@@ -7,24 +7,32 @@ import { ListChecks, Clock, AlertTriangle } from "lucide-react";
 import FormularioAgendamento from "@/components/formulario-agendamento";
 import { Card, CardContent } from "@/components/ui/card";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
-import Image from "next/image";
+import Image, { StaticImageData } from "next/image";
 
-const estudio1Images = [
-    '/img/estudio1/00.jpeg',
-    '/img/estudio1/01.jpeg',
-    '/img/estudio1/02.jpeg',
-    '/img/estudio1/03.jpeg',
+import estudio1Img0 from '../../../public/img/estudio1/00.jpeg';
+import estudio1Img1 from '../../../public/img/estudio1/01.jpeg';
+import estudio1Img2 from '../../../public/img/estudio1/02.jpeg';
+import estudio1Img3 from '../../../public/img/estudio1/03.jpeg';
+import estudio2Img0 from '../../../public/img/estudio2/00.jpeg';
+import estudio2Img1 from '../../../public/img/estudio2/01.jpeg';
+import estudio2Img2 from '../../../public/img/estudio2/02.jpeg';
+import estudio2Img3 from '../../../public/img/estudio2/03.jpeg';
+
+const estudio1Images: StaticImageData[] = [
+    estudio1Img0,
+    estudio1Img1,
+    estudio1Img2,
+    estudio1Img3,
 ];
 
-const estudio2Images = [
-    '/img/estudio2/00.jpeg',
-    '/img/estudio2/01.jpeg',
-    '/img/estudio2/02.jpeg',
-    '/img/estudio2/03.jpeg',
+const estudio2Images: StaticImageData[] = [
+    estudio2Img0,
+    estudio2Img1,
+    estudio2Img2,
+    estudio2Img3,
 ];
 
-
-const StudioShowcase = ({ title, images }: { title: string; images: string[] }) => (
+const StudioShowcase = ({ title, images }: { title: string; images: StaticImageData[] }) => (
     <Card className="overflow-hidden">
       <CardContent className="p-4">
         <h3 className="text-2xl font-bold font-headline mb-4 text-center">{title}</h3>
