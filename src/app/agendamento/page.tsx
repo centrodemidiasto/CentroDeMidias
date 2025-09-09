@@ -9,17 +9,17 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import Image from "next/image";
 
 const estudio1Images: string[] = [
-    "/img/estudio1/00.jpeg",
-    "/img/estudio1/01.jpeg",
-    "/img/estudio1/02.jpeg",
-    "/img/estudio1/03.jpeg",
+    "/img/EstudioUm.jpg",
+    "/img/EstudioUm01.jpeg",
+    "/img/EstudioUm02.jpeg",
+    "/img/EstudioUm03.jpeg",
 ];
 
 const estudio2Images: string[] = [
-    "/img/estudio2/00.jpeg",
-    "/img/estudio2/01.jpeg",
-    "/img/estudio2/02.jpeg",
-    "/img/estudio2/03.jpeg",
+    "/img/EstudioChroma.jpg",
+    "/img/EstudioDois01.jpeg",
+    "/img/EstudioDois02.jpeg",
+    "/img/EstudioDois03.jpeg",
 ];
 
 const StudioShowcase = ({ title, images }: { title: string; images: string[] }) => (
