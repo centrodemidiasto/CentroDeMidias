@@ -86,6 +86,18 @@ async function getBloqueiosManuais(): Promise<BloqueioManual[]> {
     return bloqueios;
 }
 
+const getHorarioQuebradoAnterior = (horario: string): string => {
+    const [h] = horario.split(':').map(Number);
+    return `${String(h).padStart(2, '0')}:30`;
+};
+
+const getHorarioQuebradoPosterior = (horario: string): string => {
+    const [h] = horario.split(':').map(Number);
+    const horaAnterior = h - 1;
+    return `${String(horaAnterior).padStart(2, '0')}:30`;
+};
+
+
 export default function FormularioAgendamento() {
   const hoje = startOfToday();
   const primeiraDataAgendavelInicial = addDays(hoje, DIAS_MIN_ANTECEDENCIA);
@@ -331,8 +343,22 @@ export default function FormularioAgendamento() {
                             {ESTUDIOS.map(estudio => {
                                 const chaveData = format(dia, "yyyy-MM-dd");
                                 const estaSelecionado = horariosSelecionados[chaveData]?.includes(horario) && estudioSelecionado === estudio;
-                                const slotReservado = reservasExistentes.find(r => r.data === chaveDataParaReserva && r.horarios.includes(horario) && r.estudio === estudio);
-                                const bloqueadoManualmente = bloqueiosManuais.find(b => b.data === chaveDataParaReserva && b.horarios.includes(horario) && b.estudio === estudio);
+                                
+                                const horarioQuebradoAntes = getHorarioQuebradoPosterior(horario); // Ex: 11:30 para o slot das 12:00
+                                const horarioQuebradoDepois = getHorarioQuebradoAnterior(horario); // Ex: 12:30 para o slot das 12:00
+
+                                const slotReservado = reservasExistentes.find(r => 
+                                    r.data === chaveDataParaReserva && 
+                                    r.estudio === estudio &&
+                                    (r.horarios.includes(horario) || r.horarios.includes(horarioQuebradoAntes) || r.horarios.includes(horarioQuebradoDepois))
+                                );
+
+                                const bloqueadoManualmente = bloqueiosManuais.find(b => 
+                                    b.data === chaveDataParaReserva && 
+                                    b.estudio === estudio &&
+                                    (b.horarios.includes(horario) || b.horarios.includes(horarioQuebradoAntes) || b.horarios.includes(horarioQuebradoDepois))
+                                );
+
 
                                 if (diaDesabilitado) {
                                 return ( <Button key={estudio} variant="outline" className="h-8 w-full text-xs bg-muted cursor-not-allowed" disabled> {horario} </Button> );
