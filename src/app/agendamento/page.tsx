@@ -17,7 +17,7 @@ const estudio1Images: string[] = [
 ];
 
 const estudio2Images: string[] = [
-    "/img/EstudioDois.jpg",
+    "/img/EstudioChroma.jpg",
     "/img/E2-1.jpg",
     "/img/E2-2.jpg",
     "/img/E2-3.jpg",
