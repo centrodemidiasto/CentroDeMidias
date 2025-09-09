@@ -9,13 +9,15 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import Image from "next/image";
 
 const estudio1Images: string[] = [
+    "/img/EstudioUm.jpg",
     "/img/E1-1.jpg",
     "/img/E1-2.jpg",
-    "/img.E1-3.jpg",
+    "/img/E1-3.jpg",
     "/img/E1-4.jpg",
 ];
 
 const estudio2Images: string[] = [
+    "/img/EstudioDois.jpg",
     "/img/E2-1.jpg",
     "/img/E2-2.jpg",
     "/img/E2-3.jpg",
