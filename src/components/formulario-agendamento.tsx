@@ -243,6 +243,9 @@ export default function FormularioAgendamento() {
                         <DialogContent className="sm:max-w-4xl">
                             <DialogHeader>
                                 <DialogTitle>Agendamento Especial</DialogTitle>
+                                <DialogDescription>
+                                    Selecione o horário de início. Cada agendamento tem a duração de 60 minutos.
+                                </DialogDescription>
                             </DialogHeader>
                             <FormularioAgendamentoEspecial
                                reservasExistentes={reservasExistentes}

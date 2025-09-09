@@ -11,7 +11,7 @@ import { Calendar } from "./ui/calendar";
 import { HorariosSelecionados, ReservaExistente, BloqueioManual } from "./formulario-agendamento";
 import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
-import { Calendar as CalendarIcon, Clock } from "lucide-react";
+import { Calendar as CalendarIcon } from "lucide-react";
 
 interface FormularioAgendamentoEspecialProps {
     reservasExistentes: ReservaExistente[];
@@ -32,6 +32,17 @@ const LegendaItem = ({ cor, texto }: { cor: string, texto: string }) => (
         <span className="text-xs text-muted-foreground">{texto}</span>
     </div>
 )
+
+const getSlotAnterior = (horario: string): string | null => {
+    const [h, m] = horario.split(':').map(Number);
+    if (h === 8 && m === 0) return null; // Não há slot antes do primeiro
+
+    const date = new Date();
+    date.setHours(h, m, 0);
+    date.setMinutes(date.getMinutes() - 30);
+    
+    return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+};
 
 export default function FormularioAgendamentoEspecial({ 
     reservasExistentes, 
@@ -108,7 +119,12 @@ export default function FormularioAgendamentoEspecial({
                                 {SLOTS_DE_TEMPO_ESPECIAL.map(horario => {
                                     const slotReservado = reservasExistentes.find(r => r.data === chaveData && r.horarios.includes(horario));
                                     const bloqueadoManualmente = bloqueiosManuais.find(b => b.data === chaveData && b.horarios.includes(horario));
-                                    const estaDesabilitado = !!slotReservado || !!bloqueadoManualmente;
+                                    
+                                    const slotAnterior = getSlotAnterior(horario);
+                                    const slotAnteriorReservado = slotAnterior ? reservasExistentes.find(r => r.data === chaveData && r.horarios.includes(slotAnterior)) : null;
+                                    const slotAnteriorBloqueado = slotAnterior ? bloqueiosManuais.find(b => b.data === chaveData && b.horarios.includes(slotAnterior)) : null;
+
+                                    const estaDesabilitado = !!slotReservado || !!bloqueadoManualmente || !!slotAnteriorReservado || !!slotAnteriorBloqueado;
                                     const estaSelecionado = horariosSelecionados[chaveData]?.includes(horario);
 
                                     if (estaDesabilitado) {
