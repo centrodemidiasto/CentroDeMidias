@@ -22,10 +22,20 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
-import { Loader2, Info, XCircle, CalendarPlus, Pencil } from 'lucide-react';
+import { Loader2, Info, XCircle, CalendarPlus, Pencil, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO, startOfToday, addHours } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -120,6 +130,7 @@ export default function PaginaPainel() {
   
   const [reservaSelecionada, setReservaSelecionada] = useState<Reserva | null>(null);
   const [editandoReserva, setEditandoReserva] = useState<Reserva | null>(null);
+  const [reservaParaCancelar, setReservaParaCancelar] = useState<Reserva | null>(null);
   const [modalAberto, setModalAberto] = useState(false);
 
   const router = useRouter();
@@ -215,6 +226,28 @@ export default function PaginaPainel() {
     return () => unsubscribe();
   }, [router]);
 
+  const handleConfirmarCancelamento = async () => {
+    if (!reservaParaCancelar) return;
+
+    try {
+        await atualizarStatusReserva(reservaParaCancelar.id, 'rejeitado');
+        toast({
+            title: "Sucesso!",
+            description: `Agendamento cancelado.`,
+        });
+        buscarTodasReservas();
+    } catch (error: any) {
+        console.error("Erro ao atualizar status da reserva:", error);
+        toast({
+            title: "Erro",
+            description: error.message || "Não foi possível cancelar o agendamento.",
+            variant: "destructive",
+        });
+    } finally {
+        setReservaParaCancelar(null);
+    }
+  }
+
   const handleAtualizacaoStatus = async (id: string, status: 'aprovado' | 'rejeitado') => {
     try {
         await atualizarStatusReserva(id, status);
@@ -222,8 +255,7 @@ export default function PaginaPainel() {
             title: "Sucesso!",
             description: `Agendamento ${status === 'aprovado' ? 'aprovado' : 'rejeitado'}.`,
         });
-        buscarReservasPendentes();
-        buscarReservasAprovadas(true);
+        buscarTodasReservas();
     } catch (error: any) {
         console.error("Erro ao atualizar status da reserva:", error);
         toast({
@@ -352,7 +384,7 @@ Materiais: ${formatarMateriais(reserva.materiaisNecessarios)}`;
                                 <Info className="h-4 w-4" />
                                </Button>
                               <Button variant="outline" size="sm" onClick={() => handleAtualizacaoStatus(reserva.id, 'aprovado')}>Aprovar</Button>
-                              <Button variant="destructive" size="sm" onClick={() => handleAtualizacaoStatus(reserva.id, 'rejeitado')}>Rejeitar</Button>
+                              <Button variant="destructive" size="sm" onClick={() => setReservaParaCancelar(reserva)}>Rejeitar</Button>
                             </TableCell>
                         </TableRow>
                         );
@@ -414,7 +446,7 @@ Materiais: ${formatarMateriais(reserva.materiaisNecessarios)}`;
                                                         <Button variant="outline" className="w-full" onClick={() => abrirModalDetalhes(reserva)}>
                                                             <Info className="mr-2 h-4 w-4" /> Ver
                                                         </Button>
-                                                        <Button variant="destructive" className="w-full" onClick={() => handleAtualizacaoStatus(reserva.id, 'rejeitado')}>
+                                                        <Button variant="destructive" className="w-full" onClick={() => setReservaParaCancelar(reserva)}>
                                                             <XCircle className="mr-2 h-4 w-4" /> Cancelar
                                                         </Button>
                                                     </div>
@@ -574,8 +606,27 @@ Materiais: ${formatarMateriais(reserva.materiaisNecessarios)}`;
                 )}
             </DialogContent>
         </Dialog>
+
+        <AlertDialog open={!!reservaParaCancelar} onOpenChange={(isOpen) => !isOpen && setReservaParaCancelar(null)}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                <AlertDialogTitle className="flex items-center gap-2">
+                    <AlertTriangle className="text-destructive"/>
+                    Confirmar Cancelamento
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                    Você tem certeza que deseja cancelar o agendamento de <span className="font-bold">{reservaParaCancelar?.nomeCompleto}</span> para o dia <span className="font-bold">{reservaParaCancelar && formatarDataParaExibicao(reservaParaCancelar.dataReserva)}</span>? Esta ação não pode ser desfeita.
+                </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setReservaParaCancelar(null)}>Voltar</AlertDialogCancel>
+                <AlertDialogAction onClick={handleConfirmarCancelamento} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
+                    Sim, cancelar
+                </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+
     </div>
   );
 }
-
-    
