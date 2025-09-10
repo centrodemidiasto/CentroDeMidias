@@ -22,8 +22,9 @@ export default function AutoScrollController({ targetId, speed = 0.2, pauseDurat
   };
 
   const startScroll = () => {
-    if (animationFrameId.current) return;
-    animationFrameId.current = requestAnimationFrame(scrollStep);
+    if (animationFrameId.current === null) {
+      animationFrameId.current = requestAnimationFrame(scrollStep);
+    }
   };
 
   const stopScroll = () => {
@@ -43,15 +44,13 @@ export default function AutoScrollController({ targetId, speed = 0.2, pauseDurat
     } else {
       stopScroll();
     }
-
-    // Cleanup on unmount
+    // Cleanup on unmount or when isScrolling changes
     return () => stopScroll();
   }, [isScrolling]);
 
   useEffect(() => {
     const targetElement = document.getElementById(targetId);
     if (!targetElement) {
-      console.error(`[AutoScroll] Target element #${targetId} not found.`);
       return;
     }
 
