@@ -6,7 +6,7 @@ export interface Reserva {
   nomeCompleto: string;
   email: string;
   telefone?: string;
-  tituloGravacao?: string;
+  tituloGravacao: string;
   tipoOrgao: 'interno' | 'externo';
   departamento?: string;
   organizacaoExterna?: string;

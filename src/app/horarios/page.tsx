@@ -5,7 +5,7 @@ import { db as clientDb } from "@/lib/firebase";
 import { collection, getDocs, query, where, orderBy, Timestamp } from "firebase/firestore";
 import { format, parseISO, startOfToday, isToday, isTomorrow, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Clock, User, Building, Video, Tv } from "lucide-react";
+import { Clock, User, Building, Video, Tv, FileText } from "lucide-react";
 import CurrentTime from "@/components/current-time";
 import Image from "next/image";
 import RefreshButton from "@/components/refresh-button";
@@ -17,6 +17,7 @@ export const dynamic = 'force-dynamic';
 interface Reserva {
   id: string;
   nomeCompleto: string;
+  tituloGravacao?: string;
   tipoOrgao: 'interno' | 'externo';
   departamento?: string;
   organizacaoExterna?: string;
@@ -133,23 +134,31 @@ export default async function PaginaHorarios() {
       
                       return(
                           <Card key={reserva.id} className="bg-gray-800 border-blue-500/50 shadow-lg rounded-lg overflow-hidden flex flex-col">
-                              <CardHeader className="p-4">
+                              <CardHeader className="p-4 pb-2">
                                   <div className="flex justify-between items-start">
-                                    <CardTitle className="text-2xl font-bold text-blue-300 flex items-center gap-3">
-                                      <User className="w-6 h-6"/> {reserva.nomeCompleto}
+                                    <CardTitle className="text-xl font-bold text-blue-300 flex items-center gap-3">
+                                      <User className="w-5 h-5"/> {reserva.nomeCompleto}
                                     </CardTitle>
                                     <Badge variant="secondary" className="text-sm whitespace-nowrap">
                                        <Tv className="w-4 h-4 mr-1.5" /> {reserva.estudio || 'Estúdio'}
                                     </Badge>
                                   </div>
-                                  <CardDescription className="text-base text-gray-400 mt-1 flex items-center gap-2">
+                                  <CardDescription className="text-base text-gray-400 pt-1 flex items-center gap-2">
                                       <Building className="w-5 h-5" /> {organization}
                                   </CardDescription>
                               </CardHeader>
-                              <CardContent className="p-4 pt-0 flex-grow grid grid-cols-[1fr_auto] gap-4 items-center">
-                                  <div className="flex items-center gap-2 text-lg text-gray-300">
-                                    <Video className="w-6 h-6 text-orange-400"/>
-                                    <span className="text-base">{reserva.modalidadesReserva}</span>
+                              <CardContent className="p-4 pt-2 flex-grow grid grid-cols-[1fr_auto] gap-4 items-end">
+                                  <div className="space-y-2">
+                                     {reserva.tituloGravacao && (
+                                      <div className="flex items-center gap-2 text-base text-gray-300">
+                                        <FileText className="w-5 h-5 text-orange-400/80"/>
+                                        <span className="text-base">{reserva.tituloGravacao}</span>
+                                      </div>
+                                    )}
+                                    <div className="flex items-center gap-2 text-lg text-gray-300">
+                                      <Video className="w-5 h-5 text-orange-400"/>
+                                      <span className="text-base">{reserva.modalidadesReserva}</span>
+                                    </div>
                                   </div>
                                   <div className="text-right">
                                       <div className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-300 to-blue-500 flex items-center gap-2">
