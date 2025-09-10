@@ -23,37 +23,19 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
 import { Loader2, Info, XCircle, CalendarPlus, Pencil } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO, startOfToday, addHours } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import FormularioBloqueioHorarios, { ReservaExistente, BloqueioManual } from '@/components/formulario-bloqueio-horarios';
+import FormularioBloqueioHorarios, { BloqueioManual } from '@/components/formulario-bloqueio-horarios';
 import { atualizarStatusReserva } from '@/app/actions';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
+import FormularioEdicaoReserva from '@/components/formulario-edicao-reserva';
+import { Reserva, ReservaExistente } from '@/lib/types';
 
-interface Reserva {
-  id: string;
-  nomeCompleto: string;
-  email: string;
-  telefone?: string;
-  tituloGravacao?: string;
-  tipoOrgao: 'interno' | 'externo';
-  departamento?: string;
-  organizacaoExterna?: string;
-  modalidadesReserva: string;
-  materiaisNecessarios?: string;
-  numeroParticipantes?: number;
-  numeroMesas?: number;
-  numeroCadeiras?: number;
-  horariosSelecionados: Record<string, string[]>;
-  status: 'pendente' | 'aprovado' | 'rejeitado';
-  criadoEm: Timestamp;
-  dataReserva: string; // YYYY-MM-DD
-  estudio: string;
-}
 
 async function getReservasPendentes(): Promise<Reserva[]> {
   const reservasRef = collection(clientDb, "reservas");
@@ -137,8 +119,40 @@ export default function PaginaPainel() {
   const [carregandoBloqueio, setCarregandoBloqueio] = useState(false);
   
   const [reservaSelecionada, setReservaSelecionada] = useState<Reserva | null>(null);
+  const [editandoReserva, setEditandoReserva] = useState<Reserva | null>(null);
+  const [modalAberto, setModalAberto] = useState(false);
+
   const router = useRouter();
   const { toast } = useToast();
+  
+  const abrirModalDetalhes = (reserva: Reserva) => {
+    setReservaSelecionada(reserva);
+    setEditandoReserva(null);
+    setModalAberto(true);
+  }
+
+  const abrirModalEdicao = (reserva: Reserva) => {
+    setEditandoReserva(reserva);
+    setReservaSelecionada(null);
+    setModalAberto(true);
+  }
+
+  const fecharModal = () => {
+    setModalAberto(false);
+    setReservaSelecionada(null);
+    setEditandoReserva(null);
+  }
+
+  const onSucessoEdicao = () => {
+    fecharModal();
+    buscarTodasReservas();
+  }
+
+  const buscarTodasReservas = () => {
+     buscarReservasPendentes();
+     buscarReservasAprovadas(true);
+     buscarDadosBloqueio(true);
+  }
 
   const buscarReservasPendentes = () => {
     setCarregandoPendentes(true);
@@ -154,8 +168,8 @@ export default function PaginaPainel() {
     });
   };
 
-  const buscarReservasAprovadas = () => {
-    if (reservasAprovadas) return; 
+  const buscarReservasAprovadas = (force = false) => {
+    if (reservasAprovadas && !force) return; 
     setCarregandoAprovados(true);
     getReservasAprovadas().then(data => {
         setReservasAprovadas(data);
@@ -167,8 +181,8 @@ export default function PaginaPainel() {
     });
   };
 
-  const buscarDadosBloqueio = () => {
-    if (dadosBloqueio) return; 
+  const buscarDadosBloqueio = (force = false) => {
+    if (dadosBloqueio && !force) return; 
     setCarregandoBloqueio(true);
     Promise.all([getReservasParaBloqueio(), getBloqueiosManuais()]).then(([reserved, manual]) => {
         setDadosBloqueio({ reserved, manual });
@@ -209,10 +223,7 @@ export default function PaginaPainel() {
             description: `Agendamento ${status === 'aprovado' ? 'aprovado' : 'rejeitado'}.`,
         });
         buscarReservasPendentes();
-        if (reservasAprovadas || status === 'aprovado') {
-            setReservasAprovadas(null); 
-            buscarReservasAprovadas();
-        }
+        buscarReservasAprovadas(true);
     } catch (error: any) {
         console.error("Erro ao atualizar status da reserva:", error);
         toast({
@@ -337,13 +348,9 @@ Materiais: ${formatarMateriais(reserva.materiaisNecessarios)}`;
                             <TableCell>{times}</TableCell>
                             <TableCell>{reserva.modalidadesReserva}</TableCell>
                             <TableCell className="text-right space-x-2">
-                               <Dialog>
-                                <DialogTrigger asChild>
-                                   <Button variant="ghost" size="icon" onClick={() => setReservaSelecionada(reserva)}>
-                                    <Info className="h-4 w-4" />
-                                   </Button>
-                                </DialogTrigger>
-                               </Dialog>
+                               <Button variant="ghost" size="icon" onClick={() => abrirModalDetalhes(reserva)}>
+                                <Info className="h-4 w-4" />
+                               </Button>
                               <Button variant="outline" size="sm" onClick={() => handleAtualizacaoStatus(reserva.id, 'aprovado')}>Aprovar</Button>
                               <Button variant="destructive" size="sm" onClick={() => handleAtualizacaoStatus(reserva.id, 'rejeitado')}>Rejeitar</Button>
                             </TableCell>
@@ -404,13 +411,9 @@ Materiais: ${formatarMateriais(reserva.materiaisNecessarios)}`;
                                                 </CardContent>
                                                 <CardFooter className="flex-col items-start gap-3">
                                                     <div className='flex gap-2 w-full'>
-                                                        <Dialog>
-                                                            <DialogTrigger asChild>
-                                                                <Button variant="outline" className="w-full" onClick={() => setReservaSelecionada(reserva)}>
-                                                                    <Info className="mr-2 h-4 w-4" /> Ver
-                                                                </Button>
-                                                            </DialogTrigger>
-                                                        </Dialog>
+                                                        <Button variant="outline" className="w-full" onClick={() => abrirModalDetalhes(reserva)}>
+                                                            <Info className="mr-2 h-4 w-4" /> Ver
+                                                        </Button>
                                                         <Button variant="destructive" className="w-full" onClick={() => handleAtualizacaoStatus(reserva.id, 'rejeitado')}>
                                                             <XCircle className="mr-2 h-4 w-4" /> Cancelar
                                                         </Button>
@@ -422,7 +425,7 @@ Materiais: ${formatarMateriais(reserva.materiaisNecessarios)}`;
                                                                 Google Agenda
                                                             </Link>
                                                         </Button>
-                                                        <Button variant="secondary" size="sm" className="flex-1" disabled>
+                                                        <Button variant="secondary" size="sm" className="flex-1" onClick={() => abrirModalEdicao(reserva)}>
                                                              <Pencil className="mr-2 h-4 w-4" />
                                                             Alterar
                                                         </Button>
@@ -467,92 +470,110 @@ Materiais: ${formatarMateriais(reserva.materiaisNecessarios)}`;
             </AccordionItem>
         </Accordion>
       </div>
-
-       {reservaSelecionada && (
-        <Dialog open={!!reservaSelecionada} onOpenChange={(isOpen) => !isOpen && setReservaSelecionada(null)}>
-            <DialogContent className="sm:max-w-[625px]">
-                <DialogHeader>
-                    <DialogTitle className="font-headline">Detalhes do Agendamento</DialogTitle>
-                </DialogHeader>
-                <div className="grid gap-4 py-4 text-sm max-h-[70vh] overflow-y-auto pr-4">
-                    <div className="grid grid-cols-[150px_1fr] items-center gap-4">
-                        <span className="font-semibold text-right">Título:</span>
-                        <span>{reservaSelecionada.tituloGravacao || reservaSelecionada.nomeCompleto}</span>
-                    </div>
-                     <div className="grid grid-cols-[150px_1fr] items-center gap-4">
-                        <span className="font-semibold text-right">Estúdio:</span>
-                        <Badge variant="default">{reservaSelecionada.estudio}</Badge>
-                    </div>
-                    <div className="grid grid-cols-[150px_1fr] items-center gap-4">
-                        <span className="font-semibold text-right">Solicitante:</span>
-                        <span>{reservaSelecionada.nomeCompleto}</span>
-                    </div>
-                    <div className="grid grid-cols-[150px_1fr] items-center gap-4">
-                        <span className="font-semibold text-right">E-mail:</span>
-                        <span>{reservaSelecionada.email}</span>
-                    </div>
-                    {reservaSelecionada.telefone && (
-                        <div className="grid grid-cols-[150px_1fr] items-center gap-4">
-                            <span className="font-semibold text-right">Telefone:</span>
-                            <span>{reservaSelecionada.telefone}</span>
+      
+       <Dialog open={modalAberto} onOpenChange={(isOpen) => !isOpen && fecharModal()}>
+            <DialogContent className="sm:max-w-[800px]">
+                {reservaSelecionada && (
+                    <>
+                        <DialogHeader>
+                            <DialogTitle className="font-headline">Detalhes do Agendamento</DialogTitle>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-4 text-sm max-h-[70vh] overflow-y-auto pr-4">
+                            <div className="grid grid-cols-[150px_1fr] items-center gap-4">
+                                <span className="font-semibold text-right">Título:</span>
+                                <span>{reservaSelecionada.tituloGravacao || reservaSelecionada.nomeCompleto}</span>
+                            </div>
+                            <div className="grid grid-cols-[150px_1fr] items-center gap-4">
+                                <span className="font-semibold text-right">Estúdio:</span>
+                                <Badge variant="default">{reservaSelecionada.estudio}</Badge>
+                            </div>
+                            <div className="grid grid-cols-[150px_1fr] items-center gap-4">
+                                <span className="font-semibold text-right">Solicitante:</span>
+                                <span>{reservaSelecionada.nomeCompleto}</span>
+                            </div>
+                            <div className="grid grid-cols-[150px_1fr] items-center gap-4">
+                                <span className="font-semibold text-right">E-mail:</span>
+                                <span>{reservaSelecionada.email}</span>
+                            </div>
+                            {reservaSelecionada.telefone && (
+                                <div className="grid grid-cols-[150px_1fr] items-center gap-4">
+                                    <span className="font-semibold text-right">Telefone:</span>
+                                    <span>{reservaSelecionada.telefone}</span>
+                                </div>
+                            )}
+                            <div className="grid grid-cols-[150px_1fr] items-center gap-4">
+                                <span className="font-semibold text-right">Data:</span>
+                                <span>{formatarDataParaExibicao(Object.keys(reservaSelecionada.horariosSelecionados)[0])}</span>
+                            </div>
+                            <div className="grid grid-cols-[150px_1fr] items-center gap-4">
+                                <span className="font-semibold text-right">Horários:</span>
+                                <span>{Object.values(reservaSelecionada.horariosSelecionados)[0].join(', ')}</span>
+                            </div>
+                            <div className="grid grid-cols-[150px_1fr] items-center gap-4">
+                                <span className="font-semibold text-right">Órgão:</span>
+                                <span>{reservaSelecionada.tipoOrgao === 'interno' ? 'Interno (SEDUC)' : 'Externo'}</span>
+                            </div>
+                            {reservaSelecionada.departamento && (
+                                <div className="grid grid-cols-[150px_1fr] items-center gap-4">
+                                    <span className="font-semibold text-right">Departamento:</span>
+                                    <span>{reservaSelecionada.departamento}</span>
+                                </div>
+                            )}
+                            {reservaSelecionada.organizacaoExterna && (
+                                <div className="grid grid-cols-[150px_1fr] items-center gap-4">
+                                    <span className="font-semibold text-right">Órgão Externo:</span>
+                                    <span>{reservaSelecionada.organizacaoExterna}</span>
+                                </div>
+                            )}
+                            <div className="grid grid-cols-[150px_1fr] items-center gap-4">
+                                <span className="font-semibold text-right">Modalidade:</span>
+                                <span>{reservaSelecionada.modalidadesReserva}</span>
+                            </div>
+                            {reservaSelecionada.numeroParticipantes && (
+                                <div className="grid grid-cols-[150px_1fr] items-center gap-4">
+                                    <span className="font-semibold text-right">Participantes:</span>
+                                    <span>{reservaSelecionada.numeroParticipantes}</span>
+                                </div>
+                            )}
+                            {reservaSelecionada.numeroMesas !== undefined && (
+                                <div className="grid grid-cols-[150px_1fr] items-center gap-4">
+                                    <span className="font-semibold text-right">Mesas:</span>
+                                    <span>{reservaSelecionada.numeroMesas}</span>
+                                </div>
+                            )}
+                            {reservaSelecionada.numeroCadeiras !== undefined && (
+                                <div className="grid grid-cols-[150px_1fr] items-center gap-4">
+                                    <span className="font-semibold text-right">Cadeiras:</span>
+                                    <span>{reservaSelecionada.numeroCadeiras}</span>
+                                </div>
+                            )}
+                            {reservaSelecionada.materiaisNecessarios && (
+                                <div className="grid grid-cols-[150px_1fr] items-start gap-4">
+                                    <span className="font-semibold text-right">Materiais:</span>
+                                    <span className="break-words">{reservaSelecionada.materiaisNecessarios}</span>
+                                </div>
+                            )}
                         </div>
-                    )}
-                     <div className="grid grid-cols-[150px_1fr] items-center gap-4">
-                        <span className="font-semibold text-right">Data:</span>
-                        <span>{formatarDataParaExibicao(Object.keys(reservaSelecionada.horariosSelecionados)[0])}</span>
-                    </div>
-                     <div className="grid grid-cols-[150px_1fr] items-center gap-4">
-                        <span className="font-semibold text-right">Horários:</span>
-                        <span>{Object.values(reservaSelecionada.horariosSelecionados)[0].join(', ')}</span>
-                    </div>
-                    <div className="grid grid-cols-[150px_1fr] items-center gap-4">
-                        <span className="font-semibold text-right">Órgão:</span>
-                        <span>{reservaSelecionada.tipoOrgao === 'interno' ? 'Interno (SEDUC)' : 'Externo'}</span>
-                    </div>
-                    {reservaSelecionada.departamento && (
-                         <div className="grid grid-cols-[150px_1fr] items-center gap-4">
-                            <span className="font-semibold text-right">Departamento:</span>
-                            <span>{reservaSelecionada.departamento}</span>
-                        </div>
-                    )}
-                     {reservaSelecionada.organizacaoExterna && (
-                         <div className="grid grid-cols-[150px_1fr] items-center gap-4">
-                            <span className="font-semibold text-right">Órgão Externo:</span>
-                            <span>{reservaSelecionada.organizacaoExterna}</span>
-                        </div>
-                    )}
-                    <div className="grid grid-cols-[150px_1fr] items-center gap-4">
-                        <span className="font-semibold text-right">Modalidade:</span>
-                        <span>{reservaSelecionada.modalidadesReserva}</span>
-                    </div>
-                    {reservaSelecionada.numeroParticipantes && (
-                        <div className="grid grid-cols-[150px_1fr] items-center gap-4">
-                            <span className="font-semibold text-right">Participantes:</span>
-                            <span>{reservaSelecionada.numeroParticipantes}</span>
-                        </div>
-                    )}
-                    {reservaSelecionada.numeroMesas !== undefined && (
-                        <div className="grid grid-cols-[150px_1fr] items-center gap-4">
-                            <span className="font-semibold text-right">Mesas:</span>
-                            <span>{reservaSelecionada.numeroMesas}</span>
-                        </div>
-                    )}
-                    {reservaSelecionada.numeroCadeiras !== undefined && (
-                        <div className="grid grid-cols-[150px_1fr] items-center gap-4">
-                            <span className="font-semibold text-right">Cadeiras:</span>
-                            <span>{reservaSelecionada.numeroCadeiras}</span>
-                        </div>
-                    )}
-                    {reservaSelecionada.materiaisNecessarios && (
-                         <div className="grid grid-cols-[150px_1fr] items-start gap-4">
-                            <span className="font-semibold text-right">Materiais:</span>
-                            <span className="break-words">{reservaSelecionada.materiaisNecessarios}</span>
-                        </div>
-                    )}
-                </div>
+                    </>
+                )}
+                {editandoReserva && (
+                    <>
+                        <DialogHeader>
+                            <DialogTitle className="font-headline">Alterar Agendamento</DialogTitle>
+                            <DialogDescription>
+                                Faça as alterações necessárias e clique em salvar. A disponibilidade de horários será verificada.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <FormularioEdicaoReserva
+                            reserva={editandoReserva}
+                            reservasExistentes={dadosBloqueio?.reserved || []}
+                            bloqueiosManuais={dadosBloqueio?.manual || []}
+                            onSuccess={onSucessoEdicao}
+                        />
+                    </>
+                )}
             </DialogContent>
         </Dialog>
-      )}
     </div>
   );
 }

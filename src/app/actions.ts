@@ -209,3 +209,46 @@ export async function handleSolicitacaoReservaRecorrente(
        return { sucesso: false, mensagem: "Ocorreu um erro inesperado. Tente novamente." };
     }
 }
+
+
+const EdicaoReservaSchema = DetalhesReservaSchema.omit({ termosDeUso: true });
+
+export async function handleUpdateReserva(
+    reservaId: string,
+    horariosSelecionados: Record<string, string[]>,
+    estadoAnterior: EstadoFormulario,
+    formData: FormData
+): Promise<EstadoFormulario> {
+    const rawData = Object.fromEntries(formData.entries());
+    
+    const dadosParseados = EdicaoReservaSchema.safeParse(rawData);
+
+    if (!dadosParseados.success) {
+        const mensagensErro = dadosParseados.error.errors.map(e => `- ${e.message}`).join("\n");
+        return { sucesso: false, mensagem: `Por favor, corrija os seguintes erros:\n${mensagensErro}` };
+    }
+
+    const dados = dadosParseados.data;
+    
+    if (!horariosSelecionados || Object.keys(horariosSelecionados).length === 0) {
+        return { sucesso: false, mensagem: "Nenhum horário selecionado." };
+    }
+
+    try {
+        const dataReserva = Object.keys(horariosSelecionados)[0];
+        
+        const reservaRef = adminDb.collection("reservas").doc(reservaId);
+
+        await reservaRef.update({
+            ...dados,
+            horariosSelecionados,
+            dataReserva: dataReserva,
+        });
+
+        return { sucesso: true, mensagem: "Agendamento atualizado com sucesso!" };
+        
+    } catch (error) {
+        console.error("Erro em handleUpdateReserva:", error);
+        return { sucesso: false, mensagem: "Ocorreu um erro inesperado ao atualizar. Tente novamente." };
+    }
+}
