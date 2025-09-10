@@ -211,7 +211,23 @@ export async function handleSolicitacaoReservaRecorrente(
 }
 
 
-const EdicaoReservaSchema = DetalhesReservaSchema.omit({ termosDeUso: true });
+const EdicaoReservaSchema = DetalhesReservaSchema.innerType().omit({ termosDeUso: true }).superRefine((data, ctx) => {
+    if (data.tipoOrgao === 'interno' && (!data.departamento || data.departamento.trim().length === 0)) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Departamento é obrigatório para órgão interno.",
+            path: ["departamento"],
+        });
+    }
+    if (data.tipoOrgao === 'externo' && (!data.organizacaoExterna || data.organizacaoExterna.trim().length === 0)) {
+         ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Nome do órgão é obrigatório.",
+            path: ["organizacaoExterna"],
+        });
+    }
+});
+
 
 export async function handleUpdateReserva(
     reservaId: string,
