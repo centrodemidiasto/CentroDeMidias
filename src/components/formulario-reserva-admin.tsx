@@ -12,11 +12,13 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { handleSolicitacaoReservaAdmin } from '@/app/actions';
 import { HorariosSelecionados } from './formulario-agendamento';
+import { zodResolver } from '@hookform/resolvers/zod';
 
 const ReservaAdminSchema = z.object({
-    nomeCompleto: z.string(),
-    departamento: z.string(),
-    modalidadesReserva: z.string(),
+    tituloGravacao: z.string().min(3, { message: "Título da gravação é obrigatório." }),
+    nomeCompleto: z.string().min(3, { message: "Nome do responsável é obrigatório." }),
+    departamento: z.string().min(2, { message: "Setor/Departamento é obrigatório." }),
+    modalidadesReserva: z.string({ required_error: "Selecione uma modalidade." }),
     estudio: z.string(),
 });
 
@@ -38,7 +40,9 @@ export default function FormularioReservaAdmin({ horariosSelecionados, estudio, 
     const { toast } = useToast();
     
     const form = useForm<z.infer<typeof ReservaAdminSchema>>({
+        resolver: zodResolver(ReservaAdminSchema),
         defaultValues: {
+            tituloGravacao: '',
             nomeCompleto: '',
             departamento: 'GMEACM',
             modalidadesReserva: undefined,
@@ -77,12 +81,25 @@ export default function FormularioReservaAdmin({ horariosSelecionados, estudio, 
             <form onSubmit={form.handleSubmit(formAction)} className="space-y-6 max-h-[70vh] overflow-y-auto pr-4">
                  <FormField
                     control={form.control}
-                    name="nomeCompleto"
+                    name="tituloGravacao"
                     render={({ field }) => (
                         <FormItem>
                             <FormLabel>Título da Gravação</FormLabel>
                             <FormControl>
                                 <Input placeholder="Ex: Aula Prof. Fraga" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                 <FormField
+                    control={form.control}
+                    name="nomeCompleto"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Nome do Responsável</FormLabel>
+                            <FormControl>
+                                <Input placeholder="Nome e sobrenome" {...field} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>

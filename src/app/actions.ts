@@ -42,6 +42,7 @@ const DetalhesReservaSchema = z.object({
 });
 
 const ReservaAdminSchema = z.object({
+    tituloGravacao: z.string().min(3, { message: "Título da gravação é obrigatório." }),
     nomeCompleto: z.string().min(3, { message: "Nome do responsável é obrigatório." }),
     departamento: z.string().min(2, { message: "Setor/Departamento é obrigatório." }),
     modalidadesReserva: z.string({ required_error: "Selecione uma modalidade." }),
