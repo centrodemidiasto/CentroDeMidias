@@ -9,7 +9,7 @@ interface AutoScrollProps {
   pauseDuration?: number; // ms
 }
 
-export default function AutoScroll({ children, speed = 0.5, pauseDuration = 5000 }: AutoScrollProps) {
+export default function AutoScroll({ children, speed = 0.2, pauseDuration = 0 }: AutoScrollProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const animationFrameRef = useRef<number>();
   const timeoutRef = useRef<NodeJS.Timeout>();
@@ -43,9 +43,13 @@ export default function AutoScroll({ children, speed = 0.5, pauseDuration = 5000
       } else { // direction is 'up'
         // Check if we've reached the top
         if (window.scrollY < 1) {
-            setDirection('down');
             stopScroll();
-            timeoutRef.current = setTimeout(startScroll, pauseDuration);
+            timeoutRef.current = setTimeout(() => {
+                 if(isMounted) {
+                    setDirection('down');
+                    startScroll();
+                }
+            }, pauseDuration);
             return; // Stop this frame
         }
         window.scrollBy(0, -speed);
