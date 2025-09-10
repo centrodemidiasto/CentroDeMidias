@@ -1,6 +1,6 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookOpen, Activity, Video, RadioTower } from "lucide-react";
+import { BookOpen, Activity, Video, RadioTower, Podcast } from "lucide-react";
 import Image from "next/image";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 
@@ -171,6 +171,15 @@ export default function SobrePage() {
                   </h3>
                   <p className="text-sm text-muted-foreground font-body text-justify">
                    As lives realizadas e transmitidas pelo centro de mídias educacionais são realizadas com equipamentos e softwares de última geração, em um estúdio muito confortável e equipado onde todo o trabalho é realizado por uma equipe totalmente qualificada e preparada para as diversas formas de transmissão online.
+                  </p>
+                </div>
+                 <div>
+                  <h3 className="font-semibold font-headline flex items-center gap-2 mb-1">
+                    <Podcast className="w-5 h-5 text-accent" />
+                    Podcast
+                  </h3>
+                  <p className="text-sm text-muted-foreground font-body text-justify">
+                    O Profecast (podcast autoral do Centro de Mídias) é um programa semanal em formato de podcast onde será abordada entrevista com os membros da comunidade educacional
                   </p>
                 </div>
               </div>

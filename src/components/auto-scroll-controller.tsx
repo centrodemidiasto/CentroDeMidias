@@ -14,7 +14,7 @@ interface AutoScrollControllerProps {
 
 export default function AutoScrollController({
   targetId,
-  speed = 0.2,
+  speed = 0.5,
   pauseDuration = 5000,
 }: AutoScrollControllerProps) {
   const [isScrolling, setIsScrolling] = useState(false);
