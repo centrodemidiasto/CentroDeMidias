@@ -18,7 +18,6 @@ Este é um sistema completo para o agendamento e gerenciamento de horários dos 
 - **Componentes UI**: [Shadcn/ui](https://ui.shadcn.com/)
 - **Backend & Banco de Dados**: [Firebase](https://firebase.google.com/) (Firestore para o banco de dados e Firebase Authentication para login)
 - **Formulários**: [React Hook Form](https://react-hook-form.com/) com [Zod](https://zod.dev/) para validação de schemas.
-- **IA (Inteligência Artificial)**: [Genkit](https://firebase.google.com/docs/genkit) (para futuras integrações de IA).
 
 ## 📂 Estrutura do Projeto
 
@@ -61,29 +60,8 @@ src
 - Node.js (v18 ou superior)
 - `npm` ou `yarn`
 
-### 1. Variáveis de Ambiente
 
-Para rodar este projeto, você precisará de credenciais do Firebase. Crie um arquivo `.env.local` na raiz do projeto e adicione as seguintes variáveis:
-
-```env
-# Credenciais do Firebase para o Cliente (Client-Side)
-NEXT_PUBLIC_FIREBASE_API_KEY="AIza..."
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="seu-projeto.firebaseapp.com"
-NEXT_PUBLIC_FIREBASE_PROJECT_ID="seu-projeto"
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="seu-projeto.appspot.com"
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="..."
-NEXT_PUBLIC_FIREBASE_APP_ID="1:..."
-
-# Credenciais do Firebase Admin SDK para o Servidor (Server-Side)
-# Gere isso no Console do Firebase > Configurações do Projeto > Contas de Serviço
-FIREBASE_ADMIN_PROJECT_ID="seu-projeto"
-FIREBASE_ADMIN_CLIENT_EMAIL="firebase-adminsdk-...@seu-projeto.iam.gserviceaccount.com"
-FIREBASE_ADMIN_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
-```
-
-**Importante**: Ao copiar a `PRIVATE_KEY` do arquivo JSON do Firebase, certifique-se de que as quebras de linha `\n` sejam preservadas.
-
-### 2. Instalação das Dependências
+### 1. Instalação das Dependências
 
 Abra o terminal na raiz do projeto e execute o seguinte comando:
 
@@ -91,7 +69,7 @@ Abra o terminal na raiz do projeto e execute o seguinte comando:
 npm install
 ```
 
-### 3. Executando o Projeto
+### 2. Executando o Projeto
 
 Para iniciar o servidor de desenvolvimento, execute:
 
@@ -100,3 +78,7 @@ npm run dev
 ```
 
 A aplicação estará disponível em `http://localhost:9002` (ou outra porta, se a 9002 estiver em uso).
+
+### 3. Variaveis de Ambiente
+
+Para fins de segurança não será documentado

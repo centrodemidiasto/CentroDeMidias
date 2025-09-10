@@ -14,12 +14,12 @@ interface AutoScrollControllerProps {
 
 export default function AutoScrollController({
   targetId,
-  speed = 0.5,
-  pauseDuration = 5000,
+  speed = 0.2,
+  pauseDuration = 10000,
 }: AutoScrollControllerProps) {
   const [isScrolling, setIsScrolling] = useState(false);
   const animationFrameId = useRef<number | null>(null);
-  const isLoopingRef = useRef(false); // To prevent multiple loops
+  const isLoopingRef = useRef(false); // To prevent multiple loops from triggering
   const { toast } = useToast();
 
   const stopScroll = useCallback(() => {
@@ -58,6 +58,7 @@ export default function AutoScrollController({
     const observer = new IntersectionObserver(
       (entries) => {
         const entry = entries[0];
+        // Only trigger if scrolling down and not already in a loop transition
         if (entry.isIntersecting && isScrolling && !isLoopingRef.current) {
           isLoopingRef.current = true; // Mark as looping
           stopScroll();
