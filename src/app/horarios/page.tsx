@@ -10,6 +10,7 @@ import CurrentTime from "@/components/current-time";
 import Image from "next/image";
 import RefreshButton from "@/components/refresh-button";
 import { Badge } from "@/components/ui/badge";
+import AutoScrollController from "@/components/auto-scroll-controller";
 
 export const revalidate = 60; // Revalida a cada 60 segundos
 export const dynamic = 'force-dynamic';
@@ -117,7 +118,11 @@ export default async function PaginaHorarios() {
         <CurrentTime />
     </header>
 
-    <RefreshButton />
+    <div className="absolute top-8 right-8 flex items-center gap-2">
+      <RefreshButton />
+      <AutoScrollController targetId="horarios-footer-trigger" />
+    </div>
+
 
     <main>
         {reservasAgrupadas.length > 0 ? (
@@ -181,7 +186,7 @@ export default async function PaginaHorarios() {
         )}
     </main>
     <footer id="horarios-footer" className="text-center text-gray-500 mt-12 text-base">
-            <p>Horários sujeitos a alteração sem aviso prévio.</p>
+            <p id="horarios-footer-trigger">Horários sujeitos a alteração sem aviso prévio.</p>
         </footer>
     </div>
   );

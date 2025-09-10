@@ -17,7 +17,6 @@ export default function RefreshButton() {
   };
 
   return (
-    <div className="absolute top-8 right-8">
       <Button
         variant="ghost"
         size="icon"
@@ -28,6 +27,5 @@ export default function RefreshButton() {
       >
         <RefreshCw className={`h-6 w-6 ${isPending ? 'animate-spin' : ''}`} />
       </Button>
-    </div>
   );
 }
