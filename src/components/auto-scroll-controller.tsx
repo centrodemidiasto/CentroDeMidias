@@ -8,38 +8,49 @@ import { Play, Pause } from 'lucide-react';
 interface AutoScrollControllerProps {
   targetId: string;
   speed?: number;
+  pauseDuration?: number; 
 }
 
-export default function AutoScrollController({ targetId, speed = 0.2 }: AutoScrollControllerProps) {
+export default function AutoScrollController({ targetId, speed = 0.2, pauseDuration = 2000 }: AutoScrollControllerProps) {
   const [isScrolling, setIsScrolling] = useState(false);
   const animationFrameId = useRef<number | null>(null);
   const controllerRef = useRef<HTMLButtonElement>(null);
 
   const scrollStep = () => {
+    // This function just scrolls down. The loop is managed by start/stop.
     window.scrollBy(0, speed);
     animationFrameId.current = requestAnimationFrame(scrollStep);
   };
 
+  const startScroll = () => {
+    // Prevent multiple loops from starting
+    if (animationFrameId.current) return;
+    console.log('[AutoScroll] Starting scroll loop.');
+    animationFrameId.current = requestAnimationFrame(scrollStep);
+  };
+
+  const stopScroll = () => {
+    if (animationFrameId.current) {
+      console.log('[AutoScroll] Pausing scroll loop.');
+      cancelAnimationFrame(animationFrameId.current);
+      animationFrameId.current = null;
+    }
+  };
+
   const toggleScroll = () => {
+    console.log('[AutoScroll] Scrolling toggled. New state:', !isScrolling);
     setIsScrolling(prev => !prev);
   };
 
   useEffect(() => {
     if (isScrolling) {
-      console.log('[AutoScroll] Starting scroll loop.');
-      animationFrameId.current = requestAnimationFrame(scrollStep);
+      startScroll();
     } else {
-      if (animationFrameId.current) {
-        console.log('[AutoScroll] Pausing scroll loop.');
-        cancelAnimationFrame(animationFrameId.current);
-        animationFrameId.current = null;
-      }
+      stopScroll();
     }
 
     return () => {
-      if (animationFrameId.current) {
-        cancelAnimationFrame(animationFrameId.current);
-      }
+      stopScroll(); // Cleanup on unmount
     };
   }, [isScrolling]);
 
@@ -53,26 +64,27 @@ export default function AutoScrollController({ targetId, speed = 0.2 }: AutoScro
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
+          // Check if the target is intersecting and if we are supposed to be scrolling
           if (entry.isIntersecting && isScrolling) {
             console.log('[AutoScroll] Bottom element intersected. Pausing and returning to top.');
             
             // 1. Stop the current animation frame
-            if (animationFrameId.current) {
-              cancelAnimationFrame(animationFrameId.current);
-              animationFrameId.current = null;
-            }
+            stopScroll();
 
-            // 2. Wait 2 seconds, then jump to top and restart
+            // 2. Wait for the specified duration
             setTimeout(() => {
-              console.log('[AutoScroll] Jumping to top.');
-              window.scrollTo(0, 0);
-              
-              // 3. Restart the scrolling if still active
+              // Ensure we are still in scrolling mode before proceeding
               if (isScrolling) {
-                 console.log('[AutoScroll] Restarting scroll from top.');
-                 animationFrameId.current = requestAnimationFrame(scrollStep);
+                console.log('[AutoScroll] Jumping to top.');
+                window.scrollTo(0, 0);
+                
+                // 3. IMPORTANT: Restart the scrolling from the top
+                console.log('[AutoScroll] Restarting scroll from top.');
+                startScroll();
+              } else {
+                console.log('[AutoScroll] Scroll was toggled off during pause. Not restarting.');
               }
-            }, 2000);
+            }, pauseDuration);
           }
         });
       },
@@ -94,11 +106,11 @@ export default function AutoScrollController({ targetId, speed = 0.2 }: AutoScro
     return () => {
         observer.disconnect();
         window.removeEventListener('keydown', handleKeyDown);
-        if (animationFrameId.current) {
-          cancelAnimationFrame(animationFrameId.current);
-        }
+        stopScroll(); // Final cleanup
     };
-  }, [targetId, isScrolling]); // Re-run effect if isScrolling changes to attach setTimeout correctly
+    // We add isScrolling to the dependency array to ensure the setTimeout callback
+    // always has the latest `isScrolling` value.
+  }, [targetId, isScrolling, pauseDuration]); 
 
   return (
       <Button
