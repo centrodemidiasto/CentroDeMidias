@@ -23,7 +23,7 @@ import LegendaCalendarioAdmin from "./legenda-calendario-admin";
 import { ReservaExistente, BloqueioManual } from "@/lib/types";
 
 type HorariosSelecionados = {
-  [key: string]: string[];
+  [key: string]: string[]; // Ex: { "2024-08-15_Estúdio 1": ["09:00", "10:00"] }
 };
 
 
@@ -40,7 +40,7 @@ const ESTUDIOS = ["Estúdio 1", "Estúdio 2"];
 export default function FormularioBloqueioHorarios({ reservasIniciais, bloqueiosManuaisIniciais }: FormularioBloqueioHorariosProps) {
   const hoje = startOfToday();
   const [dataAtual, setDataAtual] = useState(new Date());
-  const [horariosSelecionados, setHorariosSelecionados] = useState<Record<string, Record<string, string[]>>>({});
+  const [horariosSelecionados, setHorariosSelecionados] = useState<HorariosSelecionados>({});
   const [reservasExistentes] = useState<ReservaExistente[]>(reservasIniciais);
   const [bloqueiosManuais, setBloqueiosManuais] = useState<BloqueioManual[]>(bloqueiosManuaisIniciais);
   const [enviando, setEnviando] = useState(false);
@@ -50,7 +50,7 @@ export default function FormularioBloqueioHorarios({ reservasIniciais, bloqueios
   const buscarBloqueiosManuais = async () => {
     const bloqueiosRef = collection(clientDb, "horariosBloqueados");
     const querySnapshot = await getDocs(bloqueiosRef);
-    const novosBloqueios = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as BloqueioManual);
+    const novosBloqueios = querySnapshot.docs.map(doc => ({ ...doc.data() }) as BloqueioManual);
     setBloqueiosManuais(novosBloqueios);
   }
 
@@ -66,28 +66,21 @@ export default function FormularioBloqueioHorarios({ reservasIniciais, bloqueios
   }, [dataAtual, hoje]);
 
   const handleSelecaoHorario = (dia: Date, horario: string, estudio: string) => {
-    const chaveData = format(dia, "yyyy-MM-dd");
+    const chaveDataEstudio = `${format(dia, "yyyy-MM-dd")}_${estudio}`;
   
     setHorariosSelecionados((prev) => {
-        const horariosPorEstudio = prev[chaveData] || {};
-        const horariosDoEstudio = horariosPorEstudio[estudio] || [];
+        const horariosDoSlot = prev[chaveDataEstudio] || [];
         const novosHorarios = { ...prev };
 
-        if (horariosDoEstudio.includes(horario)) {
-            const novosHorariosDoEstudio = horariosDoEstudio.filter(h => h !== horario);
-            if (novosHorariosDoEstudio.length > 0) {
-                novosHorarios[chaveData][estudio] = novosHorariosDoEstudio;
+        if (horariosDoSlot.includes(horario)) {
+            const novosHorariosDoSlot = horariosDoSlot.filter(h => h !== horario);
+            if (novosHorariosDoSlot.length > 0) {
+                novosHorarios[chaveDataEstudio] = novosHorariosDoSlot;
             } else {
-                delete novosHorarios[chaveData][estudio];
-                if (Object.keys(novosHorarios[chaveData]).length === 0) {
-                    delete novosHorarios[chaveData];
-                }
+                delete novosHorarios[chaveDataEstudio];
             }
         } else {
-             if (!novosHorarios[chaveData]) {
-                novosHorarios[chaveData] = {};
-            }
-            novosHorarios[chaveData][estudio] = [...horariosDoEstudio, horario];
+             novosHorarios[chaveDataEstudio] = [...horariosDoSlot, horario];
         }
       
         return novosHorarios;
@@ -99,9 +92,7 @@ export default function FormularioBloqueioHorarios({ reservasIniciais, bloqueios
   };
 
   const totalHorariosSelecionados = Object.values(horariosSelecionados).reduce(
-    (total, horariosPorEstudio) => total + Object.values(horariosPorEstudio).reduce(
-      (subtotal, horarios) => subtotal + horarios.length, 0
-    ), 0
+    (total, horarios) => total + horarios.length, 0
   );
 
 
@@ -111,28 +102,27 @@ export default function FormularioBloqueioHorarios({ reservasIniciais, bloqueios
       const batch = writeBatch(clientDb);
       const bloqueiosRef = collection(clientDb, 'horariosBloqueados');
       
-      const mudancas: { data: string, estudio: string, horario: string }[] = [];
-      for (const data in horariosSelecionados) {
-        for (const estudio in horariosSelecionados[data]) {
-          for (const horario of horariosSelecionados[data][estudio]) {
-            mudancas.push({ data, estudio, horario });
-          }
-        }
+      const mudancas: { data: string, estudio: string, horarios: string[] }[] = [];
+      for (const chave in horariosSelecionados) {
+          const [data, estudio] = chave.split('_');
+          mudancas.push({ data, estudio, horarios: horariosSelecionados[chave] });
       }
 
       // Agrupar mudanças por data e estudio
       const mudancasAgrupadas: Record<string, { paraBloquear: string[], paraDesbloquear: string[] }> = {};
-      mudancas.forEach(({ data, estudio, horario }) => {
-          const key = `${data}_${estudio}`;
-          if (!mudancasAgrupadas[key]) {
-              mudancasAgrupadas[key] = { paraBloquear: [], paraDesbloquear: [] };
-          }
-          const estaBloqueadoAtualmente = bloqueiosManuais.some(b => b.data === data && b.estudio === estudio && b.horarios.includes(horario));
-          if (estaBloqueadoAtualmente) {
-              mudancasAgrupadas[key].paraDesbloquear.push(horario);
-          } else {
-              mudancasAgrupadas[key].paraBloquear.push(horario);
-          }
+      mudancas.forEach(({ data, estudio, horarios }) => {
+          horarios.forEach(horario => {
+            const key = `${data}_${estudio}`;
+            if (!mudancasAgrupadas[key]) {
+                mudancasAgrupadas[key] = { paraBloquear: [], paraDesbloquear: [] };
+            }
+            const estaBloqueadoAtualmente = bloqueiosManuais.some(b => b.data === data && b.estudio === estudio && b.horarios.includes(horario));
+            if (estaBloqueadoAtualmente) {
+                mudancasAgrupadas[key].paraDesbloquear.push(horario);
+            } else {
+                mudancasAgrupadas[key].paraBloquear.push(horario);
+            }
+          });
       });
       
       const promises = Object.keys(mudancasAgrupadas).map(async key => {
@@ -223,8 +213,8 @@ export default function FormularioBloqueioHorarios({ reservasIniciais, bloqueios
                        {SLOTS_DE_TEMPO.map(horario => (
                           <div key={horario} className="grid grid-cols-2 gap-1">
                             {ESTUDIOS.map(estudio => {
-                                const chaveData = format(dia, "yyyy-MM-dd");
-                                const estaSelecionado = horariosSelecionados[chaveData]?.[estudio]?.includes(horario);
+                                const chaveDataEstudio = `${format(dia, "yyyy-MM-dd")}_${estudio}`;
+                                const estaSelecionado = horariosSelecionados[chaveDataEstudio]?.includes(horario);
                                 const slotReservado = reservasIniciais.find(r => r.data === chaveDataParaReserva && r.horarios.includes(horario) && r.estudio === estudio);
                                 const bloqueadoManualmente = bloqueiosManuais.find(b => b.data === chaveDataParaReserva && b.horarios.includes(horario) && b.estudio === estudio);
 
@@ -326,5 +316,3 @@ export default function FormularioBloqueioHorarios({ reservasIniciais, bloqueios
     </>
   );
 }
-
-    
