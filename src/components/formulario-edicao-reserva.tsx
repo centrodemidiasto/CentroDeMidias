@@ -21,18 +21,18 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/t
 import { zodResolver } from '@hookform/resolvers/zod';
 
 const EdicaoReservaSchema = z.object({
-    nomeCompleto: z.string().min(3, { message: "Nome completo é obrigatório." }),
-    email: z.string().email({ message: "E-mail inválido." }),
-    telefone: z.string().min(15, { message: "Telefone inválido." }).optional().or(z.literal('')),
-    tituloGravacao: z.string().min(3, { message: "Título da gravação é obrigatório." }),
+    nomeCompleto: z.string().optional(),
+    email: z.string().optional(),
+    telefone: z.string().optional(),
+    tituloGravacao: z.string().optional(),
     tipoOrgao: z.enum(["interno", "externo"]),
     departamento: z.string().optional(),
     organizacaoExterna: z.string().optional(),
     modalidadesReserva: z.string(),
     materiaisNecessarios: z.string().optional(),
-    numeroParticipantes: z.coerce.number().min(1, { message: "Informe o número de participantes." }),
-    numeroMesas: z.coerce.number().min(0, "Mínimo 0.").max(3, "Máximo 3 mesas."),
-    numeroCadeiras: z.coerce.number().min(0, "Mínimo 0.").max(10, "Máximo 10 cadeiras."),
+    numeroParticipantes: z.coerce.number().optional(),
+    numeroMesas: z.coerce.number().optional(),
+    numeroCadeiras: z.coerce.number().optional(),
     estudio: z.string(),
 }).superRefine((data, ctx) => {
     if (data.tipoOrgao === 'interno' && (!data.departamento || data.departamento.trim().length === 0)) {
@@ -98,6 +98,8 @@ export default function FormularioEdicaoReserva({ reserva, reservasExistentes, b
         resolver: zodResolver(EdicaoReservaSchema),
         defaultValues: {
             ...reserva,
+            nomeCompleto: reserva.nomeCompleto ?? '',
+            email: reserva.email ?? '',
             tituloGravacao: reserva.tituloGravacao ?? '',
             telefone: reserva.telefone ?? '',
             departamento: reserva.departamento ?? '',
@@ -334,39 +336,39 @@ export default function FormularioEdicaoReserva({ reserva, reservasExistentes, b
                                 control={form.control}
                                 name="numeroParticipantes"
                                 render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Nº Partic.</FormLabel>
-                                    <FormControl>
-                                    <Input type="number" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
+                                    <FormItem>
+                                        <FormLabel>Nº Partic.</FormLabel>
+                                        <FormControl>
+                                            <Input type="number" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
                                 )}
                             />
                             <FormField
                                 control={form.control}
                                 name="numeroMesas"
                                 render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Nº Mesas</FormLabel>
-                                    <FormControl>
-                                    <Input type="number" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
+                                    <FormItem>
+                                        <FormLabel>Nº Mesas</FormLabel>
+                                        <FormControl>
+                                            <Input type="number" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
                                 )}
                             />
                             <FormField
                                 control={form.control}
                                 name="numeroCadeiras"
                                 render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Nº Cadeiras</FormLabel>
-                                    <FormControl>
-                                    <Input type="number" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
+                                    <FormItem>
+                                        <FormLabel>Nº Cadeiras</FormLabel>
+                                        <FormControl>
+                                            <Input type="number" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
                                 )}
                             />
                         </div>
@@ -431,5 +433,3 @@ export default function FormularioEdicaoReserva({ reserva, reservasExistentes, b
         </TooltipProvider>
     );
 }
-
-    

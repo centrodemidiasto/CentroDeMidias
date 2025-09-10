@@ -211,7 +211,21 @@ export async function handleSolicitacaoReservaRecorrente(
 }
 
 
-const EdicaoReservaSchema = DetalhesReservaSchema.innerType().omit({ termosDeUso: true }).superRefine((data, ctx) => {
+const EdicaoReservaSchema = z.object({
+    nomeCompleto: z.string().optional(),
+    email: z.string().optional(),
+    telefone: z.string().optional(),
+    tituloGravacao: z.string().optional(),
+    tipoOrgao: z.enum(["interno", "externo"]),
+    departamento: z.string().optional(),
+    organizacaoExterna: z.string().optional(),
+    modalidadesReserva: z.string(),
+    materiaisNecessarios: z.string().optional(),
+    numeroParticipantes: z.coerce.number().optional(),
+    numeroMesas: z.coerce.number().optional(),
+    numeroCadeiras: z.coerce.number().optional(),
+    estudio: z.string(),
+}).superRefine((data, ctx) => {
     if (data.tipoOrgao === 'interno' && (!data.departamento || data.departamento.trim().length === 0)) {
         ctx.addIssue({
             code: z.ZodIssueCode.custom,
