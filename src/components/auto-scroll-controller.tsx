@@ -17,26 +17,33 @@ export default function AutoScrollController({ targetId, speed = 0.5 }: AutoScro
   const controllerRef = useRef<HTMLButtonElement>(null);
 
   const scrollStep = () => {
+    // Detect top
+    if (directionRef.current === 'up' && window.scrollY <= 0) {
+      console.log(`[AutoScroll] Reached top. Changing direction to 'down'.`);
+      directionRef.current = 'down';
+    }
+
     if (directionRef.current === 'down') {
       window.scrollBy(0, speed);
     } else {
       window.scrollBy(0, -speed);
     }
+    
+    // Continue the loop
     animationFrameId.current = requestAnimationFrame(scrollStep);
   };
   
   const toggleScroll = () => {
     setIsScrolling(prev => !prev);
-    console.log(`[AutoScroll] Scrolling toggled. New state: ${!isScrolling}`);
   }
 
   useEffect(() => {
     if (isScrolling) {
-      console.log('[AutoScroll] Starting scroll loop.');
+      console.log(`[AutoScroll] Starting scroll. Direction: ${directionRef.current}`);
       animationFrameId.current = requestAnimationFrame(scrollStep);
     } else {
       if (animationFrameId.current) {
-        console.log('[AutoScroll] Pausing scroll loop.');
+        console.log('[AutoScroll] Pausing scroll.');
         cancelAnimationFrame(animationFrameId.current);
         animationFrameId.current = null;
       }
@@ -51,50 +58,41 @@ export default function AutoScrollController({ targetId, speed = 0.5 }: AutoScro
 
   useEffect(() => {
     const targetElement = document.getElementById(targetId);
-    const topElement = controllerRef.current;
 
-    if (!targetElement || !topElement) {
-        console.error('[AutoScroll] Target or Top element not found.');
+    if (!targetElement) {
+        console.error('[AutoScroll] Target element not found.');
         return;
     }
+    console.log('[AutoScroll] Setting up bottom observer.');
 
-    console.log('[AutoScroll] Setting up observers.');
-
-    // Observer for the bottom element
     const bottomObserver = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting && directionRef.current === 'down') {
-            console.log(`[AutoScroll] Bottom element intersected. Current direction: ${directionRef.current}. Changing to 'up'.`);
+            console.log(`[AutoScroll] Reached bottom. Changing direction to 'up'.`);
             directionRef.current = 'up';
           }
         });
       },
       { threshold: 0.1 }
     );
-    bottomObserver.observe(targetElement);
-    console.log(`[AutoScroll] Bottom observer attached to #${targetId}.`);
 
-    // Observer for the top element (the controller itself)
-    const topObserver = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          // Additional check for scrollY to prevent it from firing when the page loads at the top.
-          if (entry.isIntersecting && directionRef.current === 'up' && window.scrollY < 10) {
-            console.log(`[AutoScroll] Top element intersected. Current direction: ${directionRef.current}. Changing to 'down'.`);
-             directionRef.current = 'down';
-          }
-        });
-      },
-      { threshold: 0.9 } // <-- CORREÇÃO: Alterado de 1.0 para 0.9
-    );
-    topObserver.observe(topElement);
-    console.log('[AutoScroll] Top observer attached to controller button.');
+    bottomObserver.observe(targetElement);
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+        if (event.altKey && event.key.toLowerCase() === 'c') {
+            event.preventDefault();
+            console.log('[AutoScroll] Hotkey pressed.');
+            toggleScroll();
+        }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
 
     return () => {
-        console.log('[AutoScroll] Disconnecting observers.');
+        console.log('[AutoScroll] Disconnecting observer.');
         bottomObserver.disconnect();
-        topObserver.disconnect();
+        window.removeEventListener('keydown', handleKeyDown);
     };
   }, [targetId]);
 
