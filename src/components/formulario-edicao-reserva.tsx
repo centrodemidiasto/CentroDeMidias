@@ -294,8 +294,8 @@ export default function FormularioEdicaoReserva({ reserva, reservasExistentes, b
                         <FormField control={form.control} name="materiaisNecessarios" render={({ field }) => ( <FormItem> <FormLabel>Materiais necessários (Opcional)</FormLabel> <FormControl> <Textarea placeholder="Ex: Mesa, tapetes, cadeira, luminária, e outros..." {...field} /> </FormControl> <FormMessage /> </FormItem> )} />
                         <div className="grid grid-cols-3 gap-4">
                             <FormField control={form.control} name="numeroParticipantes" render={({ field }) => ( <FormItem> <FormLabel>Nº Partic.</FormLabel> <FormControl> <Input type="number" {...field} /> </FormControl> <FormMessage /> </FormItem> )}/>
-                            <FormField control={form.control} name="numeroMesas" render={({ field }) => ( <FormItem> <FormLabel>Nº Mesas</FormLabel> <FormControl> <Input type="number" min="0" max="3" {...field} /> </FormControl> <FormMessage /> </FormItem> )}/>
-                            <FormField control={form.control} name="numeroCadeiras" render={({ field }) => ( <FormItem> <FormLabel>Nº Cadeiras</FormLabel> <FormControl> <Input type="number" min="0" max="10" {...field} /> </FormControl> <FormMessage /> </FormItem> )}/>
+                            <FormField control={form.control} name="numeroMesas" render={({ field }) => ( <FormItem> <FormLabel>Nº Mesas</FormLabel> <FormControl> <Input type="number" {...field} /> </FormControl> <FormMessage /> </FormItem> )}/>
+                            <FormField control={form.control} name="numeroCadeiras" render={({ field }) => ( <FormItem> <FormLabel>Nº Cadeiras</FormLabel> <FormControl> <Input type="number" {...field} /> </FormControl> <FormMessage /> </FormItem> )}/>
                         </div>
                     </div>
                 </div>
