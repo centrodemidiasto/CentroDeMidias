@@ -19,7 +19,7 @@ export default function AutoScrollController({
 }: AutoScrollControllerProps) {
   const [isScrolling, setIsScrolling] = useState(false);
   const animationFrameId = useRef<number | null>(null);
-  const isLoopingRef = useRef(false); // To prevent multiple loops from triggering
+  const isLoopingRef = useRef(false);
   const { toast } = useToast();
 
   const stopScroll = useCallback(() => {
@@ -30,7 +30,8 @@ export default function AutoScrollController({
   }, []);
 
   const startScroll = useCallback(() => {
-    stopScroll(); // Ensure no multiple loops are running
+    // Garante que não haja loops duplicados
+    stopScroll(); 
 
     const scrollStep = () => {
       window.scrollBy(0, speed);
@@ -39,10 +40,11 @@ export default function AutoScrollController({
     
     animationFrameId.current = requestAnimationFrame(scrollStep);
   }, [speed, stopScroll]);
-
+  
   const toggleScrolling = useCallback(() => {
     setIsScrolling(prev => !prev);
   }, []);
+
 
   useEffect(() => {
     if (isScrolling) {
@@ -50,34 +52,35 @@ export default function AutoScrollController({
     } else {
       stopScroll();
     }
-    // Cleanup on unmount
+    // A limpeza garante que a rolagem pare se o componente for desmontado
     return () => stopScroll();
   }, [isScrolling, startScroll, stopScroll]);
+
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         const entry = entries[0];
-        // Only trigger if scrolling down and not already in a loop transition
+        // Otimização: Apenas aciona se a rolagem estiver ativa e não já em um processo de loop
         if (entry.isIntersecting && isScrolling && !isLoopingRef.current) {
-          isLoopingRef.current = true; // Mark as looping
+          isLoopingRef.current = true;
           stopScroll();
 
           setTimeout(() => {
             window.scrollTo({ top: 0, behavior: 'smooth' });
             
-            // Allow time for smooth scroll to finish before restarting
+            // Aguarda o scroll suave terminar antes de reiniciar
             setTimeout(() => {
               if (isScrolling) {
-                startScroll();
+                 startScroll(); // Reinicia a rolagem
               }
-              isLoopingRef.current = false; // Reset loop flag
-            }, 1000); // Wait for scroll-to-top to complete
+              isLoopingRef.current = false;
+            }, 1000); 
 
           }, pauseDuration);
         }
       },
-      { threshold: 0.1 } // Trigger when 10% of the element is visible
+      { threshold: 0.1 } 
     );
 
     const targetElement = document.getElementById(targetId);
@@ -96,10 +99,15 @@ export default function AutoScrollController({
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.altKey && event.code === 'KeyC') {
         event.preventDefault();
-        toggleScrolling();
-        toast({
-          title: `Rolagem Automática ${!isScrolling ? 'Ativada' : 'Desativada'}`,
-          description: 'Use Alt+C para alternar.',
+        
+        // Usamos a função de callback para obter o estado mais recente
+        setIsScrolling(current => {
+            const nextState = !current;
+             toast({
+                title: `Rolagem Automática ${nextState ? 'Ativada' : 'Desativada'}`,
+                description: 'Use Alt+C para alternar.',
+            });
+            return nextState;
         });
       }
     };
@@ -108,7 +116,7 @@ export default function AutoScrollController({
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isScrolling, toggleScrolling, toast]);
+  }, [toast]);
 
   return (
     <Button
