@@ -4,7 +4,7 @@
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { AlertTriangle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -15,6 +15,7 @@ import { handleSolicitacaoReserva } from '@/app/actions';
 import { HorariosSelecionados } from './formulario-agendamento';
 import { Checkbox } from './ui/checkbox';
 import Link from 'next/link';
+import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 
 const DetalhesReservaSchema = z.object({
     nomeCompleto: z.string(),
@@ -109,6 +110,7 @@ export default function FormularioDetalhesReserva({ horariosSelecionados, estudi
     };
     
     const tipoOrgao = form.watch('tipoOrgao');
+    const modalidadeReserva = form.watch('modalidadesReserva');
 
     return (
         <Form {...form}>
@@ -268,6 +270,16 @@ export default function FormularioDetalhesReserva({ horariosSelecionados, estudi
                         </FormItem>
                     )}
                 />
+                
+                {modalidadeReserva === 'Transmissão ao vivo (Live)' && (
+                    <Alert variant="destructive" className="bg-destructive/5 border-destructive/20 text-destructive">
+                        <AlertTriangle className="h-4 w-4 text-destructive" />
+                        <AlertTitle className="font-headline">Atenção sobre a Live</AlertTitle>
+                        <AlertDescription className="font-body">
+                            O link do Google Meet será criado e fornecido pelos estúdios do Centro de Mídias. Caso já tenha sido criado/divulgado pelo setor demandante, o setor deverá entrar em contato imediato com o centro de mídias após o agendamento.
+                        </AlertDescription>
+                    </Alert>
+                )}
 
                 <FormField
                     control={form.control}
