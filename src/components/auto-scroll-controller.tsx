@@ -14,72 +14,80 @@ export default function AutoScrollController({ targetId, speed = 0.5 }: AutoScro
   const [isScrolling, setIsScrolling] = useState(false);
   const directionRef = useRef<'down' | 'up'>('down');
   const animationFrameId = useRef<number | null>(null);
+  const controllerRef = useRef<HTMLButtonElement>(null);
 
   const scrollStep = () => {
-    // Se a direção é 'up' e já estamos no topo, mude a direção para 'down'.
-    if (directionRef.current === 'up' && window.scrollY <= 0) {
-        directionRef.current = 'down';
-    }
-    
     if (directionRef.current === 'down') {
       window.scrollBy(0, speed);
     } else {
       window.scrollBy(0, -speed);
     }
-
     animationFrameId.current = requestAnimationFrame(scrollStep);
   };
-
-  const startScroll = () => {
-    if (animationFrameId.current === null) {
-      animationFrameId.current = requestAnimationFrame(scrollStep);
-    }
-  };
   
-  const stopScroll = () => {
-    if (animationFrameId.current) {
-      cancelAnimationFrame(animationFrameId.current);
-      animationFrameId.current = null;
-    }
-  };
-
   const toggleScroll = () => {
     setIsScrolling(prev => !prev);
   }
 
   useEffect(() => {
     if (isScrolling) {
-      startScroll();
+      animationFrameId.current = requestAnimationFrame(scrollStep);
     } else {
-      stopScroll();
+      if (animationFrameId.current) {
+        cancelAnimationFrame(animationFrameId.current);
+        animationFrameId.current = null;
+      }
     }
 
-    return () => stopScroll();
+    return () => {
+      if (animationFrameId.current) {
+        cancelAnimationFrame(animationFrameId.current);
+      }
+    };
   }, [isScrolling]);
 
   useEffect(() => {
     const targetElement = document.getElementById(targetId);
-    if (!targetElement) return;
+    const topElement = controllerRef.current;
 
-    const observer = new IntersectionObserver(
+    if (!targetElement || !topElement) return;
+
+    // Observer for the bottom element
+    const bottomObserver = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          // Quando o alvo (rodapé) está visível E estamos rolando para baixo, mude a direção para 'up'
           if (entry.isIntersecting && directionRef.current === 'down') {
             directionRef.current = 'up';
           }
         });
       },
-      { threshold: 1.0 } // 1.0 significa que o elemento precisa estar 100% visível
+      { threshold: 1.0 }
     );
+    bottomObserver.observe(targetElement);
 
-    observer.observe(targetElement);
+    // Observer for the top element (the controller itself)
+    const topObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          // When the controller is visible and we are scrolling up, change direction
+          if (entry.isIntersecting && directionRef.current === 'up') {
+             directionRef.current = 'down';
+          }
+        });
+      },
+      { threshold: 1.0 }
+    );
+    topObserver.observe(topElement);
 
-    return () => observer.disconnect();
+    return () => {
+        bottomObserver.disconnect();
+        topObserver.disconnect();
+    };
   }, [targetId]);
 
   return (
       <Button
+        ref={controllerRef}
         variant="ghost"
         size="icon"
         onClick={toggleScroll}
