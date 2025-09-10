@@ -16,7 +16,7 @@ import { CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { collection, getDocs, writeBatch, doc } from "firebase/firestore";
+import { collection, getDocs, writeBatch, doc, query, where } from "firebase/firestore";
 import { db as clientDb } from "@/lib/firebase";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import LegendaCalendarioAdmin from "./legenda-calendario-admin";
@@ -320,3 +320,5 @@ export default function FormularioBloqueioHorarios({ reservasIniciais, bloqueios
     </>
   );
 }
+
+    
