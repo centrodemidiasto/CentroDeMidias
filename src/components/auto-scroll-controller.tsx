@@ -16,14 +16,15 @@ export default function AutoScrollController({ targetId, speed = 0.5 }: AutoScro
   const animationFrameId = useRef<number | null>(null);
 
   const scrollStep = () => {
+    // Se a direção é 'up' e já estamos no topo, mude a direção para 'down'.
+    if (directionRef.current === 'up' && window.scrollY <= 0) {
+        directionRef.current = 'down';
+    }
+    
     if (directionRef.current === 'down') {
       window.scrollBy(0, speed);
     } else {
       window.scrollBy(0, -speed);
-    }
-
-    if (window.scrollY === 0 && directionRef.current === 'up') {
-        directionRef.current = 'down';
     }
 
     animationFrameId.current = requestAnimationFrame(scrollStep);
@@ -63,12 +64,13 @@ export default function AutoScrollController({ targetId, speed = 0.5 }: AutoScro
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
+          // Quando o alvo (rodapé) está visível E estamos rolando para baixo, mude a direção para 'up'
           if (entry.isIntersecting && directionRef.current === 'down') {
             directionRef.current = 'up';
           }
         });
       },
-      { threshold: 1.0 }
+      { threshold: 1.0 } // 1.0 significa que o elemento precisa estar 100% visível
     );
 
     observer.observe(targetElement);
