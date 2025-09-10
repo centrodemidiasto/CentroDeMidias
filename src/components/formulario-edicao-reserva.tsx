@@ -3,7 +3,7 @@
 
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -18,6 +18,7 @@ import { Calendar } from './ui/calendar';
 import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
+import { zodResolver } from '@hookform/resolvers/zod';
 
 const EdicaoReservaSchema = z.object({
     nomeCompleto: z.string().min(3, { message: "Nome completo é obrigatório." }),
@@ -94,12 +95,7 @@ export default function FormularioEdicaoReserva({ reserva, reservasExistentes, b
     const { toast } = useToast();
     
     const form = useForm<z.infer<typeof EdicaoReservaSchema>>({
-        resolver: z.custom(async (data, ctx) => {
-            const result = await EdicaoReservaSchema.safeParseAsync(data);
-            if (!result.success) {
-                result.error.issues.forEach(issue => ctx.addIssue(issue));
-            }
-        }),
+        resolver: zodResolver(EdicaoReservaSchema),
         defaultValues: {
             ...reserva,
             numeroParticipantes: reserva.numeroParticipantes ?? 1,
@@ -358,5 +354,7 @@ export default function FormularioEdicaoReserva({ reserva, reservasExistentes, b
         </TooltipProvider>
     );
 }
+
+    
 
     
