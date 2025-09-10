@@ -70,7 +70,7 @@ export default function AutoScrollController({ targetId, speed = 0.5 }: AutoScro
           }
         });
       },
-      { threshold: 0.1 } // <-- CORREÇÃO: Dispara quando 10% do elemento estiver visível
+      { threshold: 0.1 }
     );
     bottomObserver.observe(targetElement);
     console.log(`[AutoScroll] Bottom observer attached to #${targetId}.`);
@@ -79,13 +79,14 @@ export default function AutoScrollController({ targetId, speed = 0.5 }: AutoScro
     const topObserver = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          if (entry.isIntersecting && directionRef.current === 'up') {
+          // Additional check for scrollY to prevent it from firing when the page loads at the top.
+          if (entry.isIntersecting && directionRef.current === 'up' && window.scrollY < 10) {
             console.log(`[AutoScroll] Top element intersected. Current direction: ${directionRef.current}. Changing to 'down'.`);
              directionRef.current = 'down';
           }
         });
       },
-      { threshold: 1.0 }
+      { threshold: 0.9 } // <-- CORREÇÃO: Alterado de 1.0 para 0.9
     );
     topObserver.observe(topElement);
     console.log('[AutoScroll] Top observer attached to controller button.');
