@@ -247,21 +247,39 @@ export default function FormularioBloqueioHorarios({ reservasIniciais, bloqueios
                                 }
                                 
                                 if (diaPassado && !slotReservado) {
-                                return ( <Button key={estudio} variant="outline" className="h-8 w-full text-xs bg-muted cursor-not-allowed" disabled> {horario} </Button> );
+                                  return ( <Button key={estudio} variant="outline" className="h-8 w-full text-xs bg-muted cursor-not-allowed" disabled> {horario} </Button> );
                                 }
 
                                 if (estaDesabilitado) {
                                     return (
                                         <div key={estudio}>
-                                        <Tooltip>
-                                            <TooltipTrigger asChild>
-                                            <span tabIndex={0} className="w-full">
-                                                <Button variant="outline" className={cn("h-8 w-full text-xs", classeBotao)} disabled> {horario} </Button>
-                                            </span>
-                                            </TooltipTrigger>
-                                            {conteudoTooltip && ( <TooltipContent><p>{conteudoTooltip}</p></TooltipContent> )}
-                                        </Tooltip>
+                                          <Tooltip>
+                                              <TooltipTrigger asChild>
+                                              <span tabIndex={0} className="w-full">
+                                                  <Button variant="outline" className={cn("h-8 w-full text-xs", classeBotao)} disabled> {horario} </Button>
+                                              </span>
+                                              </TooltipTrigger>
+                                              {conteudoTooltip && ( <TooltipContent><p>{conteudoTooltip}</p></TooltipContent> )}
+                                          </Tooltip>
                                         </div>
+                                    );
+                                }
+                                
+                                if (bloqueadoManualmente) {
+                                    return (
+                                      <Tooltip key={estudio}>
+                                          <TooltipTrigger asChild>
+                                              <Button
+                                                  type="button"
+                                                  variant={estaSelecionado ? "default" : "outline"}
+                                                  className={cn("h-8 text-xs", estaSelecionado ? "bg-primary hover:bg-primary/90" : classeBotao)}
+                                                  onClick={() => handleSelecaoHorario(dia, horario, estudio)}
+                                              >
+                                                  {horario}
+                                              </Button>
+                                          </TooltipTrigger>
+                                          {conteudoTooltip && !estaSelecionado && <TooltipContent><p>{conteudoTooltip}</p></TooltipContent>}
+                                      </Tooltip>
                                     );
                                 }
 
