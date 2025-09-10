@@ -9,7 +9,7 @@ interface AutoScrollProps {
   pauseDuration?: number; // ms
 }
 
-export default function AutoScroll({ children, speed = 0.5, pauseDuration = 2000 }: AutoScrollProps) {
+export default function AutoScroll({ children, speed = 0.5, pauseDuration = 5000 }: AutoScrollProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const animationFrameRef = useRef<number>();
   const timeoutRef = useRef<NodeJS.Timeout>();
@@ -28,11 +28,27 @@ export default function AutoScroll({ children, speed = 0.5, pauseDuration = 2000
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+
   useEffect(() => {
-    const startScroll = () => {
-        if (animationFrameRef.current) {
-            cancelAnimationFrame(animationFrameRef.current);
+    const scrollStep = () => {
+      if (scrollRef.current && scrollingEnabled) {
+        if (direction === 'down') {
+          window.scrollBy(0, speed);
+        } else { // direction is 'up'
+          if (document.documentElement.scrollTop < 1) {
+             setDirection('down');
+             stopScroll();
+             timeoutRef.current = setTimeout(startScroll, pauseDuration);
+             return;
+          }
+          window.scrollBy(0, -speed);
         }
+        animationFrameRef.current = requestAnimationFrame(scrollStep);
+      }
+    };
+
+    const startScroll = () => {
+        if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
         animationFrameRef.current = requestAnimationFrame(scrollStep);
     };
     
@@ -46,32 +62,22 @@ export default function AutoScroll({ children, speed = 0.5, pauseDuration = 2000
         }
     }
 
-    const scrollStep = () => {
-      if (scrollRef.current && scrollingEnabled) {
-        const { scrollHeight, clientHeight, scrollTop } = document.documentElement;
-        const isAtBottom = scrollHeight - clientHeight - scrollTop < 1;
-        const isAtTop = scrollTop < 1;
+    const observer = new IntersectionObserver(
+        (entries) => {
+            const entry = entries[0];
+            if (entry.isIntersecting && direction === 'down') {
+                setDirection('up');
+                stopScroll();
+                timeoutRef.current = setTimeout(startScroll, pauseDuration);
+            }
+        },
+        { threshold: 1.0 }
+    );
 
-        if (direction === 'down') {
-          if (isAtBottom) {
-            setDirection('up');
-            stopScroll();
-            timeoutRef.current = setTimeout(startScroll, pauseDuration);
-            return;
-          }
-          window.scrollBy(0, speed);
-        } else { // direction is 'up'
-          if (isAtTop) {
-            setDirection('down');
-            stopScroll();
-            timeoutRef.current = setTimeout(startScroll, pauseDuration);
-            return;
-          }
-          window.scrollBy(0, -speed);
-        }
-        animationFrameRef.current = requestAnimationFrame(scrollStep);
-      }
-    };
+    const footer = document.getElementById('horarios-footer');
+    if (footer) {
+        observer.observe(footer);
+    }
 
     if (scrollingEnabled) {
         timeoutRef.current = setTimeout(startScroll, pauseDuration);
@@ -81,6 +87,9 @@ export default function AutoScroll({ children, speed = 0.5, pauseDuration = 2000
 
     return () => {
       stopScroll();
+      if (footer) {
+        observer.unobserve(footer);
+      }
     };
   }, [direction, speed, pauseDuration, scrollingEnabled]);
 

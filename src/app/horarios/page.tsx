@@ -182,7 +182,7 @@ export default async function PaginaHorarios() {
             </div>
             )}
         </main>
-        <footer className="text-center text-gray-500 mt-12 text-base">
+        <footer id="horarios-footer" className="text-center text-gray-500 mt-12 text-base">
                 <p>Horários sujeitos a alteração sem aviso prévio.</p>
             </footer>
         </div>
