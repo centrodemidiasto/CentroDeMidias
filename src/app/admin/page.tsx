@@ -25,7 +25,7 @@ import {
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
-import { Loader2, Info, XCircle, CalendarPlus } from 'lucide-react';
+import { Loader2, Info, XCircle, CalendarPlus, Pencil } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO, startOfToday, addHours } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -402,7 +402,7 @@ Materiais: ${formatarMateriais(reserva.materiaisNecessarios)}`;
                                                     <p><strong>Horários:</strong> {times}</p>
                                                     <p><strong>Modalidade:</strong> {reserva.modalidadesReserva}</p>
                                                 </CardContent>
-                                                <CardFooter className="flex-col items-start gap-2">
+                                                <CardFooter className="flex-col items-start gap-3">
                                                     <div className='flex gap-2 w-full'>
                                                         <Dialog>
                                                             <DialogTrigger asChild>
@@ -415,12 +415,18 @@ Materiais: ${formatarMateriais(reserva.materiaisNecessarios)}`;
                                                             <XCircle className="mr-2 h-4 w-4" /> Cancelar
                                                         </Button>
                                                     </div>
-                                                    <Button asChild variant="secondary" className="w-full">
-                                                        <Link href={calendarLink} target="_blank" rel="noopener noreferrer">
-                                                            <CalendarPlus className="mr-2 h-4 w-4" />
-                                                            Google Agenda
-                                                        </Link>
-                                                    </Button>
+                                                    <div className='flex gap-2 w-full'>
+                                                        <Button asChild variant="secondary" size="sm" className="flex-1">
+                                                            <Link href={calendarLink} target="_blank" rel="noopener noreferrer">
+                                                                <CalendarPlus className="mr-2 h-4 w-4" />
+                                                                Google Agenda
+                                                            </Link>
+                                                        </Button>
+                                                        <Button variant="secondary" size="sm" className="flex-1" disabled>
+                                                             <Pencil className="mr-2 h-4 w-4" />
+                                                            Alterar
+                                                        </Button>
+                                                    </div>
                                                 </CardFooter>
                                             </Card>
                                         );
