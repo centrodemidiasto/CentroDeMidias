@@ -98,6 +98,11 @@ export default function FormularioEdicaoReserva({ reserva, reservasExistentes, b
         resolver: zodResolver(EdicaoReservaSchema),
         defaultValues: {
             ...reserva,
+            tituloGravacao: reserva.tituloGravacao ?? '',
+            telefone: reserva.telefone ?? '',
+            departamento: reserva.departamento ?? '',
+            organizacaoExterna: reserva.organizacaoExterna ?? '',
+            materiaisNecessarios: reserva.materiaisNecessarios ?? '',
             numeroParticipantes: reserva.numeroParticipantes ?? 1,
             numeroMesas: reserva.numeroMesas ?? 0,
             numeroCadeiras: reserva.numeroCadeiras ?? 0,
@@ -384,11 +389,11 @@ export default function FormularioEdicaoReserva({ reserva, reservasExistentes, b
                              <div className="grid grid-cols-4 gap-2">
                                 {ALL_SLOTS.map(horario => {
                                     const chaveData = format(dataSelecionada, "yyyy-MM-dd");
-                                    const slotReservado = reservasExistentes.find(r => r.data === chaveData && r.horarios.includes(horario) && r.estudio === estudio && r.id !== reserva.id);
+                                    const slotReservado = reservasExistentes.find(r => r.data === chaveData && r.horarios.includes(horario) && r.estudio === estudio && r.status !== 'rejeitado' && reserva.id !== r.id);
                                     const bloqueadoManualmente = bloqueiosManuais.find(b => b.data === chaveData && b.horarios.includes(horario) && b.estudio === estudio);
                                     
                                     const slotAnterior = getSlotAnterior(horario);
-                                    const slotAnteriorReservado = slotAnterior ? reservasExistentes.find(r => r.data === chaveData && r.horarios.includes(slotAnterior) && r.estudio === estudio && r.id !== reserva.id) : null;
+                                    const slotAnteriorReservado = slotAnterior ? reservasExistentes.find(r => r.data === chaveData && r.horarios.includes(slotAnterior) && r.estudio === estudio && r.status !== 'rejeitado' && reserva.id !== r.id) : null;
                                     const slotAnteriorBloqueado = slotAnterior ? bloqueiosManuais.find(b => b.data === chaveData && b.horarios.includes(slotAnterior) && b.estudio === estudio) : null;
 
                                     const estaDesabilitado = !!slotReservado || !!bloqueadoManualmente || !!slotAnteriorReservado || !!slotAnteriorBloqueado;
@@ -426,3 +431,5 @@ export default function FormularioEdicaoReserva({ reserva, reservasExistentes, b
         </TooltipProvider>
     );
 }
+
+    

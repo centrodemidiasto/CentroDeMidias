@@ -32,15 +32,17 @@ import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
 import LegendaCalendario from "./legenda-calendario";
 import FormularioAgendamentoEspecial from "./formulario-agendamento-especial";
 import FormularioAgendamentoRecorrente from "./formulario-agendamento-recorrente";
+import { Reserva } from "@/lib/types";
 
 export type HorariosSelecionados = {
   [key: string]: string[];
 };
 
 export type ReservaExistente = {
+    id: string;
     data: string;
     horarios: string[];
-    status: 'pendente' | 'aprovado';
+    status: 'pendente' | 'aprovado' | 'rejeitado';
     estudio: string;
 }
 
@@ -64,12 +66,12 @@ async function getReservasExistentes(): Promise<ReservaExistente[]> {
   const querySnapshot = await getDocs(q);
   const slotsReservados: ReservaExistente[] = [];
   querySnapshot.forEach((doc) => {
-      const data = doc.data();
+      const data = doc.data() as Reserva;
       const horarios = data.horariosSelecionados as Record<string, string[]>;
       const status = data.status as 'pendente' | 'aprovado';
       const estudio = data.estudio as string;
       for (const data in horarios) {
-          slotsReservados.push({ data, horarios: horarios[data], status, estudio });
+          slotsReservados.push({ id: doc.id, data, horarios: horarios[data], status, estudio });
       }
   });
   return slotsReservados;
@@ -469,3 +471,5 @@ export default function FormularioAgendamento() {
     </Card>
   );
 }
+
+    

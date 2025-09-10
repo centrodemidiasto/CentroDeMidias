@@ -29,13 +29,13 @@ import { Loader2, Info, XCircle, CalendarPlus, Pencil } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO, startOfToday, addHours } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import FormularioBloqueioHorarios, { BloqueioManual } from '@/components/formulario-bloqueio-horarios';
+import FormularioBloqueioHorarios from '@/components/formulario-bloqueio-horarios';
 import { atualizarStatusReserva } from '@/app/actions';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import FormularioEdicaoReserva from '@/components/formulario-edicao-reserva';
 import { Reserva, ReservaExistente } from '@/lib/types';
-
+import { BloqueioManual } from '@/components/formulario-bloqueio-horarios';
 
 async function getReservasPendentes(): Promise<Reserva[]> {
   const reservasRef = collection(clientDb, "reservas");
@@ -93,7 +93,7 @@ async function getReservasParaBloqueio(): Promise<ReservaExistente[]> {
       const status = data.status as 'pendente' | 'aprovado';
       const estudio = data.estudio;
       for (const data in slots) {
-          slotsReservados.push({ data, horarios: slots[data], status, estudio });
+          slotsReservados.push({ id: doc.id, data, horarios: slots[data], status, estudio });
       }
   });
   return slotsReservados;
@@ -577,3 +577,5 @@ Materiais: ${formatarMateriais(reserva.materiaisNecessarios)}`;
     </div>
   );
 }
+
+    

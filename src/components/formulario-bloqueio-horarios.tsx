@@ -20,24 +20,12 @@ import { collection, getDocs, writeBatch, doc, query, where } from "firebase/fir
 import { db as clientDb } from "@/lib/firebase";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import LegendaCalendarioAdmin from "./legenda-calendario-admin";
+import { ReservaExistente, BloqueioManual } from "@/lib/types";
 
 type HorariosSelecionados = {
   [key: string]: string[];
 };
 
-export type ReservaExistente = {
-    data: string;
-    horarios: string[];
-    status: 'pendente' | 'aprovado';
-    estudio: string;
-}
-
-export type BloqueioManual = {
-    id: string; 
-    data: string;
-    horarios: string[];
-    estudio: string;
-}
 
 interface FormularioBloqueioHorariosProps {
     reservasIniciais: ReservaExistente[];

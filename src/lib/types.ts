@@ -23,8 +23,11 @@ export interface Reserva {
 }
 
 export type ReservaExistente = {
+    id: string;
     data: string;
     horarios: string[];
-    status: 'pendente' | 'aprovado';
+    status: 'pendente' | 'aprovado' | 'rejeitado';
     estudio: string;
 }
+
+    

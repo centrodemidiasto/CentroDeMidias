@@ -8,7 +8,8 @@ import { cn } from "@/lib/utils";
 import FormularioReservaAdmin from "./formulario-reserva-admin";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
 import { Calendar } from "./ui/calendar";
-import { ReservaExistente, BloqueioManual, SLOTS_DE_TEMPO } from "./formulario-agendamento";
+import { SLOTS_DE_TEMPO } from "./formulario-agendamento";
+import { ReservaExistente, BloqueioManual } from "@/lib/types";
 import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
 import { Calendar as CalendarIcon, Clock } from "lucide-react";
@@ -283,3 +284,5 @@ export default function FormularioAgendamentoRecorrente({
         </Form>
     );
 }
+
+    
