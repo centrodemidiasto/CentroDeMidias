@@ -10,40 +10,27 @@ interface AutoScrollControllerProps {
   speed?: number;
 }
 
-export default function AutoScrollController({ targetId, speed = 0.5 }: AutoScrollControllerProps) {
+export default function AutoScrollController({ targetId, speed = 0.2 }: AutoScrollControllerProps) {
   const [isScrolling, setIsScrolling] = useState(false);
-  const directionRef = useRef<'down' | 'up'>('down');
   const animationFrameId = useRef<number | null>(null);
   const controllerRef = useRef<HTMLButtonElement>(null);
 
   const scrollStep = () => {
-    // Detect top
-    if (directionRef.current === 'up' && window.scrollY <= 0) {
-      console.log(`[AutoScroll] Reached top. Changing direction to 'down'.`);
-      directionRef.current = 'down';
-    }
-
-    if (directionRef.current === 'down') {
-      window.scrollBy(0, speed);
-    } else {
-      window.scrollBy(0, -speed);
-    }
-    
-    // Continue the loop
+    window.scrollBy(0, speed);
     animationFrameId.current = requestAnimationFrame(scrollStep);
   };
-  
+
   const toggleScroll = () => {
     setIsScrolling(prev => !prev);
-  }
+  };
 
   useEffect(() => {
     if (isScrolling) {
-      console.log(`[AutoScroll] Starting scroll. Direction: ${directionRef.current}`);
+      console.log('[AutoScroll] Starting scroll loop.');
       animationFrameId.current = requestAnimationFrame(scrollStep);
     } else {
       if (animationFrameId.current) {
-        console.log('[AutoScroll] Pausing scroll.');
+        console.log('[AutoScroll] Pausing scroll loop.');
         cancelAnimationFrame(animationFrameId.current);
         animationFrameId.current = null;
       }
@@ -58,31 +45,46 @@ export default function AutoScrollController({ targetId, speed = 0.5 }: AutoScro
 
   useEffect(() => {
     const targetElement = document.getElementById(targetId);
-
     if (!targetElement) {
-        console.error('[AutoScroll] Target element not found.');
-        return;
+      console.error(`[AutoScroll] Target element #${targetId} not found.`);
+      return;
     }
-    console.log('[AutoScroll] Setting up bottom observer.');
 
-    const bottomObserver = new IntersectionObserver(
+    const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          if (entry.isIntersecting && directionRef.current === 'down') {
-            console.log(`[AutoScroll] Reached bottom. Changing direction to 'up'.`);
-            directionRef.current = 'up';
+          if (entry.isIntersecting && isScrolling) {
+            console.log('[AutoScroll] Bottom element intersected. Pausing and returning to top.');
+            
+            // 1. Stop the current animation frame
+            if (animationFrameId.current) {
+              cancelAnimationFrame(animationFrameId.current);
+              animationFrameId.current = null;
+            }
+
+            // 2. Wait 2 seconds, then jump to top and restart
+            setTimeout(() => {
+              console.log('[AutoScroll] Jumping to top.');
+              window.scrollTo(0, 0);
+              
+              // 3. Restart the scrolling if still active
+              if (isScrolling) {
+                 console.log('[AutoScroll] Restarting scroll from top.');
+                 animationFrameId.current = requestAnimationFrame(scrollStep);
+              }
+            }, 2000);
           }
         });
       },
       { threshold: 0.1 }
     );
 
-    bottomObserver.observe(targetElement);
+    observer.observe(targetElement);
+    console.log(`[AutoScroll] Observer attached to #${targetId}.`);
 
     const handleKeyDown = (event: KeyboardEvent) => {
         if (event.altKey && event.key.toLowerCase() === 'c') {
             event.preventDefault();
-            console.log('[AutoScroll] Hotkey pressed.');
             toggleScroll();
         }
     };
@@ -90,11 +92,13 @@ export default function AutoScrollController({ targetId, speed = 0.5 }: AutoScro
     window.addEventListener('keydown', handleKeyDown);
 
     return () => {
-        console.log('[AutoScroll] Disconnecting observer.');
-        bottomObserver.disconnect();
+        observer.disconnect();
         window.removeEventListener('keydown', handleKeyDown);
+        if (animationFrameId.current) {
+          cancelAnimationFrame(animationFrameId.current);
+        }
     };
-  }, [targetId]);
+  }, [targetId, isScrolling]); // Re-run effect if isScrolling changes to attach setTimeout correctly
 
   return (
       <Button
