@@ -27,13 +27,16 @@ export default function AutoScrollController({ targetId, speed = 0.5 }: AutoScro
   
   const toggleScroll = () => {
     setIsScrolling(prev => !prev);
+    console.log(`[AutoScroll] Scrolling toggled. New state: ${!isScrolling}`);
   }
 
   useEffect(() => {
     if (isScrolling) {
+      console.log('[AutoScroll] Starting scroll loop.');
       animationFrameId.current = requestAnimationFrame(scrollStep);
     } else {
       if (animationFrameId.current) {
+        console.log('[AutoScroll] Pausing scroll loop.');
         cancelAnimationFrame(animationFrameId.current);
         animationFrameId.current = null;
       }
@@ -50,27 +53,34 @@ export default function AutoScrollController({ targetId, speed = 0.5 }: AutoScro
     const targetElement = document.getElementById(targetId);
     const topElement = controllerRef.current;
 
-    if (!targetElement || !topElement) return;
+    if (!targetElement || !topElement) {
+        console.error('[AutoScroll] Target or Top element not found.');
+        return;
+    }
+
+    console.log('[AutoScroll] Setting up observers.');
 
     // Observer for the bottom element
     const bottomObserver = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting && directionRef.current === 'down') {
+            console.log(`[AutoScroll] Bottom element intersected. Current direction: ${directionRef.current}. Changing to 'up'.`);
             directionRef.current = 'up';
           }
         });
       },
-      { threshold: 1.0 }
+      { threshold: 0.1 } // <-- CORREÇÃO: Dispara quando 10% do elemento estiver visível
     );
     bottomObserver.observe(targetElement);
+    console.log(`[AutoScroll] Bottom observer attached to #${targetId}.`);
 
     // Observer for the top element (the controller itself)
     const topObserver = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          // When the controller is visible and we are scrolling up, change direction
           if (entry.isIntersecting && directionRef.current === 'up') {
+            console.log(`[AutoScroll] Top element intersected. Current direction: ${directionRef.current}. Changing to 'down'.`);
              directionRef.current = 'down';
           }
         });
@@ -78,8 +88,10 @@ export default function AutoScrollController({ targetId, speed = 0.5 }: AutoScro
       { threshold: 1.0 }
     );
     topObserver.observe(topElement);
+    console.log('[AutoScroll] Top observer attached to controller button.');
 
     return () => {
+        console.log('[AutoScroll] Disconnecting observers.');
         bottomObserver.disconnect();
         topObserver.disconnect();
     };
