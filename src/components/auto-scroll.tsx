@@ -30,24 +30,31 @@ export default function AutoScroll({ children, speed = 0.5, pauseDuration = 5000
 
 
   useEffect(() => {
+    let isMounted = true;
+
     const scrollStep = () => {
-      if (scrollRef.current && scrollingEnabled) {
-        if (direction === 'down') {
-          window.scrollBy(0, speed);
-        } else { // direction is 'up'
-          if (document.documentElement.scrollTop < 1) {
-             setDirection('down');
-             stopScroll();
-             timeoutRef.current = setTimeout(startScroll, pauseDuration);
-             return;
-          }
-          window.scrollBy(0, -speed);
-        }
-        animationFrameRef.current = requestAnimationFrame(scrollStep);
+      if (!isMounted || !scrollRef.current || !scrollingEnabled) {
+          stopScroll();
+          return;
       }
+
+      if (direction === 'down') {
+        window.scrollBy(0, speed);
+      } else { // direction is 'up'
+        // Check if we've reached the top
+        if (window.scrollY < 1) {
+            setDirection('down');
+            stopScroll();
+            timeoutRef.current = setTimeout(startScroll, pauseDuration);
+            return; // Stop this frame
+        }
+        window.scrollBy(0, -speed);
+      }
+      animationFrameRef.current = requestAnimationFrame(scrollStep);
     };
 
     const startScroll = () => {
+        if (!isMounted || !scrollingEnabled) return;
         if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
         animationFrameRef.current = requestAnimationFrame(scrollStep);
     };
@@ -65,13 +72,18 @@ export default function AutoScroll({ children, speed = 0.5, pauseDuration = 5000
     const observer = new IntersectionObserver(
         (entries) => {
             const entry = entries[0];
+            // If the footer is intersecting and we are scrolling down, change direction to 'up'
             if (entry.isIntersecting && direction === 'down') {
-                setDirection('up');
                 stopScroll();
-                timeoutRef.current = setTimeout(startScroll, pauseDuration);
+                timeoutRef.current = setTimeout(() => {
+                    if(isMounted) {
+                        setDirection('up');
+                        startScroll();
+                    }
+                }, pauseDuration);
             }
         },
-        { threshold: 1.0 }
+        { threshold: 1.0 } // Trigger when 100% of the footer is visible
     );
 
     const footer = document.getElementById('horarios-footer');
@@ -80,12 +92,14 @@ export default function AutoScroll({ children, speed = 0.5, pauseDuration = 5000
     }
 
     if (scrollingEnabled) {
+        // Initial start
         timeoutRef.current = setTimeout(startScroll, pauseDuration);
     } else {
         stopScroll();
     }
 
     return () => {
+      isMounted = false;
       stopScroll();
       if (footer) {
         observer.unobserve(footer);
