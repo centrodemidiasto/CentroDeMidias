@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 
 interface AutoScrollProps {
   children: React.ReactNode;
@@ -16,6 +16,7 @@ export default function AutoScroll({ children, speed = 0.2, pauseDuration = 0 }:
   const [direction, setDirection] = useState<'down' | 'up'>('down');
   const [scrollingEnabled, setScrollingEnabled] = useState(true);
 
+  // Keyboard shortcut to toggle scrolling
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.altKey && event.key.toLowerCase() === 'c') {
@@ -23,93 +24,78 @@ export default function AutoScroll({ children, speed = 0.2, pauseDuration = 0 }:
         setScrollingEnabled(prev => !prev);
       }
     };
-
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  const stopScroll = useCallback(() => {
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+    }
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+  }, []);
 
-  useEffect(() => {
-    let isMounted = true;
+  const startScroll = useCallback(() => {
+    stopScroll(); // Ensure no multiple loops are running
 
     const scrollStep = () => {
-      if (!isMounted || !scrollRef.current || !scrollingEnabled) {
-          stopScroll();
-          return;
+      let currentDirection = direction;
+      
+      // This is a check for the top of the page.
+      if (window.scrollY <= 0 && direction === 'up') {
+        setDirection('down');
+        currentDirection = 'down';
       }
-
-      if (direction === 'down') {
+      
+      if (currentDirection === 'down') {
         window.scrollBy(0, speed);
-      } else { // direction is 'up'
-        // Check if we've reached the top
-        if (window.scrollY < 1) {
-            stopScroll();
-            timeoutRef.current = setTimeout(() => {
-                 if(isMounted) {
-                    setDirection('down');
-                    startScroll();
-                }
-            }, pauseDuration);
-            return; // Stop this frame
-        }
+      } else {
         window.scrollBy(0, -speed);
       }
+
       animationFrameRef.current = requestAnimationFrame(scrollStep);
     };
 
-    const startScroll = () => {
-        if (!isMounted || !scrollingEnabled) return;
-        if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
-        animationFrameRef.current = requestAnimationFrame(scrollStep);
-    };
-    
-    const stopScroll = () => {
-        if (animationFrameRef.current) {
-            cancelAnimationFrame(animationFrameRef.current);
-            animationFrameRef.current = undefined;
-        }
-        if (timeoutRef.current) {
-            clearTimeout(timeoutRef.current);
-        }
+    if (scrollingEnabled) {
+      animationFrameRef.current = requestAnimationFrame(scrollStep);
+    }
+
+  }, [direction, speed, scrollingEnabled, stopScroll]);
+  
+  // Main effect to manage scrolling logic
+  useEffect(() => {
+    if (!scrollingEnabled) {
+      stopScroll();
+      return;
     }
 
     const observer = new IntersectionObserver(
-        (entries) => {
-            const entry = entries[0];
-            // If the footer is intersecting and we are scrolling down, change direction to 'up'
-            if (entry.isIntersecting && direction === 'down') {
-                stopScroll();
-                timeoutRef.current = setTimeout(() => {
-                    if(isMounted) {
-                        setDirection('up');
-                        startScroll();
-                    }
-                }, pauseDuration);
-            }
-        },
-        { threshold: 1.0 } // Trigger when 100% of the footer is visible
+      (entries) => {
+        const entry = entries[0];
+        // If the footer is intersecting and we are scrolling down, change direction
+        if (entry.isIntersecting && direction === 'down') {
+            setDirection('up');
+        }
+      },
+      { threshold: 1.0 } // Trigger when 100% of the element is visible
     );
 
     const footer = document.getElementById('horarios-footer');
     if (footer) {
-        observer.observe(footer);
+      observer.observe(footer);
     }
 
-    if (scrollingEnabled) {
-        // Initial start
-        timeoutRef.current = setTimeout(startScroll, pauseDuration);
-    } else {
-        stopScroll();
-    }
+    startScroll();
 
     return () => {
-      isMounted = false;
       stopScroll();
       if (footer) {
         observer.unobserve(footer);
       }
     };
-  }, [direction, speed, pauseDuration, scrollingEnabled]);
+  }, [scrollingEnabled, direction, startScroll, stopScroll]);
 
   return <div ref={scrollRef}>{children}</div>;
 }
