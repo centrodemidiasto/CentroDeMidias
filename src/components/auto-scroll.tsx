@@ -12,7 +12,6 @@ interface AutoScrollProps {
 export default function AutoScroll({ children, speed = 0.2, pauseDuration = 0 }: AutoScrollProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const animationFrameRef = useRef<number>();
-  const timeoutRef = useRef<NodeJS.Timeout>();
   const [direction, setDirection] = useState<'down' | 'up'>('down');
   const [scrollingEnabled, setScrollingEnabled] = useState(true);
 
@@ -32,37 +31,27 @@ export default function AutoScroll({ children, speed = 0.2, pauseDuration = 0 }:
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
     }
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
   }, []);
-
+  
   const startScroll = useCallback(() => {
-    stopScroll(); // Ensure no multiple loops are running
+    stopScroll();
 
     const scrollStep = () => {
-      let currentDirection = direction;
-      
-      // This is a check for the top of the page.
-      if (window.scrollY <= 0 && direction === 'up') {
-        setDirection('down');
-        currentDirection = 'down';
-      }
-      
-      if (currentDirection === 'down') {
+      if (direction === 'down') {
         window.scrollBy(0, speed);
       } else {
-        window.scrollBy(0, -speed);
+        if (window.scrollY > 0) {
+          window.scrollBy(0, -speed);
+        } else {
+          // Reached the top, change direction
+          setDirection('down');
+        }
       }
-
       animationFrameRef.current = requestAnimationFrame(scrollStep);
     };
 
-    if (scrollingEnabled) {
-      animationFrameRef.current = requestAnimationFrame(scrollStep);
-    }
-
-  }, [direction, speed, scrollingEnabled, stopScroll]);
+    animationFrameRef.current = requestAnimationFrame(scrollStep);
+  }, [direction, speed, stopScroll]);
   
   // Main effect to manage scrolling logic
   useEffect(() => {
