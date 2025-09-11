@@ -165,7 +165,7 @@ export default async function PaginaHorarios() {
                                 </div>
                                 </div>
                                 <div className="text-right">
-                                    <div className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-300 to-blue-500 flex items-center gap-2">
+                                    <div className="text-4xl font-bold text-blue-300 flex items-center gap-2">
                                         <Clock className="w-8 h-8"/>
                                         <span>{times}</span>
                                     </div>
