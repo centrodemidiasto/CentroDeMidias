@@ -327,7 +327,7 @@ export async function handleUpdateReserva(
         return { sucesso: true, mensagem: "Agendamento atualizado com sucesso!" };
         
     } catch (error: any) {
-        return { sucesso: false, mensagem: "Ocorreu um erro inesperado ao atualizar. Tente novamente." };
+        return { sucesso: false, mensagem: `Ocorreu um erro inesperado ao atualizar. Causa: ${error.message}` };
     }
 }
 
@@ -422,6 +422,57 @@ export async function listarUsuarios(): Promise<EstadoFormulario> {
   }
 }
 
-    
 
-    
+const AtualizarNomeSchema = z.object({
+  nome: z.string().min(3, "Nome é obrigatório"),
+  uid: z.string(),
+});
+
+export async function atualizarNomeUsuario(estadoAnterior: EstadoFormulario, formData: FormData): Promise<EstadoFormulario> {
+  const dadosParseados = AtualizarNomeSchema.safeParse(
+    Object.fromEntries(formData.entries())
+  );
+
+  if (!dadosParseados.success) {
+    const mensagensErro = dadosParseados.error.errors.map(e => `- ${e.message}`).join("\n");
+    return { sucesso: false, mensagem: `Erro de validação:\n${mensagensErro}` };
+  }
+
+  const { nome, uid } = dadosParseados.data;
+  
+  try {
+    const auth = getAuth();
+    await auth.updateUser(uid, { displayName: nome });
+    await adminDb.collection('usuarios').doc(uid).update({ nome });
+
+    return { sucesso: true, mensagem: "Nome atualizado com sucesso." };
+  } catch (error: any) {
+    return { sucesso: false, mensagem: `Falha ao atualizar o nome: ${error.message}` };
+  }
+}
+
+const AtualizarSenhaSchema = z.object({
+  senha: z.string().min(6, "A nova senha deve ter no mínimo 6 caracteres"),
+  uid: z.string(),
+});
+
+export async function atualizarSenhaUsuario(estadoAnterior: EstadoFormulario, formData: FormData): Promise<EstadoFormulario> {
+  const dadosParseados = AtualizarSenhaSchema.safeParse(
+    Object.fromEntries(formData.entries())
+  );
+  
+  if (!dadosParseados.success) {
+    const mensagensErro = dadosParseados.error.errors.map(e => `- ${e.message}`).join("\n");
+    return { sucesso: false, mensagem: `Erro de validação:\n${mensagensErro}` };
+  }
+  
+  const { senha, uid } = dadosParseados.data;
+
+  try {
+    const auth = getAuth();
+    await auth.updateUser(uid, { password: senha });
+    return { sucesso: true, mensagem: "Senha atualizada com sucesso." };
+  } catch (error: any) {
+    return { sucesso: false, mensagem: `Falha ao atualizar a senha: ${error.message}` };
+  }
+}

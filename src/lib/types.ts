@@ -53,5 +53,3 @@ export interface Usuario {
   disabled: boolean;
   lastSignInTime?: string;
 }
-
-    

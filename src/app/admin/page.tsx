@@ -36,7 +36,7 @@ import {
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
-import { Loader2, Info, XCircle, CalendarPlus, Pencil, AlertTriangle, UserCog, History } from 'lucide-react';
+import { Loader2, Info, XCircle, CalendarPlus, Pencil, AlertTriangle, UserCog, History, UserCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO, startOfToday, addHours } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -48,6 +48,7 @@ import FormularioEdicaoReserva from '@/components/formulario-edicao-reserva';
 import { Reserva, ReservaExistente } from '@/lib/types';
 import { BloqueioManual } from '@/components/formulario-bloqueio-horarios';
 import GerenciadorUsuarios from '@/components/gerenciador-usuarios';
+import GerenciadorPerfil from '@/components/gerenciador-perfil';
 import { Separator } from '@/components/ui/separator';
 
 async function getReservasPendentes(): Promise<Reserva[]> {
@@ -509,6 +510,25 @@ Materiais: ${formatarMateriais(reserva.materiaisNecessarios)}`;
                 </Card>
             </AccordionItem>
             
+            <AccordionItem value="my-profile">
+                <Card>
+                    <AccordionTrigger className="p-6">
+                        <div className="flex items-center gap-3">
+                            <UserCircle className="h-6 w-6" />
+                            <div className="text-left">
+                                <CardTitle>Meu Perfil</CardTitle>
+                                <CardDescription>Altere seu nome e senha.</CardDescription>
+                            </div>
+                        </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                        <CardContent>
+                            <GerenciadorPerfil usuario={usuario} />
+                        </CardContent>
+                    </AccordionContent>
+                </Card>
+            </AccordionItem>
+            
             {podeGerenciarUsuarios && (
               <AccordionItem value="manage-users">
                   <Card>
@@ -696,5 +716,3 @@ Materiais: ${formatarMateriais(reserva.materiaisNecessarios)}`;
     </div>
   );
 }
-
-    

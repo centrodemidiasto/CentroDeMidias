@@ -45,7 +45,6 @@ const EdicaoReservaSchema = z.object({
     }
 });
 
-
 const ALL_SLOTS = Array.from({ length: (22 - 8) * 2 }, (_, i) => {
     const hour = Math.floor(i / 2) + 8;
     const minute = i % 2 === 0 ? '00' : '30';
@@ -128,7 +127,7 @@ export default function FormularioEdicaoReserva({ reserva, reservasExistentes, b
     const estudio = form.watch('estudio');
     const modalidadesDisponiveis = useMemo(() => getModalidadesReserva(estudio), [estudio]);
 
-    const formAction = async (data: z.infer<typeof EdicaoReservaSchema>>) => {
+    const formAction = async (data: z.infer<typeof EdicaoReservaSchema>) => {
         setEnviando(true);
 
         if (!adminUser) {
@@ -182,8 +181,8 @@ export default function FormularioEdicaoReserva({ reserva, reservasExistentes, b
                         <Shirt className="h-4 w-4 text-blue-600" />
                         <AlertTitle className="font-headline text-blue-800">Vestuário para Gravação no Estúdio 2 (Fundo Verde)</AlertTitle>
                         <AlertDescription className="text-blue-700 space-y-2">
-                            <p><strong>EVITE:</strong> Roupas ou acessórios de qualquer tom de VERDE. Também evite branco, tecidos brilhantes e estampas pequenas (listras finas, xadrez).</p>
-                            <p><strong>PREFIRA:</strong> Roupas de cores sólidas e foscas, como azul, preto, cinza ou vinho.</p>
+                             <p><strong>EVITE:</strong> Roupas ou acessórios de qualquer tom de VERDE. Também evite branco, tecidos brilhantes e estampas pequenas (listras finas, xadrez).</p>
+                             <p><strong>PREFIRA:</strong> Roupas de cores sólidas e foscas, como azul, preto, cinza ou vinho.</p>
                         </AlertDescription>
                     </Alert>
                 )}
