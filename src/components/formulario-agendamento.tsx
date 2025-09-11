@@ -52,7 +52,7 @@ export type BloqueioManual = {
     estudio: string;
 }
 
-export const SLOTS_DE_TEMPO = Array.from({ length: 9 }, (_, i) => `${String(i + 9).padStart(2, "0")}:00`);
+export const SLOTS_DE_TEMPO = ["09:00", "10:00", "11:00", "12:00", "14:00", "15:00", "16:00", "17:00", "18:00"];
 const DIAS_MIN_ANTECEDENCIA = 5;
 const MAX_SEMANAS_ANTECEDENCIA = 8;
 const ESTUDIOS = ["Estúdio 1", "Estúdio 2"];
