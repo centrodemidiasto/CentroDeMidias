@@ -4,7 +4,7 @@ import { Timestamp } from "firebase/firestore";
 export interface HistoricoItem {
     acao: string;
     usuario: string;
-    data: Timestamp;
+    data: Timestamp | Date;
 }
 
 export interface Reserva {
@@ -23,7 +23,7 @@ export interface Reserva {
   numeroCadeiras?: number;
   horariosSelecionados: Record<string, string[]>;
   status: 'pendente' | 'aprovado' | 'rejeitado';
-  criadoEm: Timestamp;
+  criadoEm: Timestamp | Date;
   dataReserva: string; // YYYY-MM-DD
   estudio: string;
   aprovadoPor?: string;
@@ -53,3 +53,5 @@ export interface Usuario {
   disabled: boolean;
   lastSignInTime?: string;
 }
+
+    

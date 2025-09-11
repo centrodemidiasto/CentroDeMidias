@@ -65,6 +65,7 @@ export async function atualizarStatusReserva(
 ) {
     const reservaRef = adminDb.collection("reservas").doc(reservaId);
     const usuarioResponsavel = adminUser.nome || adminUser.email || 'Sistema';
+    const timestamp = new Date();
 
     try {
         const dadosAtualizacao: any = { 
@@ -72,7 +73,7 @@ export async function atualizarStatusReserva(
             historico: FieldValue.arrayUnion({
                 acao: `Status alterado para ${status}`,
                 usuario: usuarioResponsavel,
-                data: FieldValue.serverTimestamp()
+                data: timestamp
             })
         };
 
@@ -124,16 +125,17 @@ export async function handleSolicitacaoReserva(
         }
         
         const dataReserva = Object.keys(horariosSelecionados)[0]; // Formato YYYY-MM-DD
+        const timestamp = new Date();
         await adminDb.collection("reservas").add({
             ...dados,
             horariosSelecionados,
             dataReserva: dataReserva,
-            criadoEm: FieldValue.serverTimestamp(),
+            criadoEm: timestamp,
             status: "pendente",
             historico: FieldValue.arrayUnion({
                 acao: "Solicitação de reserva criada",
                 usuario: dados.email,
-                data: FieldValue.serverTimestamp()
+                data: timestamp
             })
         });
         return { sucesso: true, mensagem: "Seu agendamento foi solicitado com sucesso e está pendente de aprovação!" };
@@ -166,6 +168,7 @@ export async function handleSolicitacaoReservaAdmin(
 
     try {
        const dataReserva = Object.keys(horariosSelecionados)[0];
+       const timestamp = new Date();
        
        await adminDb.collection("reservas").add({
             ...dados,
@@ -173,13 +176,13 @@ export async function handleSolicitacaoReservaAdmin(
             email: 'centrodemidias@seduc.to.gov.br', // Adiciona email padrão para reservas admin
             horariosSelecionados,
             dataReserva: dataReserva, 
-            criadoEm: FieldValue.serverTimestamp(),
+            criadoEm: timestamp,
             status: "aprovado", // Reservas admin são auto-aprovadas
             aprovadoPor: 'Sistema (Admin)',
             historico: FieldValue.arrayUnion({
                 acao: "Agendamento rápido criado e aprovado",
                 usuario: "Sistema (Admin)",
-                data: FieldValue.serverTimestamp()
+                data: timestamp
             })
        });
 
@@ -218,6 +221,7 @@ export async function handleSolicitacaoReservaRecorrente(
     try {
         const batch = adminDb.batch();
         const reservasRef = adminDb.collection("reservas");
+        const timestamp = new Date();
 
         datasSelecionadas.forEach(data => {
             const novaReservaRef = reservasRef.doc();
@@ -228,13 +232,13 @@ export async function handleSolicitacaoReservaRecorrente(
                 horariosSelecionados: { [data]: horariosSelecionados },
                 dataReserva: data,
                 estudio: estudio, 
-                criadoEm: FieldValue.serverTimestamp(),
+                criadoEm: timestamp,
                 status: "aprovado",
                 aprovadoPor: 'Sistema (Admin Recorrente)',
                 historico: FieldValue.arrayUnion({
                     acao: "Agendamento recorrente criado e aprovado",
                     usuario: "Sistema (Admin Recorrente)",
-                    data: FieldValue.serverTimestamp()
+                    data: timestamp
                 })
             });
         });
@@ -306,6 +310,7 @@ export async function handleUpdateReserva(
     }
 
     const usuarioResponsavel = adminUser.nome || adminUser.email || 'Sistema';
+    const timestamp = new Date();
 
     try {
         const dataReserva = Object.keys(horariosSelecionados)[0];
@@ -320,7 +325,7 @@ export async function handleUpdateReserva(
             historico: FieldValue.arrayUnion({
                 acao: "Reserva atualizada",
                 usuario: usuarioResponsavel,
-                data: FieldValue.serverTimestamp()
+                data: timestamp
             })
         });
 
@@ -427,3 +432,5 @@ export async function listarUsuarios(): Promise<EstadoFormulario> {
     return { sucesso: false, mensagem: "Falha ao buscar a lista de usuários." };
   }
 }
+
+    
