@@ -5,7 +5,6 @@ import { useState, useMemo } from "react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import FormularioReservaAdmin from "./formulario-reserva-admin";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
 import { Calendar } from "./ui/calendar";
 import { ReservaExistente, BloqueioManual } from "@/lib/types";
@@ -31,6 +30,7 @@ interface FormularioAgendamentoRecorrenteProps {
 
 const ReservaAdminRecorrenteSchema = z.object({
     tituloGravacao: z.string().min(3, { message: "Título da gravação é obrigatório." }),
+    nomeCompleto: z.string().min(3, { message: "Nome do responsável é obrigatório." }),
     departamento: z.string().min(2, { message: "Setor/Departamento é obrigatório." }),
     modalidadesReserva: z.string({ required_error: "Selecione uma modalidade." }),
     estudio: z.string({ required_error: "Selecione um estúdio."})
@@ -66,6 +66,7 @@ export default function FormularioAgendamentoRecorrente({
         resolver: zodResolver(ReservaAdminRecorrenteSchema),
         defaultValues: {
             tituloGravacao: '',
+            nomeCompleto: '',
             departamento: 'GMEACM',
             modalidadesReserva: undefined,
             estudio: undefined,
@@ -191,6 +192,19 @@ export default function FormularioAgendamentoRecorrente({
                         />
                         <FormField
                             control={form.control}
+                            name="nomeCompleto"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Nome do Responsável</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="Nome e sobrenome" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
                             name="departamento"
                             render={({ field }) => (
                                 <FormItem>
@@ -291,5 +305,3 @@ export default function FormularioAgendamentoRecorrente({
         </Form>
     );
 }
-
-    
