@@ -10,12 +10,12 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { listarUsuarios, criarNovoUsuario, atualizarStatusUsuario } from '@/app/actions';
 import { Usuario } from '@/lib/types';
 import { Loader2, PlusCircle, UserX, UserCheck } from 'lucide-react';
 import { format } from 'date-fns';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 
 const NovoUsuarioSchema = z.object({
   nome: z.string().min(3, "Nome é obrigatório"),
@@ -148,55 +148,57 @@ export default function GerenciadorUsuarios() {
         </div>
       ) : (
         <div className="border rounded-md">
-            <Table>
-            <TableHeader>
-                <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>E-mail</TableHead>
-                <TableHead>Último Acesso</TableHead>
-                <TableHead className="text-center">Status</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-            </TableHeader>
-            <TableBody>
-                {usuarios.length > 0 ? (
-                usuarios.map((user) => (
-                    <TableRow key={user.uid}>
-                    <TableCell className="font-medium">{user.nome || 'Não informado'}</TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>
-                        {user.lastSignInTime ? format(new Date(user.lastSignInTime), 'dd/MM/yyyy HH:mm') : 'Nunca'}
-                    </TableCell>
-                    <TableCell className="text-center">
-                        <span className={`px-2 py-1 text-xs rounded-full ${user.disabled ? 'bg-red-200 text-red-800' : 'bg-green-200 text-green-800'}`}>
-                        {user.disabled ? 'Inativo' : 'Ativo'}
-                        </span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => handleMudarStatus(user.uid, !user.disabled)}
-                                >
-                                    {user.disabled ? <UserCheck className="h-4 w-4 text-green-600"/> : <UserX className="h-4 w-4 text-red-600" />}
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p>{user.disabled ? 'Ativar usuário' : 'Desativar usuário'}</p>
-                            </TooltipContent>
-                        </Tooltip>
-                    </TableCell>
+            <TooltipProvider>
+                <Table>
+                <TableHeader>
+                    <TableRow>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>E-mail</TableHead>
+                    <TableHead>Último Acesso</TableHead>
+                    <TableHead className="text-center">Status</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
-                ))
-                ) : (
-                <TableRow>
-                    <TableCell colSpan={5} className="text-center">Nenhum usuário encontrado.</TableCell>
-                </TableRow>
-                )}
-            </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                    {usuarios.length > 0 ? (
+                    usuarios.map((user) => (
+                        <TableRow key={user.uid}>
+                        <TableCell className="font-medium">{user.nome || 'Não informado'}</TableCell>
+                        <TableCell>{user.email}</TableCell>
+                        <TableCell>
+                            {user.lastSignInTime ? format(new Date(user.lastSignInTime), 'dd/MM/yyyy HH:mm') : 'Nunca'}
+                        </TableCell>
+                        <TableCell className="text-center">
+                            <span className={`px-2 py-1 text-xs rounded-full ${user.disabled ? 'bg-red-200 text-red-800' : 'bg-green-200 text-green-800'}`}>
+                            {user.disabled ? 'Inativo' : 'Ativo'}
+                            </span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => handleMudarStatus(user.uid, !user.disabled)}
+                                    >
+                                        {user.disabled ? <UserCheck className="h-4 w-4 text-green-600"/> : <UserX className="h-4 w-4 text-red-600" />}
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>{user.disabled ? 'Ativar usuário' : 'Desativar usuário'}</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TableCell>
+                        </TableRow>
+                    ))
+                    ) : (
+                    <TableRow>
+                        <TableCell colSpan={5} className="text-center">Nenhum usuário encontrado.</TableCell>
+                    </TableRow>
+                    )}
+                </TableBody>
+                </Table>
+            </TooltipProvider>
         </div>
       )}
     </div>
