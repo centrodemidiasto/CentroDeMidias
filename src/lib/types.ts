@@ -30,4 +30,17 @@ export type ReservaExistente = {
     estudio: string;
 }
 
-    
+export type BloqueioManual = {
+    id: string;
+    data: string;
+    horarios: string[];
+    estudio: string;
+}
+
+export interface Usuario {
+  uid: string;
+  email: string | undefined;
+  nome: string;
+  disabled: boolean;
+  lastSignInTime?: string;
+}

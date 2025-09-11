@@ -35,7 +35,7 @@ import {
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
-import { Loader2, Info, XCircle, CalendarPlus, Pencil, AlertTriangle } from 'lucide-react';
+import { Loader2, Info, XCircle, CalendarPlus, Pencil, AlertTriangle, UserCog } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO, startOfToday, addHours } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -46,6 +46,7 @@ import { Badge } from '@/components/ui/badge';
 import FormularioEdicaoReserva from '@/components/formulario-edicao-reserva';
 import { Reserva, ReservaExistente } from '@/lib/types';
 import { BloqueioManual } from '@/components/formulario-bloqueio-horarios';
+import GerenciadorUsuarios from '@/components/gerenciador-usuarios';
 
 async function getReservasPendentes(): Promise<Reserva[]> {
   const reservasRef = collection(clientDb, "reservas");
@@ -136,6 +137,9 @@ export default function PaginaPainel() {
   const router = useRouter();
   const { toast } = useToast();
   
+  const emailsAdmin = ["dtie@seduc.to.gov.br", "centrodemidias@seduc.to.gov.br"];
+  const podeGerenciarUsuarios = usuario && emailsAdmin.includes(usuario.email || '');
+
   const abrirModalDetalhes = (reserva: Reserva) => {
     setReservaSelecionada(reserva);
     setEditandoReserva(null);
@@ -321,7 +325,6 @@ Materiais: ${formatarMateriais(reserva.materiaisNecessarios)}`;
     const params = new URLSearchParams({
         action: 'TEMPLATE',
         text,
-        dates,
         details,
         location: 'Centro de Mídias Educacionais - Palmas, TO',
     });
@@ -500,6 +503,27 @@ Materiais: ${formatarMateriais(reserva.materiaisNecessarios)}`;
                     </AccordionContent>
                 </Card>
             </AccordionItem>
+            
+            {podeGerenciarUsuarios && (
+              <AccordionItem value="manage-users">
+                  <Card>
+                      <AccordionTrigger className="p-6">
+                          <div className="flex items-center gap-3">
+                              <UserCog className="h-6 w-6" />
+                              <div className="text-left">
+                                  <CardTitle>Gerenciar Usuários</CardTitle>
+                                  <CardDescription>Adicione, remova e gerencie os usuários do sistema.</CardDescription>
+                              </div>
+                          </div>
+                      </AccordionTrigger>
+                      <AccordionContent>
+                          <CardContent>
+                              <GerenciadorUsuarios />
+                          </CardContent>
+                      </AccordionContent>
+                  </Card>
+              </AccordionItem>
+            )}
         </Accordion>
       </div>
       

@@ -3,6 +3,7 @@
 
 import { adminDb } from "@/lib/firebase-admin";
 import { FieldValue } from 'firebase-admin/firestore';
+import { getAuth } from 'firebase-admin/auth';
 import { z } from "zod";
 
 const DetalhesReservaSchema = z.object({
@@ -53,6 +54,7 @@ const ReservaAdminSchema = z.object({
 type EstadoFormulario = {
     sucesso: boolean;
     mensagem: string;
+    dados?: any;
 } | null;
 
 
@@ -282,4 +284,99 @@ export async function handleUpdateReserva(
         console.error("Erro em handleUpdateReserva:", error);
         return { sucesso: false, mensagem: "Ocorreu um erro inesperado ao atualizar. Tente novamente." };
     }
+}
+
+// --- Funções de Gerenciamento de Usuários ---
+
+const NovoUsuarioSchema = z.object({
+  nome: z.string().min(3, "Nome é obrigatório"),
+  email: z.string().email("E-mail inválido"),
+  senha: z.string().min(6, "A senha deve ter no mínimo 6 caracteres"),
+});
+
+export async function criarNovoUsuario(estadoAnterior: EstadoFormulario, formData: FormData): Promise<EstadoFormulario> {
+  const dadosParseados = NovoUsuarioSchema.safeParse(
+    Object.fromEntries(formData.entries())
+  );
+
+  if (!dadosParseados.success) {
+    const mensagensErro = dadosParseados.error.errors.map(e => `- ${e.message}`).join("\n");
+    return { sucesso: false, mensagem: `Por favor, corrija os seguintes erros:\n${mensagensErro}` };
+  }
+  
+  const { nome, email, senha } = dadosParseados.data;
+  
+  try {
+    const auth = getAuth();
+    const userRecord = await auth.createUser({
+      email: email,
+      password: senha,
+      displayName: nome,
+      emailVerified: true,
+      disabled: false,
+    });
+
+    await adminDb.collection('usuarios').doc(userRecord.uid).set({
+      nome: nome,
+      email: email,
+    });
+
+    return { sucesso: true, mensagem: `Usuário ${nome} criado com sucesso.` };
+  } catch (error: any) {
+    console.error("Erro ao criar usuário:", error);
+    let mensagem = "Ocorreu um erro inesperado.";
+    if (error.code === 'auth/email-already-exists') {
+      mensagem = "Este endereço de e-mail já está em uso por outro usuário.";
+    } else if (error.code === 'auth/invalid-password') {
+      mensagem = "A senha fornecida é inválida. Deve ter pelo menos 6 caracteres.";
+    }
+    return { sucesso: false, mensagem: mensagem };
+  }
+}
+
+export async function atualizarStatusUsuario(uid: string, disabled: boolean): Promise<EstadoFormulario> {
+  try {
+    const auth = getAuth();
+    await auth.updateUser(uid, { disabled });
+    const acao = disabled ? "desativado" : "ativado";
+    return { sucesso: true, mensagem: `Usuário ${acao} com sucesso.` };
+  } catch (error: any) {
+    console.error("Erro ao atualizar status do usuário:", error);
+    return { sucesso: false, mensagem: "Falha ao atualizar o status do usuário." };
+  }
+}
+
+
+export async function listarUsuarios(): Promise<EstadoFormulario> {
+  try {
+    const auth = getAuth();
+    const userRecords = await auth.listUsers();
+    
+    const usuarios = await Promise.all(userRecords.users.map(async (user) => {
+        let nome = user.displayName || '';
+        if (!nome) {
+            try {
+                const userDoc = await adminDb.collection('usuarios').doc(user.uid).get();
+                if(userDoc.exists) {
+                    nome = userDoc.data()?.nome || '';
+                }
+            } catch (dbError) {
+                // se não encontrar o usuário no firestore, continua com o nome vazio
+                console.warn(`Usuário ${user.uid} não encontrado no Firestore, mas existe no Auth.`);
+            }
+        }
+        return {
+            uid: user.uid,
+            email: user.email,
+            nome: nome,
+            disabled: user.disabled,
+            lastSignInTime: user.metadata.lastSignInTime,
+        };
+    }));
+
+    return { sucesso: true, mensagem: "Usuários listados com sucesso.", dados: usuarios };
+  } catch (error: any) {
+    console.error("Erro ao listar usuários:", error);
+    return { sucesso: false, mensagem: "Falha ao buscar a lista de usuários." };
+  }
 }
