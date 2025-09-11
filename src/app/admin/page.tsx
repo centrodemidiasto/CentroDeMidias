@@ -36,9 +36,9 @@ import {
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
-import { Loader2, Info, XCircle, CalendarPlus, Pencil, AlertTriangle, UserCog, History, UserCircle, Trash2, CheckSquare, Square } from 'lucide-react';
+import { Loader2, Info, XCircle, CalendarPlus, Pencil, AlertTriangle, UserCog, History, UserCircle, Trash2, CheckSquare, Square, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { format, parseISO, startOfToday, addHours } from 'date-fns';
+import { format, parseISO, startOfToday, addHours, startOfMonth, endOfMonth, addMonths, isSameMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import FormularioBloqueioHorarios from '@/components/formulario-bloqueio-horarios';
 import { atualizarStatusReserva, cancelarReservasEmLote } from '@/app/actions';
@@ -67,14 +67,17 @@ async function getReservasPendentes(): Promise<Reserva[]> {
   return reservas;
 }
 
-async function getReservasAprovadas(): Promise<Reserva[]> {
-  const hoje = format(startOfToday(), 'yyyy-MM-dd');
+async function getReservasAprovadas(mes: Date): Promise<Reserva[]> {
+  const inicioDoMes = format(startOfMonth(mes), 'yyyy-MM-dd');
+  const fimDoMes = format(endOfMonth(mes), 'yyyy-MM-dd');
+  
   const reservasRef = collection(clientDb, "reservas");
 
   const q = query(
     reservasRef,
     where("status", "==", "aprovado"),
-    where("dataReserva", ">=", hoje),
+    where("dataReserva", ">=", inicioDoMes),
+    where("dataReserva", "<=", fimDoMes),
     orderBy("dataReserva", "asc")
   );
   const querySnapshot = await getDocs(q);
@@ -140,6 +143,7 @@ export default function PaginaPainel() {
 
   const [reservasSelecionadasParaLote, setReservasSelecionadasParaLote] = useState<string[]>([]);
   const [confirmandoCancelamentoLote, setConfirmandoCancelamentoLote] = useState(false);
+  const [mesAprovadas, setMesAprovadas] = useState(new Date());
 
   const router = useRouter();
   const { toast } = useToast();
@@ -193,7 +197,8 @@ export default function PaginaPainel() {
   const buscarReservasAprovadas = (force = false) => {
     if (reservasAprovadas && !force) return; 
     setCarregandoAprovados(true);
-    getReservasAprovadas().then(data => {
+    setReservasSelecionadasParaLote([]);
+    getReservasAprovadas(mesAprovadas).then(data => {
         setReservasAprovadas(data);
         setCarregandoAprovados(false);
     }).catch(err => {
@@ -214,9 +219,13 @@ export default function PaginaPainel() {
     });
   };
 
+  useEffect(() => {
+    buscarReservasAprovadas(true);
+  }, [mesAprovadas]);
+
   const handleMudancaAccordion = (value: string) => {
     if (value === "aprovado" && !reservasAprovadas) {
-      buscarReservasAprovadas();
+      buscarReservasAprovadas(true);
     } else if (value === "block-slots" && !dadosBloqueio) {
       buscarDadosBloqueio();
     }
@@ -227,6 +236,7 @@ export default function PaginaPainel() {
       if (user) {
         setUsuario(user);
         buscarReservasPendentes(); 
+        buscarReservasAprovadas(true);
       } else {
         router.push('/login');
       }
@@ -452,17 +462,36 @@ Materiais: ${formatarMateriais(reserva.materiaisNecessarios)}`;
           </CardContent>
         </Card>
 
-        <Accordion type="single" collapsible onValueChange={handleMudancaAccordion}>
+        <Accordion type="single" collapsible onValueChange={handleMudancaAccordion} defaultValue='aprovado'>
             <AccordionItem value="aprovado">
                 <Card>
-                    <AccordionTrigger className="p-6">
-                        <div className="text-left">
-                            <CardTitle>Próximas Gravações</CardTitle>
-                            <CardDescription>Estes são os agendamentos confirmados para os próximos dias.</CardDescription>
+                    <AccordionTrigger className="p-6 w-full">
+                        <div className="flex justify-between items-center w-full">
+                           <div className="text-left">
+                                <CardTitle>Próximas Gravações</CardTitle>
+                                <CardDescription>Estes são os agendamentos confirmados.</CardDescription>
+                            </div>
                         </div>
                     </AccordionTrigger>
                     <AccordionContent>
                         <CardContent>
+                            <div className="flex justify-center items-center gap-4 mb-6">
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={() => setMesAprovadas(prev => addMonths(prev, -1))}
+                                    disabled={isSameMonth(mesAprovadas, new Date())}
+                                >
+                                    <ChevronLeft className="h-4 w-4" />
+                                </Button>
+                                <h3 className="text-xl font-semibold text-center capitalize w-64">
+                                    {format(mesAprovadas, 'MMMM, yyyy', { locale: ptBR })}
+                                </h3>
+                                <Button variant="outline" size="icon" onClick={() => setMesAprovadas(prev => addMonths(prev, 1))}>
+                                    <ChevronRight className="h-4 w-4" />
+                                </Button>
+                            </div>
+
                             {carregandoAprovados ? (
                                 <div className="flex items-center justify-center h-40">
                                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -547,7 +576,7 @@ Materiais: ${formatarMateriais(reserva.materiaisNecessarios)}`;
                                     </div>
                                 </>
                             ) : (
-                                <p className="text-center text-muted-foreground py-8">Nenhuma gravação confirmada para os próximos dias.</p>
+                                <p className="text-center text-muted-foreground py-8">Nenhuma gravação confirmada para este mês.</p>
                             )}
                         </CardContent>
                     </AccordionContent>
@@ -806,3 +835,5 @@ Materiais: ${formatarMateriais(reserva.materiaisNecessarios)}`;
     </div>
   );
 }
+
+    
