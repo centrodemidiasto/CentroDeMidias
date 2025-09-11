@@ -66,7 +66,7 @@ const getModalidadesReserva = (estudio: string) => {
             : item
         );
     }
-    return all;
+    return all.map(item => ({...item, disabled: false}));
 };
 
 function formatarTelefone(value: string) {
@@ -328,7 +328,7 @@ export default function FormularioEdicaoReserva({ reserva, reservasExistentes, b
                                             {modalidadesDisponiveis.map((item) => (
                                                 <FormItem key={item.id} className="flex items-center space-x-2 space-y-0">
                                                     <FormControl><RadioGroupItem value={item.label} id={`edit-${item.id}`} disabled={item.disabled} /></FormControl>
-                                                    <FormLabel htmlFor={`edit-${item.id}`} className="font-normal">{item.label}</FormLabel>
+                                                    <FormLabel htmlFor={`edit-${item.id}`} className={cn("font-normal", item.disabled && "text-muted-foreground")}>{item.label}</FormLabel>
                                                 </FormItem>
                                             ))}
                                         </RadioGroup>

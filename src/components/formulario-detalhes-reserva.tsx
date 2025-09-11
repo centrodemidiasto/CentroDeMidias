@@ -16,6 +16,7 @@ import { HorariosSelecionados } from './formulario-agendamento';
 import { Checkbox } from './ui/checkbox';
 import Link from 'next/link';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
+import { cn } from '@/lib/utils';
 
 const DetalhesReservaSchema = z.object({
     nomeCompleto: z.string(),
@@ -48,7 +49,7 @@ const getModalidadesReserva = (estudio: string) => {
             : item
         );
     }
-    return all;
+    return all.map(item => ({...item, disabled: false}));
 };
 
 function formatarTelefone(value: string) {
@@ -273,7 +274,7 @@ export default function FormularioDetalhesReserva({ horariosSelecionados, estudi
                                             <FormControl>
                                                 <RadioGroupItem value={item.label} id={item.id} disabled={item.disabled} />
                                             </FormControl>
-                                            <FormLabel htmlFor={item.id} className="font-normal">{item.label}</FormLabel>
+                                            <FormLabel htmlFor={item.id} className={cn("font-normal", item.disabled && "text-muted-foreground")}>{item.label}</FormLabel>
                                         </FormItem>
                                     ))}
                                 </RadioGroup>

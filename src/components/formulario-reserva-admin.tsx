@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { handleSolicitacaoReservaAdmin } from '@/app/actions';
 import { HorariosSelecionados } from './formulario-agendamento';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { cn } from '@/lib/utils';
 
 const ReservaAdminSchema = z.object({
     tituloGravacao: z.string().min(3, { message: "Título da gravação é obrigatório." }),
@@ -36,7 +37,7 @@ const getModalidadesReserva = (estudio: string) => {
             : item
         );
     }
-    return all;
+    return all.map(item => ({...item, disabled: false}));
 };
 
 
@@ -163,7 +164,7 @@ export default function FormularioReservaAdmin({ horariosSelecionados, estudio, 
                                             <FormControl>
                                                 <RadioGroupItem value={item.label} id={item.id} disabled={item.disabled} />
                                             </FormControl>
-                                            <FormLabel htmlFor={item.id} className="font-normal">{item.label}</FormLabel>
+                                            <FormLabel htmlFor={item.id} className={cn("font-normal", item.disabled && "text-muted-foreground")}>{item.label}</FormLabel>
                                         </FormItem>
                                     ))}
                                 </RadioGroup>
