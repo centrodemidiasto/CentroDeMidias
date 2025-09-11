@@ -128,7 +128,7 @@ export default function FormularioEdicaoReserva({ reserva, reservasExistentes, b
     const estudio = form.watch('estudio');
     const modalidadesDisponiveis = useMemo(() => getModalidadesReserva(estudio), [estudio]);
 
-    const formAction = async (data: z.infer<typeof EdicaoReservaSchema>) => {
+    const formAction = async (data: z.infer<typeof EdicaoReservaSchema>>) => {
         setEnviando(true);
 
         if (!adminUser) {
