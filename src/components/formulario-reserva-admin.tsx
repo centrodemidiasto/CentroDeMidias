@@ -4,7 +4,7 @@
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { useMemo, useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Shirt } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,7 @@ import { handleSolicitacaoReservaAdmin } from '@/app/actions';
 import { HorariosSelecionados } from './formulario-agendamento';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { cn } from '@/lib/utils';
+import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 
 const ReservaAdminSchema = z.object({
     tituloGravacao: z.string().min(3, { message: "Título da gravação é obrigatório." }),
@@ -93,6 +94,17 @@ export default function FormularioReservaAdmin({ horariosSelecionados, estudio, 
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(formAction)} className="space-y-6 max-h-[70vh] overflow-y-auto pr-4">
+                 {estudio === 'Estúdio 2' && (
+                    <Alert variant="default" className="bg-blue-50 border-blue-200">
+                        <Shirt className="h-4 w-4 text-blue-600" />
+                        <AlertTitle className="font-headline text-blue-800">Vestuário para Gravação no Estúdio 2 (Fundo Verde)</AlertTitle>
+                        <AlertDescription className="text-blue-700 space-y-2">
+                            <p><strong>EVITE:</strong> Roupas ou acessórios de qualquer tom de VERDE. Também evite branco, tecidos brilhantes e estampas pequenas (listras finas, xadrez).</p>
+                            <p><strong>PREFIRA:</strong> Roupas de cores sólidas e foscas, como azul, preto, cinza ou vinho.</p>
+                        </AlertDescription>
+                    </Alert>
+                )}
+
                  <FormField
                     control={form.control}
                     name="tituloGravacao"
@@ -190,5 +202,3 @@ export default function FormularioReservaAdmin({ horariosSelecionados, estudio, 
         </Form>
     );
 }
-
-    

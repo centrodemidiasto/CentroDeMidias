@@ -4,7 +4,7 @@
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { useMemo, useState } from 'react';
-import { AlertTriangle, Loader2 } from 'lucide-react';
+import { AlertTriangle, Loader2, Shirt } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -128,6 +128,17 @@ export default function FormularioDetalhesReserva({ horariosSelecionados, estudi
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(formAction)} className="space-y-4 max-h-[70vh] overflow-y-auto pr-4">
+                 {estudio === 'Estúdio 2' && (
+                    <Alert variant="default" className="bg-blue-50 border-blue-200">
+                        <Shirt className="h-4 w-4 text-blue-600" />
+                        <AlertTitle className="font-headline text-blue-800">Vestuário para Gravação no Estúdio 2 (Fundo Verde)</AlertTitle>
+                        <AlertDescription className="text-blue-700 space-y-2">
+                            <p><strong>EVITE:</strong> Roupas ou acessórios de qualquer tom de VERDE. Também evite branco, tecidos brilhantes e estampas pequenas (listras finas, xadrez).</p>
+                            <p><strong>PREFIRA:</strong> Roupas de cores sólidas e foscas, como azul, preto, cinza ou vinho.</p>
+                        </AlertDescription>
+                    </Alert>
+                )}
+                
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
                         control={form.control}
@@ -402,5 +413,3 @@ export default function FormularioDetalhesReserva({ horariosSelecionados, estudi
         </Form>
     );
 }
-
-    
