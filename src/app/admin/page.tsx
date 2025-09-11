@@ -51,6 +51,7 @@ import GerenciadorUsuarios from '@/components/gerenciador-usuarios';
 import GerenciadorPerfil from '@/components/gerenciador-perfil';
 import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
+import GeradorRelatorio from '@/components/gerador-relatorio';
 
 async function getReservasPendentes(): Promise<Reserva[]> {
   const reservasRef = collection(clientDb, "reservas");
@@ -402,6 +403,8 @@ Materiais: ${formatarMateriais(reserva.materiaisNecessarios)}`;
           </p>
         </div>
 
+        <GeradorRelatorio />
+
         <Card>
           <CardHeader>
             <CardTitle>Agendamentos Pendentes</CardTitle>
@@ -480,7 +483,6 @@ Materiais: ${formatarMateriais(reserva.materiaisNecessarios)}`;
                                     variant="outline"
                                     size="icon"
                                     onClick={() => setMesAprovadas(prev => addMonths(prev, -1))}
-                                    disabled={isSameMonth(mesAprovadas, new Date())}
                                 >
                                     <ChevronLeft className="h-4 w-4" />
                                 </Button>
@@ -835,5 +837,3 @@ Materiais: ${formatarMateriais(reserva.materiaisNecessarios)}`;
     </div>
   );
 }
-
-    
