@@ -22,10 +22,10 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { User } from 'firebase/auth';
 
 const EdicaoReservaSchema = z.object({
-    nomeCompleto: z.string().optional(),
-    email: z.string().optional(),
+    nomeCompleto: z.string().min(3, "Nome do responsável é obrigatório."),
+    email: z.string().email("E-mail inválido."),
     telefone: z.string().optional(),
-    tituloGravacao: z.string().optional(),
+    tituloGravacao: z.string().min(3, "Título da gravação é obrigatório."),
     tipoOrgao: z.enum(["interno", "externo"]),
     departamento: z.string().optional(),
     organizacaoExterna: z.string().optional(),

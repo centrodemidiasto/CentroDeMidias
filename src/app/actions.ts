@@ -294,7 +294,8 @@ export async function handleUpdateReserva(
     const dadosParseados = EdicaoReservaSchema.safeParse(rawData);
 
     if (!dadosParseados.success) {
-        const mensagensErro = dadosParseados.error.errors.map(e => `- ${e.message}`).join("\n");
+        console.error("Falha na validação em handleUpdateReserva:", dadosParseados.error.flatten());
+        const mensagensErro = dadosParseados.error.errors.map(e => `- ${e.path.join('.')} ${e.message}`).join("\n");
         return { sucesso: false, mensagem: `Por favor, corrija os seguintes erros:\n${mensagensErro}` };
     }
 
@@ -325,8 +326,9 @@ export async function handleUpdateReserva(
 
         return { sucesso: true, mensagem: "Agendamento atualizado com sucesso!" };
         
-    } catch (error) {
+    } catch (error: any) {
         console.error("Erro em handleUpdateReserva:", error);
+        console.error("Causa do erro:", error.cause);
         return { sucesso: false, mensagem: "Ocorreu um erro inesperado ao atualizar. Tente novamente." };
     }
 }
