@@ -16,6 +16,7 @@ import { handleSolicitacaoReservaRecorrente } from "@/app/actions";
 import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "./ui/form";
 import { Input } from "./ui/input";
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
@@ -28,8 +29,8 @@ interface FormularioAgendamentoRecorrenteProps {
     onSucessoReserva: () => void;
 }
 
-const ReservaAdminSchema = z.object({
-    nomeCompleto: z.string().min(3, { message: "Nome do responsável é obrigatório." }),
+const ReservaAdminRecorrenteSchema = z.object({
+    tituloGravacao: z.string().min(3, { message: "Título da gravação é obrigatório." }),
     departamento: z.string().min(2, { message: "Setor/Departamento é obrigatório." }),
     modalidadesReserva: z.string({ required_error: "Selecione uma modalidade." }),
     estudio: z.string({ required_error: "Selecione um estúdio."})
@@ -61,9 +62,10 @@ export default function FormularioAgendamentoRecorrente({
 
     const { toast } = useToast();
     
-    const form = useForm<z.infer<typeof ReservaAdminSchema>>({
+    const form = useForm<z.infer<typeof ReservaAdminRecorrenteSchema>>({
+        resolver: zodResolver(ReservaAdminRecorrenteSchema),
         defaultValues: {
-            nomeCompleto: '',
+            tituloGravacao: '',
             departamento: 'GMEACM',
             modalidadesReserva: undefined,
             estudio: undefined,
@@ -108,7 +110,7 @@ export default function FormularioAgendamentoRecorrente({
         setDatasSelecionadas([]);
     };
     
-    const formAction = async (data: z.infer<typeof ReservaAdminSchema>) => {
+    const formAction = async (data: z.infer<typeof ReservaAdminRecorrenteSchema>) => {
         if (!datasSelecionadas || datasSelecionadas.length === 0 || horariosSelecionados.length === 0) {
              toast({
                 title: 'Erro',
@@ -176,7 +178,7 @@ export default function FormularioAgendamentoRecorrente({
                         />
                         <FormField
                             control={form.control}
-                            name="nomeCompleto"
+                            name="tituloGravacao"
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Título da Gravação</FormLabel>

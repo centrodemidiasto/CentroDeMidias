@@ -198,7 +198,12 @@ export async function handleSolicitacaoReservaRecorrente(
     estadoAnterior: EstadoFormulario,
     formData: FormData
 ): Promise<EstadoFormulario> {
-    const ReservaAdminRecorrenteSchema = ReservaAdminSchema.omit({ estudio: true });
+    const ReservaAdminRecorrenteSchema = z.object({
+        tituloGravacao: z.string().min(3, { message: "Título da gravação é obrigatório." }),
+        departamento: z.string().min(2, { message: "Setor/Departamento é obrigatório." }),
+        modalidadesReserva: z.string({ required_error: "Selecione uma modalidade." }),
+    });
+
      const dadosParseados = ReservaAdminRecorrenteSchema.safeParse(
       Object.fromEntries(formData.entries())
     );
