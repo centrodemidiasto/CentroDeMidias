@@ -19,6 +19,7 @@ import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { User } from 'firebase/auth';
 
 const EdicaoReservaSchema = z.object({
     nomeCompleto: z.string().optional(),
@@ -81,9 +82,10 @@ interface FormularioEdicaoReservaProps {
     reservasExistentes: ReservaExistente[];
     bloqueiosManuais: BloqueioManual[];
     onSuccess: () => void;
+    adminUser: User | null;
 }
 
-export default function FormularioEdicaoReserva({ reserva, reservasExistentes, bloqueiosManuais, onSuccess }: FormularioEdicaoReservaProps) {
+export default function FormularioEdicaoReserva({ reserva, reservasExistentes, bloqueiosManuais, onSuccess, adminUser }: FormularioEdicaoReservaProps) {
     const [enviando, setEnviando] = useState(false);
     
     const dataInicial = parseISO(reserva.dataReserva);
@@ -113,6 +115,13 @@ export default function FormularioEdicaoReserva({ reserva, reservasExistentes, b
 
     const formAction = async (data: z.infer<typeof EdicaoReservaSchema>) => {
         setEnviando(true);
+
+        if (!adminUser) {
+             toast({ title: "Erro", description: "Usuário não autenticado.", variant: "destructive" });
+             setEnviando(false);
+             return;
+        }
+
         const formData = new FormData();
         Object.entries(data).forEach(([key, value]) => {
             if (value !== undefined && value !== null) {
@@ -123,7 +132,7 @@ export default function FormularioEdicaoReserva({ reserva, reservasExistentes, b
         const chaveData = format(dataSelecionada!, 'yyyy-MM-dd');
         const novosHorariosSelecionados = { [chaveData]: horariosSelecionados };
 
-        const resultado = await handleUpdateReserva(reserva.id, novosHorariosSelecionados, null, formData);
+        const resultado = await handleUpdateReserva(reserva.id, novosHorariosSelecionados, { nome: adminUser.displayName, email: adminUser.email }, null, formData);
         
         if (resultado && resultado.mensagem) {
             const variant = resultado.sucesso ? 'default' : 'destructive';

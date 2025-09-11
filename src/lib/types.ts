@@ -1,6 +1,12 @@
 
 import { Timestamp } from "firebase/firestore";
 
+export interface HistoricoItem {
+    acao: string;
+    usuario: string;
+    data: Timestamp;
+}
+
 export interface Reserva {
   id: string;
   nomeCompleto: string;
@@ -20,6 +26,9 @@ export interface Reserva {
   criadoEm: Timestamp;
   dataReserva: string; // YYYY-MM-DD
   estudio: string;
+  aprovadoPor?: string;
+  ultimaAlteracaoPor?: string;
+  historico?: HistoricoItem[];
 }
 
 export type ReservaExistente = {

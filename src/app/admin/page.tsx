@@ -35,7 +35,7 @@ import {
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
-import { Loader2, Info, XCircle, CalendarPlus, Pencil, AlertTriangle, UserCog } from 'lucide-react';
+import { Loader2, Info, XCircle, CalendarPlus, Pencil, AlertTriangle, UserCog, History } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO, startOfToday, addHours } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -47,6 +47,7 @@ import FormularioEdicaoReserva from '@/components/formulario-edicao-reserva';
 import { Reserva, ReservaExistente } from '@/lib/types';
 import { BloqueioManual } from '@/components/formulario-bloqueio-horarios';
 import GerenciadorUsuarios from '@/components/gerenciador-usuarios';
+import { Separator } from '@/components/ui/separator';
 
 async function getReservasPendentes(): Promise<Reserva[]> {
   const reservasRef = collection(clientDb, "reservas");
@@ -231,10 +232,10 @@ export default function PaginaPainel() {
   }, [router]);
 
   const handleConfirmarCancelamento = async () => {
-    if (!reservaParaCancelar) return;
+    if (!reservaParaCancelar || !usuario) return;
 
     try {
-        await atualizarStatusReserva(reservaParaCancelar.id, 'rejeitado');
+        await atualizarStatusReserva(reservaParaCancelar.id, 'rejeitado', { nome: usuario.displayName, email: usuario.email });
         toast({
             title: "Sucesso!",
             description: `Agendamento cancelado.`,
@@ -253,8 +254,9 @@ export default function PaginaPainel() {
   }
 
   const handleAtualizacaoStatus = async (id: string, status: 'aprovado' | 'rejeitado') => {
+    if (!usuario) return;
     try {
-        await atualizarStatusReserva(id, status);
+        await atualizarStatusReserva(id, status, { nome: usuario.displayName, email: usuario.email });
         toast({
             title: "Sucesso!",
             description: `Agendamento ${status === 'aprovado' ? 'aprovado' : 'rejeitado'}.`,
@@ -282,15 +284,21 @@ export default function PaginaPainel() {
     return null;
   }
   
-  const formatarDataParaExibicao = (dateString: string) => {
+  const formatarDataParaExibicao = (dateString: string | Date) => {
       try {
-        const date = parseISO(dateString);
+        const date = typeof dateString === 'string' ? parseISO(dateString) : dateString;
         return format(date, "dd 'de' MMMM, yyyy", { locale: ptBR });
       } catch (error) {
         console.error("Formato de data inválido:", dateString);
         return "Data inválida";
       }
   };
+
+   const formatarTimestamp = (ts: any) => {
+    if (!ts) return 'Data indisponível';
+    const date = ts.toDate();
+    return format(date, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+  }
 
   const criarLinkGoogleAgenda = (reserva: Reserva): string => {
     const date = Object.keys(reserva.horariosSelecionados)[0];
@@ -609,6 +617,42 @@ Materiais: ${formatarMateriais(reserva.materiaisNecessarios)}`;
                                     <span className="break-words">{reservaSelecionada.materiaisNecessarios}</span>
                                 </div>
                             )}
+
+                             {(reservaSelecionada.aprovadoPor || reservaSelecionada.ultimaAlteracaoPor) && (
+                                <>
+                                    <Separator className="my-4" />
+                                     <div className="flex items-center gap-2 text-muted-foreground">
+                                        <History className="h-4 w-4" />
+                                        <h3 className="font-semibold text-base text-card-foreground">Histórico de Alterações</h3>
+                                    </div>
+                                </>
+                             )}
+
+                            {reservaSelecionada.aprovadoPor && (
+                                <div className="grid grid-cols-[150px_1fr] items-center gap-4">
+                                    <span className="font-semibold text-right text-green-600">Aprovado por:</span>
+                                    <span>{reservaSelecionada.aprovadoPor}</span>
+                                </div>
+                            )}
+                            {reservaSelecionada.ultimaAlteracaoPor && (
+                                <div className="grid grid-cols-[150px_1fr] items-center gap-4">
+                                    <span className="font-semibold text-right text-blue-600">Alterado por:</span>
+                                    <span>{reservaSelecionada.ultimaAlteracaoPor}</span>
+                                </div>
+                            )}
+                            
+                            {reservaSelecionada.historico && reservaSelecionada.historico.length > 0 && (
+                                 <div className="grid grid-cols-[150px_1fr] items-start gap-4">
+                                    <span className="font-semibold text-right pt-2">Registro:</span>
+                                    <div className="text-xs space-y-2 text-muted-foreground border rounded-md p-2 bg-muted/50">
+                                        {[...reservaSelecionada.historico].reverse().map((item, index) => (
+                                            <p key={index}>
+                                               <span className="font-semibold">{item.acao}</span> por <span className="font-semibold">{item.usuario}</span> em {formatarTimestamp(item.data)}.
+                                            </p>
+                                        ))}
+                                    </div>
+                                 </div>
+                            )}
                         </div>
                     </>
                 )}
@@ -625,6 +669,7 @@ Materiais: ${formatarMateriais(reserva.materiaisNecessarios)}`;
                             reservasExistentes={dadosBloqueio?.reserved || []}
                             bloqueiosManuais={dadosBloqueio?.manual || []}
                             onSuccess={onSucessoEdicao}
+                            adminUser={usuario}
                         />
                     </>
                 )}

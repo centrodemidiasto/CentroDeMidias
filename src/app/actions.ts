@@ -58,11 +58,30 @@ type EstadoFormulario = {
 } | null;
 
 
-export async function atualizarStatusReserva(reservaId: string, status: 'aprovado' | 'rejeitado') {
+export async function atualizarStatusReserva(
+    reservaId: string, 
+    status: 'aprovado' | 'rejeitado',
+    adminUser: { nome: string | null; email: string | null; }
+) {
     const reservaRef = adminDb.collection("reservas").doc(reservaId);
-    
+    const usuarioResponsavel = adminUser.nome || adminUser.email || 'Sistema';
+
     try {
-        await reservaRef.update({ status });
+        const dadosAtualizacao: any = { 
+            status,
+            historico: FieldValue.arrayUnion({
+                acao: `Status alterado para ${status}`,
+                usuario: usuarioResponsavel,
+                data: FieldValue.serverTimestamp()
+            })
+        };
+
+        if (status === 'aprovado') {
+            dadosAtualizacao.aprovadoPor = usuarioResponsavel;
+        }
+
+        await reservaRef.update(dadosAtualizacao);
+
     } catch (error) {
         console.error("Erro ao atualizar status da reserva:", error);
         throw new Error("Falha ao atualizar o status da reserva.");
@@ -110,7 +129,12 @@ export async function handleSolicitacaoReserva(
             horariosSelecionados,
             dataReserva: dataReserva,
             criadoEm: FieldValue.serverTimestamp(),
-            status: "pendente"
+            status: "pendente",
+            historico: FieldValue.arrayUnion({
+                acao: "Solicitação de reserva criada",
+                usuario: dados.email,
+                data: FieldValue.serverTimestamp()
+            })
         });
         return { sucesso: true, mensagem: "Seu agendamento foi solicitado com sucesso e está pendente de aprovação!" };
         
@@ -150,7 +174,13 @@ export async function handleSolicitacaoReservaAdmin(
             horariosSelecionados,
             dataReserva: dataReserva, 
             criadoEm: FieldValue.serverTimestamp(),
-            status: "aprovado" // Reservas admin são auto-aprovadas
+            status: "aprovado", // Reservas admin são auto-aprovadas
+            aprovadoPor: 'Sistema (Admin)',
+            historico: FieldValue.arrayUnion({
+                acao: "Agendamento rápido criado e aprovado",
+                usuario: "Sistema (Admin)",
+                data: FieldValue.serverTimestamp()
+            })
        });
 
        return { sucesso: true, mensagem: "Agendamento rápido realizado e aprovado com sucesso!" };
@@ -199,7 +229,13 @@ export async function handleSolicitacaoReservaRecorrente(
                 dataReserva: data,
                 estudio: estudio, 
                 criadoEm: FieldValue.serverTimestamp(),
-                status: "aprovado"
+                status: "aprovado",
+                aprovadoPor: 'Sistema (Admin Recorrente)',
+                historico: FieldValue.arrayUnion({
+                    acao: "Agendamento recorrente criado e aprovado",
+                    usuario: "Sistema (Admin Recorrente)",
+                    data: FieldValue.serverTimestamp()
+                })
             });
         });
 
@@ -249,6 +285,7 @@ const EdicaoReservaSchema = z.object({
 export async function handleUpdateReserva(
     reservaId: string,
     horariosSelecionados: Record<string, string[]>,
+    adminUser: { nome: string | null; email: string | null; },
     estadoAnterior: EstadoFormulario,
     formData: FormData
 ): Promise<EstadoFormulario> {
@@ -267,6 +304,8 @@ export async function handleUpdateReserva(
         return { sucesso: false, mensagem: "Nenhum horário selecionado." };
     }
 
+    const usuarioResponsavel = adminUser.nome || adminUser.email || 'Sistema';
+
     try {
         const dataReserva = Object.keys(horariosSelecionados)[0];
         
@@ -276,6 +315,12 @@ export async function handleUpdateReserva(
             ...dados,
             horariosSelecionados,
             dataReserva: dataReserva,
+            ultimaAlteracaoPor: usuarioResponsavel,
+            historico: FieldValue.arrayUnion({
+                acao: "Reserva atualizada",
+                usuario: usuarioResponsavel,
+                data: FieldValue.serverTimestamp()
+            })
         });
 
         return { sucesso: true, mensagem: "Agendamento atualizado com sucesso!" };
