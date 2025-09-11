@@ -28,7 +28,8 @@ export async function handleSignIn(
     if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
       message = "E-mail ou senha inválidos.";
     }
-    console.error("Sign-in error:", error);
     return { success: false, message: message };
   }
 }
+
+    

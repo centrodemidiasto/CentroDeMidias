@@ -162,7 +162,6 @@ export default function FormularioBloqueioHorarios({ reservasIniciais, bloqueios
       });
 
     } catch (error) {
-      console.error("[Cliente] Erro em handleSalvarMudancas:", error);
       toast({
         title: "Erro",
         description: "Não foi possível salvar as alterações. Tente novamente.",
@@ -316,3 +315,5 @@ export default function FormularioBloqueioHorarios({ reservasIniciais, bloqueios
     </>
   );
 }
+
+    

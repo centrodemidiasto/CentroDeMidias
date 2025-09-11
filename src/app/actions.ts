@@ -84,7 +84,6 @@ export async function atualizarStatusReserva(
         await reservaRef.update(dadosAtualizacao);
 
     } catch (error: any) {
-        console.error("Erro ao atualizar status da reserva:", error);
         throw new Error(`Falha ao atualizar o status da reserva: ${error.message}`);
     }
 }
@@ -141,7 +140,6 @@ export async function handleSolicitacaoReserva(
         return { sucesso: true, mensagem: "Seu agendamento foi solicitado com sucesso e está pendente de aprovação!" };
         
     } catch (error) {
-        console.error("Erro em handleSolicitacaoReserva:", error);
         return { sucesso: false, mensagem: "Ocorreu um erro inesperado. Tente novamente." };
     }
 }
@@ -189,7 +187,6 @@ export async function handleSolicitacaoReservaAdmin(
        return { sucesso: true, mensagem: "Agendamento rápido realizado e aprovado com sucesso!" };
 
     } catch (error) {
-       console.error("Erro em handleSolicitacaoReservaAdmin:", error);
        return { sucesso: false, mensagem: "Ocorreu um erro inesperado. Tente novamente." };
     }
 }
@@ -248,7 +245,6 @@ export async function handleSolicitacaoReservaRecorrente(
        return { sucesso: true, mensagem: `${datasSelecionadas.length} agendamentos recorrentes realizados e aprovados com sucesso!` };
 
     } catch (error) {
-       console.error("Erro em handleSolicitacaoReservaRecorrente:", error);
        return { sucesso: false, mensagem: "Ocorreu um erro inesperado. Tente novamente." };
     }
 }
@@ -298,7 +294,6 @@ export async function handleUpdateReserva(
     const dadosParseados = EdicaoReservaSchema.safeParse(rawData);
 
     if (!dadosParseados.success) {
-        console.error("Falha na validação em handleUpdateReserva:", dadosParseados.error.flatten());
         const mensagensErro = dadosParseados.error.errors.map(e => `- ${e.path.join('.')} ${e.message}`).join("\n");
         return { sucesso: false, mensagem: `Por favor, corrija os seguintes erros:\n${mensagensErro}` };
     }
@@ -332,8 +327,6 @@ export async function handleUpdateReserva(
         return { sucesso: true, mensagem: "Agendamento atualizado com sucesso!" };
         
     } catch (error: any) {
-        console.error("Erro em handleUpdateReserva:", error);
-        console.error("Causa do erro:", error.cause);
         return { sucesso: false, mensagem: "Ocorreu um erro inesperado ao atualizar. Tente novamente." };
     }
 }
@@ -375,7 +368,6 @@ export async function criarNovoUsuario(estadoAnterior: EstadoFormulario, formDat
 
     return { sucesso: true, mensagem: `Usuário ${nome} criado com sucesso.` };
   } catch (error: any) {
-    console.error("Erro ao criar usuário:", error);
     let mensagem = "Ocorreu um erro inesperado.";
     if (error.code === 'auth/email-already-exists') {
       mensagem = "Este endereço de e-mail já está em uso por outro usuário.";
@@ -393,7 +385,6 @@ export async function atualizarStatusUsuario(uid: string, disabled: boolean): Pr
     const acao = disabled ? "desativado" : "ativado";
     return { sucesso: true, mensagem: `Usuário ${acao} com sucesso.` };
   } catch (error: any) {
-    console.error("Erro ao atualizar status do usuário:", error);
     return { sucesso: false, mensagem: "Falha ao atualizar o status do usuário." };
   }
 }
@@ -414,7 +405,6 @@ export async function listarUsuarios(): Promise<EstadoFormulario> {
                 }
             } catch (dbError) {
                 // se não encontrar o usuário no firestore, continua com o nome vazio
-                console.warn(`Usuário ${user.uid} não encontrado no Firestore, mas existe no Auth.`);
             }
         }
         return {
@@ -428,9 +418,10 @@ export async function listarUsuarios(): Promise<EstadoFormulario> {
 
     return { sucesso: true, mensagem: "Usuários listados com sucesso.", dados: usuarios };
   } catch (error: any) {
-    console.error("Erro ao listar usuários:", error);
     return { sucesso: false, mensagem: "Falha ao buscar a lista de usuários." };
   }
 }
+
+    
 
     

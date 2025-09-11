@@ -46,7 +46,6 @@ export default function Header() {
       });
       router.push('/');
     } catch (error) {
-      console.error("Erro ao fazer logout:", error);
       toast({
         title: "Erro",
         description: "Não foi possível fazer o logout. Tente novamente.",
@@ -161,3 +160,5 @@ export default function Header() {
     </header>
   );
 }
+
+    

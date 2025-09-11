@@ -178,7 +178,6 @@ export default function PaginaPainel() {
         setCarregandoPendentes(false);
         setCarregamentoInicial(false);
     }).catch(err => {
-        console.error("Erro ao buscar reservas pendentes:", err);
         toast({ title: "Erro ao buscar pendentes", description: err.message, variant: "destructive"});
         setCarregandoPendentes(false);
         setCarregamentoInicial(false);
@@ -192,7 +191,6 @@ export default function PaginaPainel() {
         setReservasAprovadas(data);
         setCarregandoAprovados(false);
     }).catch(err => {
-        console.error("Erro ao buscar reservas aprovadas:", err);
         toast({ title: "Erro ao buscar aprovados", description: err.message, variant: "destructive"});
         setCarregandoAprovados(false);
     });
@@ -205,7 +203,6 @@ export default function PaginaPainel() {
         setDadosBloqueio({ reserved, manual });
         setCarregandoBloqueio(false);
     }).catch(err => {
-        console.error("Erro ao buscar dados de bloqueio:", err);
         toast({ title: "Erro ao buscar dados de bloqueio", description: err.message, variant: "destructive"});
         setCarregandoBloqueio(false);
     });
@@ -244,7 +241,6 @@ export default function PaginaPainel() {
         });
         buscarTodasReservas();
     } catch (error: any) {
-        console.error("Erro ao atualizar status da reserva:", error);
         toast({
             title: "Erro",
             description: error.message || "Não foi possível cancelar o agendamento.",
@@ -266,7 +262,6 @@ export default function PaginaPainel() {
         });
         buscarTodasReservas();
     } catch (error: any) {
-        console.error("Erro ao atualizar status da reserva:", error);
         toast({
             title: "Erro",
             description: error.message || "Não foi possível atualizar o status do agendamento.",
@@ -292,7 +287,6 @@ export default function PaginaPainel() {
         const date = typeof dateString === 'string' ? parseISO(dateString) : dateString;
         return format(date, "dd 'de' MMMM, yyyy", { locale: ptBR });
       } catch (error) {
-        console.error("Formato de data inválido:", dateString);
         return "Data inválida";
       }
   };
@@ -702,3 +696,5 @@ Materiais: ${formatarMateriais(reserva.materiaisNecessarios)}`;
     </div>
   );
 }
+
+    

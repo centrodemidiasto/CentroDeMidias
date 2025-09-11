@@ -54,7 +54,6 @@ export default function LoginForm() {
       if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
         message = "E-mail ou senha inválidos.";
       }
-      console.error("Sign-in error:", error);
       toast({
         title: "Erro de login",
         description: message,
@@ -110,3 +109,5 @@ export default function LoginForm() {
     
   );
 }
+
+    
