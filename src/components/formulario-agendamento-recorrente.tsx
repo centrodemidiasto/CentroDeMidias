@@ -8,7 +8,6 @@ import { cn } from "@/lib/utils";
 import FormularioReservaAdmin from "./formulario-reserva-admin";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
 import { Calendar } from "./ui/calendar";
-import { SLOTS_DE_TEMPO } from "./formulario-agendamento";
 import { ReservaExistente, BloqueioManual } from "@/lib/types";
 import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
@@ -42,6 +41,12 @@ const MODALIDADES_RESERVA = [
     { id: 'admin_live_stream', label: 'Transmissão ao vivo (Live)' },
     { id: 'admin_podcast', label: 'Podcast' },
 ];
+
+const SLOTS_DE_TEMPO_RECORRENTE = Array.from({ length: (22 - 8) * 2 }, (_, i) => {
+    const hour = Math.floor(i / 2) + 8;
+    const minute = i % 2 === 0 ? '00' : '30';
+    return `${String(hour).padStart(2, '0')}:${minute}`;
+});
 
 
 export default function FormularioAgendamentoRecorrente({ 
@@ -125,7 +130,7 @@ export default function FormularioAgendamentoRecorrente({
 
         const resultado = await handleSolicitacaoReservaRecorrente(datasFormatadas, horariosSelecionados, null, formData);
         
-        if (resultado && resultado.mensagem) {
+        if (resultado && resultado.sucesso) {
             const variant = resultado.sucesso ? 'default' : 'destructive';
             toast({
                 title: resultado.sucesso ? 'Sucesso!' : 'Erro na Solicitação',
@@ -226,8 +231,8 @@ export default function FormularioAgendamentoRecorrente({
                  </div>
                 <div className="space-y-2">
                     <h3 className="font-medium">2. Selecione os Horários</h3>
-                     <div className="grid grid-cols-3 gap-2">
-                        {SLOTS_DE_TEMPO.map(horario => {
+                     <div className="grid grid-cols-4 gap-2">
+                        {SLOTS_DE_TEMPO_RECORRENTE.map(horario => {
                             const estaSelecionado = horariosSelecionados.includes(horario);
                             return (
                                 <Button
