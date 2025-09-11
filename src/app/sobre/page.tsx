@@ -101,9 +101,7 @@ export default function SobrePage() {
                     subtitle="Ambiente Controlado"
                     description={
                       <div className="space-y-4">
-                        <p>Este estúdio é...
-
-                          Este estúdio é o ideal para a produção de conteúdo que exige clareza, foco e alta qualidade de áudio. O tratamento acústico nas paredes garante que a voz do educador seja captada de forma limpa e sem ruídos, facilitando a compreensão do aluno. O ambiente neutro e profissional mantém a atenção totalmente no conteúdo apresentado.
+                        <p>Este estúdio é o ideal para a produção de conteúdo que exige clareza, foco e alta qualidade de áudio. O tratamento acústico nas paredes garante que a voz do educador seja captada de forma limpa e sem ruídos, facilitando a compreensão do estudante. O ambiente neutro e profissional mantém a atenção totalmente no conteúdo apresentado.
                         </p>
                         <div>
                           <h4 className="font-bold text-card-foreground mb-2">Este estúdio é...</h4>
@@ -124,14 +122,13 @@ export default function SobrePage() {
                     description={
                       <div className="space-y-4">
                         <p>
-                          Este estúdio com fundo verde é uma poderosa ferramenta para a criatividade e o engajamento no processo de ensino-aprendizagem. A tecnologia chromakey permite substituir o fundo por qualquer imagem ou vídeo, transportando os alunos para cenários virtuais e ilustrando conceitos complexos de forma visual e dinâmica.
+                          Este estúdio com fundo verde é uma poderosa ferramenta para a criatividade e o engajamento no processo de ensino-aprendizagem. A tecnologia chromakey permite substituir o fundo por qualquer imagem ou vídeo, transportando os estudantes para cenários virtuais e ilustrando conceitos complexos de forma visual e dinâmica.
                         </p>
                         <div>
                           <h4 className="font-bold text-card-foreground mb-2">Este estúdio...</h4>
                           <ul className="list-disc pl-5 space-y-2">
                             <li>Permite ao professor lecionar diretamente de locais históricos, biomas do Tocantins, dentro de uma célula humana ou em qualquer cenário que enriqueça o conteúdo.</li>
                             <li>Facilita a visualização de fórmulas matemáticas, reações químicas, mapas geográficos e outros elementos gráficos que podem ser sobrepostos e com os quais o professor pode interagir.</li>
-                            <li>É ideal para a educação infantil e fundamental, criando ambientes mágicos e cenários que capturam a imaginação e a atenção dos alunos.</li>
                             <li>É ótimo para demonstrar experimentos científicos ou procedimentos que seriam difíceis ou inviáveis de realizar em uma sala de aula física.</li>
                           </ul>
                         </div>

@@ -3,7 +3,7 @@
 
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -52,12 +52,22 @@ const ALL_SLOTS = Array.from({ length: (22 - 8) * 2 }, (_, i) => {
 });
 
 
-const MODALIDADES_RESERVA = [
-    { id: 'audio_video', label: 'Gravação de áudio e vídeo' },
-    { id: 'audio_only', label: 'Gravação de áudio' },
-    { id: 'live_stream', label: 'Transmissão ao vivo (Live)' },
-    { id: 'podcast', label: 'Podcast' },
-];
+const getModalidadesReserva = (estudio: string) => {
+    const all = [
+        { id: 'audio_video', label: 'Gravação de áudio e vídeo' },
+        { id: 'audio_only', label: 'Gravação de áudio' },
+        { id: 'live_stream', label: 'Transmissão ao vivo (Live)' },
+        { id: 'podcast', label: 'Podcast' },
+    ];
+    if (estudio === 'Estúdio 2') {
+        return all.map(item => 
+            item.id === 'podcast' 
+            ? { ...item, disabled: true, label: 'Podcast (apenas Estúdio 1)' } 
+            : item
+        );
+    }
+    return all;
+};
 
 function formatarTelefone(value: string) {
     if (!value) return value;
@@ -112,6 +122,10 @@ export default function FormularioEdicaoReserva({ reserva, reservasExistentes, b
             numeroCadeiras: reserva.numeroCadeiras ?? 0,
         },
     });
+    
+    const tipoOrgao = form.watch('tipoOrgao');
+    const estudio = form.watch('estudio');
+    const modalidadesDisponiveis = useMemo(() => getModalidadesReserva(estudio), [estudio]);
 
     const formAction = async (data: z.infer<typeof EdicaoReservaSchema>) => {
         setEnviando(true);
@@ -147,9 +161,6 @@ export default function FormularioEdicaoReserva({ reserva, reservasExistentes, b
         }
         setEnviando(false);
     };
-    
-    const tipoOrgao = form.watch('tipoOrgao');
-    const estudio = form.watch('estudio');
 
     const handleSelecaoHorario = (horario: string) => {
         setHorariosSelecionados(prev => {
@@ -314,9 +325,9 @@ export default function FormularioEdicaoReserva({ reserva, reservasExistentes, b
                                     <FormLabel>Modalidade do Agendamento</FormLabel>
                                     <FormControl>
                                         <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex flex-col space-y-2" name={field.name}>
-                                            {MODALIDADES_RESERVA.map((item) => (
+                                            {modalidadesDisponiveis.map((item) => (
                                                 <FormItem key={item.id} className="flex items-center space-x-2 space-y-0">
-                                                    <FormControl><RadioGroupItem value={item.label} id={`edit-${item.id}`} /></FormControl>
+                                                    <FormControl><RadioGroupItem value={item.label} id={`edit-${item.id}`} disabled={item.disabled} /></FormControl>
                                                     <FormLabel htmlFor={`edit-${item.id}`} className="font-normal">{item.label}</FormLabel>
                                                 </FormItem>
                                             ))}
@@ -442,3 +453,5 @@ export default function FormularioEdicaoReserva({ reserva, reservasExistentes, b
         </TooltipProvider>
     );
 }
+
+    

@@ -3,7 +3,7 @@
 
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { AlertTriangle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -34,12 +34,22 @@ const DetalhesReservaSchema = z.object({
     estudio: z.string(), // Campo adicionado
 });
 
-const MODALIDADES_RESERVA = [
-    { id: 'audio_video', label: 'Gravação de áudio e vídeo' },
-    { id: 'audio_only', label: 'Gravação de áudio' },
-    { id: 'live_stream', label: 'Transmissão ao vivo (Live)' },
-    { id: 'podcast', label: 'Podcast' },
-];
+const getModalidadesReserva = (estudio: string) => {
+    const all = [
+        { id: 'audio_video', label: 'Gravação de áudio e vídeo' },
+        { id: 'audio_only', label: 'Gravação de áudio' },
+        { id: 'live_stream', label: 'Transmissão ao vivo (Live)' },
+        { id: 'podcast', label: 'Podcast' },
+    ];
+    if (estudio === 'Estúdio 2') {
+        return all.map(item => 
+            item.id === 'podcast' 
+            ? { ...item, disabled: true, label: 'Podcast (apenas Estúdio 1)' } 
+            : item
+        );
+    }
+    return all;
+};
 
 function formatarTelefone(value: string) {
     if (!value) return value;
@@ -78,6 +88,8 @@ export default function FormularioDetalhesReserva({ horariosSelecionados, estudi
             estudio: estudio,
         },
     });
+
+    const modalidadesDisponiveis = useMemo(() => getModalidadesReserva(estudio), [estudio]);
 
     const formAction = async (data: z.infer<typeof DetalhesReservaSchema>) => {
         setEnviando(true);
@@ -256,10 +268,10 @@ export default function FormularioDetalhesReserva({ horariosSelecionados, estudi
                                     className="flex flex-col space-y-2"
                                     name={field.name}
                                 >
-                                    {MODALIDADES_RESERVA.map((item) => (
+                                    {modalidadesDisponiveis.map((item) => (
                                         <FormItem key={item.id} className="flex items-center space-x-2 space-y-0">
                                             <FormControl>
-                                                <RadioGroupItem value={item.label} id={item.id} />
+                                                <RadioGroupItem value={item.label} id={item.id} disabled={item.disabled} />
                                             </FormControl>
                                             <FormLabel htmlFor={item.id} className="font-normal">{item.label}</FormLabel>
                                         </FormItem>
@@ -389,3 +401,5 @@ export default function FormularioDetalhesReserva({ horariosSelecionados, estudi
         </Form>
     );
 }
+
+    
