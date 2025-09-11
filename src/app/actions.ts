@@ -482,3 +482,30 @@ export async function atualizarSenhaUsuario(estadoAnterior: EstadoFormulario, fo
     return { sucesso: false, mensagem: `Falha ao atualizar a senha: ${error.message}` };
   }
 }
+
+export async function cancelarReservasEmLote(
+    reservaIds: string[],
+    adminUser: { nome: string | null; email: string | null; }
+) {
+    const usuarioResponsavel = adminUser.nome || adminUser.email || 'Sistema';
+    const timestamp = new Date();
+    const batch = adminDb.batch();
+
+    reservaIds.forEach(id => {
+        const reservaRef = adminDb.collection("reservas").doc(id);
+        batch.update(reservaRef, {
+            status: 'rejeitado',
+            historico: FieldValue.arrayUnion({
+                acao: "Status alterado para rejeitado (em lote)",
+                usuario: usuarioResponsavel,
+                data: timestamp
+            })
+        });
+    });
+
+    try {
+        await batch.commit();
+    } catch (error: any) {
+        throw new Error(`Falha ao cancelar as reservas em lote: ${error.message}`);
+    }
+}

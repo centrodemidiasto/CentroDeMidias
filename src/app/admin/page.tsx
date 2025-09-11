@@ -36,12 +36,12 @@ import {
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
-import { Loader2, Info, XCircle, CalendarPlus, Pencil, AlertTriangle, UserCog, History, UserCircle } from 'lucide-react';
+import { Loader2, Info, XCircle, CalendarPlus, Pencil, AlertTriangle, UserCog, History, UserCircle, Trash2, CheckSquare, Square } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO, startOfToday, addHours } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import FormularioBloqueioHorarios from '@/components/formulario-bloqueio-horarios';
-import { atualizarStatusReserva } from '@/app/actions';
+import { atualizarStatusReserva, cancelarReservasEmLote } from '@/app/actions';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import FormularioEdicaoReserva from '@/components/formulario-edicao-reserva';
@@ -50,6 +50,7 @@ import { BloqueioManual } from '@/components/formulario-bloqueio-horarios';
 import GerenciadorUsuarios from '@/components/gerenciador-usuarios';
 import GerenciadorPerfil from '@/components/gerenciador-perfil';
 import { Separator } from '@/components/ui/separator';
+import { Checkbox } from '@/components/ui/checkbox';
 
 async function getReservasPendentes(): Promise<Reserva[]> {
   const reservasRef = collection(clientDb, "reservas");
@@ -137,6 +138,9 @@ export default function PaginaPainel() {
   const [reservaParaCancelar, setReservaParaCancelar] = useState<Reserva | null>(null);
   const [modalAberto, setModalAberto] = useState(false);
 
+  const [reservasSelecionadasParaLote, setReservasSelecionadasParaLote] = useState<string[]>([]);
+  const [confirmandoCancelamentoLote, setConfirmandoCancelamentoLote] = useState(false);
+
   const router = useRouter();
   const { toast } = useToast();
   
@@ -170,6 +174,7 @@ export default function PaginaPainel() {
      buscarReservasPendentes();
      buscarReservasAprovadas(true);
      buscarDadosBloqueio(true);
+     setReservasSelecionadasParaLote([]);
   }
 
   const buscarReservasPendentes = () => {
@@ -270,6 +275,42 @@ export default function PaginaPainel() {
         });
     }
   }
+
+   const handleSelecaoLote = (reservaId: string) => {
+    setReservasSelecionadasParaLote(prev =>
+      prev.includes(reservaId) ? prev.filter(id => id !== reservaId) : [...prev, reservaId]
+    );
+  };
+
+  const handleSelecionarTodas = () => {
+    if (reservasSelecionadasParaLote.length === (reservasAprovadas?.length || 0)) {
+      setReservasSelecionadasParaLote([]);
+    } else {
+      setReservasSelecionadasParaLote(reservasAprovadas?.map(r => r.id) || []);
+    }
+  };
+
+  const handleConfirmarCancelamentoLote = async () => {
+    if (reservasSelecionadasParaLote.length === 0 || !usuario) return;
+    
+    try {
+      const adminUser = { nome: usuario.displayName || usuario.email, email: usuario.email };
+      await cancelarReservasEmLote(reservasSelecionadasParaLote, adminUser);
+      toast({
+        title: "Sucesso!",
+        description: `${reservasSelecionadasParaLote.length} agendamento(s) foram cancelado(s).`,
+      });
+      buscarTodasReservas(); // Isso já vai limpar a seleção
+    } catch (error: any) {
+       toast({
+        title: "Erro",
+        description: error.message || "Não foi possível cancelar os agendamentos.",
+        variant: "destructive",
+      });
+    } finally {
+      setConfirmandoCancelamentoLote(false);
+    }
+  };
 
   if (carregamentoInicial && !usuario) {
     return (
@@ -427,55 +468,84 @@ Materiais: ${formatarMateriais(reserva.materiaisNecessarios)}`;
                                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                                 </div>
                             ) : reservasAprovadas && reservasAprovadas.length > 0 ? (
-                                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 pt-6">
-                                    {reservasAprovadas.map((reserva) => {
-                                        const date = Object.keys(reserva.horariosSelecionados)[0];
-                                        const formattedDate = formatarDataParaExibicao(date);
-                                        const times = reserva.horariosSelecionados[date].join(', ');
-                                        const calendarLink = criarLinkGoogleAgenda(reserva);
-                                        const organization = reserva.tipoOrgao === 'interno' ? reserva.departamento : reserva.organizacaoExterna;
-                                        const cardTitle = reserva.tituloGravacao || reserva.nomeCompleto;
+                                <>
+                                    <div className="flex flex-col sm:flex-row gap-2 items-center mb-6 p-4 border rounded-lg bg-muted/30">
+                                        <div className="flex items-center gap-3 flex-1">
+                                            <Button variant="outline" size="sm" onClick={handleSelecionarTodas}>
+                                                 {reservasSelecionadasParaLote.length === reservasAprovadas.length ? <CheckSquare className="mr-2 h-4 w-4" /> : <Square className="mr-2 h-4 w-4" />}
+                                                Selecionar Todas
+                                            </Button>
+                                            <span className="text-sm text-muted-foreground">{reservasSelecionadasParaLote.length} de {reservasAprovadas.length} selecionado(s)</span>
+                                        </div>
+                                        <Button
+                                            variant="destructive"
+                                            size="sm"
+                                            disabled={reservasSelecionadasParaLote.length === 0}
+                                            onClick={() => setConfirmandoCancelamentoLote(true)}
+                                            >
+                                            <Trash2 className="mr-2 h-4 w-4" />
+                                            Cancelar Selecionados
+                                        </Button>
+                                    </div>
+                                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 pt-6">
+                                        {reservasAprovadas.map((reserva) => {
+                                            const date = Object.keys(reserva.horariosSelecionados)[0];
+                                            const formattedDate = formatarDataParaExibicao(date);
+                                            const times = reserva.horariosSelecionados[date].join(', ');
+                                            const calendarLink = criarLinkGoogleAgenda(reserva);
+                                            const organization = reserva.tipoOrgao === 'interno' ? reserva.departamento : reserva.organizacaoExterna;
+                                            const cardTitle = reserva.tituloGravacao || reserva.nomeCompleto;
+                                            const isSelected = reservasSelecionadasParaLote.includes(reserva.id);
 
-                                        return (
-                                            <Card key={reserva.id} className="flex flex-col">
-                                                <CardHeader className="pb-4">
-                                                    <div className="flex justify-between items-start">
-                                                        <CardTitle className="text-xl font-headline">{cardTitle}</CardTitle>
-                                                        <Badge variant="outline">{reserva.estudio}</Badge>
+                                            return (
+                                                <Card key={reserva.id} className={`flex flex-col relative ${isSelected ? 'border-primary ring-2 ring-primary' : ''}`}>
+                                                    <div className="absolute top-2 right-2">
+                                                        <Checkbox
+                                                            id={`select-${reserva.id}`}
+                                                            checked={isSelected}
+                                                            onCheckedChange={() => handleSelecaoLote(reserva.id)}
+                                                            aria-label={`Selecionar reserva de ${reserva.nomeCompleto}`}
+                                                        />
                                                     </div>
-                                                    <CardDescription>{reserva.nomeCompleto} - {organization}</CardDescription>
-                                                </CardHeader>
-                                                <CardContent className="flex-grow space-y-2 text-sm">
-                                                    <p><strong>Data:</strong> {formattedDate}</p>
-                                                    <p><strong>Horários:</strong> {times}</p>
-                                                    <p><strong>Modalidade:</strong> {reserva.modalidadesReserva}</p>
-                                                </CardContent>
-                                                <CardFooter className="flex-col items-start gap-3">
-                                                    <div className='flex gap-2 w-full'>
-                                                        <Button variant="outline" className="w-full" onClick={() => abrirModalDetalhes(reserva)}>
-                                                            <Info className="mr-2 h-4 w-4" /> Ver
-                                                        </Button>
-                                                        <Button variant="destructive" className="w-full" onClick={() => setReservaParaCancelar(reserva)}>
-                                                            <XCircle className="mr-2 h-4 w-4" /> Cancelar
-                                                        </Button>
-                                                    </div>
-                                                    <div className='flex gap-2 w-full'>
-                                                        <Button asChild variant="secondary" size="sm" className="flex-1">
-                                                            <Link href={calendarLink} target="_blank" rel="noopener noreferrer">
-                                                                <CalendarPlus className="mr-2 h-4 w-4" />
-                                                                Google Agenda
-                                                            </Link>
-                                                        </Button>
-                                                        <Button variant="secondary" size="sm" className="flex-1" onClick={() => abrirModalEdicao(reserva)}>
-                                                             <Pencil className="mr-2 h-4 w-4" />
-                                                            Alterar
-                                                        </Button>
-                                                    </div>
-                                                </CardFooter>
-                                            </Card>
-                                        );
-                                    })}
-                                </div>
+                                                    <CardHeader className="pb-4">
+                                                        <div className="flex justify-between items-start">
+                                                            <CardTitle className="text-xl font-headline pr-8">{cardTitle}</CardTitle>
+                                                            <Badge variant="outline">{reserva.estudio}</Badge>
+                                                        </div>
+                                                        <CardDescription>{reserva.nomeCompleto} - {organization}</CardDescription>
+                                                    </CardHeader>
+                                                    <CardContent className="flex-grow space-y-2 text-sm">
+                                                        <p><strong>Data:</strong> {formattedDate}</p>
+                                                        <p><strong>Horários:</strong> {times}</p>
+                                                        <p><strong>Modalidade:</strong> {reserva.modalidadesReserva}</p>
+                                                    </CardContent>
+                                                    <CardFooter className="flex-col items-start gap-3">
+                                                        <div className='flex gap-2 w-full'>
+                                                            <Button variant="outline" className="w-full" onClick={() => abrirModalDetalhes(reserva)}>
+                                                                <Info className="mr-2 h-4 w-4" /> Ver
+                                                            </Button>
+                                                            <Button variant="destructive" className="w-full" onClick={() => setReservaParaCancelar(reserva)}>
+                                                                <XCircle className="mr-2 h-4 w-4" /> Cancelar
+                                                            </Button>
+                                                        </div>
+                                                        <div className='flex gap-2 w-full'>
+                                                            <Button asChild variant="secondary" size="sm" className="flex-1">
+                                                                <Link href={calendarLink} target="_blank" rel="noopener noreferrer">
+                                                                    <CalendarPlus className="mr-2 h-4 w-4" />
+                                                                    Google Agenda
+                                                                </Link>
+                                                            </Button>
+                                                            <Button variant="secondary" size="sm" className="flex-1" onClick={() => abrirModalEdicao(reserva)}>
+                                                                <Pencil className="mr-2 h-4 w-4" />
+                                                                Alterar
+                                                            </Button>
+                                                        </div>
+                                                    </CardFooter>
+                                                </Card>
+                                            );
+                                        })}
+                                    </div>
+                                </>
                             ) : (
                                 <p className="text-center text-muted-foreground py-8">Nenhuma gravação confirmada para os próximos dias.</p>
                             )}
@@ -708,6 +778,26 @@ Materiais: ${formatarMateriais(reserva.materiaisNecessarios)}`;
                 <AlertDialogCancel onClick={() => setReservaParaCancelar(null)}>Voltar</AlertDialogCancel>
                 <AlertDialogAction onClick={handleConfirmarCancelamento} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
                     Sim, cancelar
+                </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog open={confirmandoCancelamentoLote} onOpenChange={setConfirmandoCancelamentoLote}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                <AlertDialogTitle className="flex items-center gap-2">
+                    <AlertTriangle className="text-destructive"/>
+                    Confirmar Cancelamento em Lote
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                    Você tem certeza que deseja cancelar <span className="font-bold">{reservasSelecionadasParaLote.length} agendamento(s)</span>? Esta ação não pode ser desfeita.
+                </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                <AlertDialogCancel>Voltar</AlertDialogCancel>
+                <AlertDialogAction onClick={handleConfirmarCancelamentoLote} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
+                    Sim, cancelar selecionados
                 </AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
