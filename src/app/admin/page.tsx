@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -235,7 +236,8 @@ export default function PaginaPainel() {
     if (!reservaParaCancelar || !usuario) return;
 
     try {
-        await atualizarStatusReserva(reservaParaCancelar.id, 'rejeitado', { nome: usuario.displayName, email: usuario.email });
+        const adminUser = { nome: usuario.displayName || usuario.email, email: usuario.email };
+        await atualizarStatusReserva(reservaParaCancelar.id, 'rejeitado', adminUser);
         toast({
             title: "Sucesso!",
             description: `Agendamento cancelado.`,
@@ -256,7 +258,8 @@ export default function PaginaPainel() {
   const handleAtualizacaoStatus = async (id: string, status: 'aprovado' | 'rejeitado') => {
     if (!usuario) return;
     try {
-        await atualizarStatusReserva(id, status, { nome: usuario.displayName, email: usuario.email });
+        const adminUser = { nome: usuario.displayName || usuario.email, email: usuario.email };
+        await atualizarStatusReserva(id, status, adminUser);
         toast({
             title: "Sucesso!",
             description: `Agendamento ${status === 'aprovado' ? 'aprovado' : 'rejeitado'}.`,

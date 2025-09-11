@@ -82,9 +82,9 @@ export async function atualizarStatusReserva(
 
         await reservaRef.update(dadosAtualizacao);
 
-    } catch (error) {
+    } catch (error: any) {
         console.error("Erro ao atualizar status da reserva:", error);
-        throw new Error("Falha ao atualizar o status da reserva.");
+        throw new Error(`Falha ao atualizar o status da reserva: ${error.message}`);
     }
 }
 
