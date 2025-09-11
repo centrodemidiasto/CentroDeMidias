@@ -2,7 +2,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { db as clientDb } from "@/lib/firebase";
 import { collection, getDocs, query, where, orderBy, Timestamp } from "firebase/firestore";
-import { format, parseISO, startOfToday, isToday, isTomorrow, addDays } from 'date-fns';
+import { format, parseISO, startOfToday, isToday, isTomorrow, addDays, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Clock, User, Building, Video, Tv, FileText } from "lucide-react";
 import CurrentTime from "@/components/current-time";
@@ -35,15 +35,16 @@ interface ReservaAgrupada {
 }
 
 async function getProximasReservas(): Promise<Reserva[]> {
-  const hoje = format(startOfToday(), 'yyyy-MM-dd');
-  const trintaDiasAFrente = format(addDays(new Date(), 30), 'yyyy-MM-dd');
+  const hoje = new Date();
+  const inicioDoMes = format(startOfMonth(hoje), 'yyyy-MM-dd');
+  const fimDoMes = format(endOfMonth(hoje), 'yyyy-MM-dd');
   const reservasRef = collection(clientDb, "reservas");
   
   const q = query(
     reservasRef,
     where("status", "==", "aprovado"),
-    where("dataReserva", ">=", hoje),
-    where("dataReserva", "<=", trintaDiasAFrente),
+    where("dataReserva", ">=", inicioDoMes),
+    where("dataReserva", "<=", fimDoMes),
     orderBy("dataReserva", "asc")
   );
   
