@@ -5,53 +5,19 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
-import { db as clientDb } from '@/lib/firebase';
 import { Reserva } from '@/lib/types';
 import { format, getYear, getMonth, isAfter, startOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { Download, Loader2 } from 'lucide-react';
-
-const getReservasAprovadasParaRelatorio = async (mes: number, ano: number): Promise<Reserva[]> => {
-    const inicioDoMesFiltro = new Date(ano, mes, 1);
-    const fimDoMesFiltro = new Date(ano, mes + 1, 0);
-
-    const inicioFormatado = format(inicioDoMesFiltro, 'yyyy-MM-dd');
-    const fimFormatado = format(fimDoMesFiltro, 'yyyy-MM-dd');
-
-    const reservasRef = collection(clientDb, 'reservas');
-    const q = query(
-        reservasRef,
-        where('status', '==', 'aprovado'),
-        where('dataReserva', '>=', inicioFormatado),
-        where('dataReserva', '<=', fimFormatado),
-        orderBy('dataReserva', 'asc')
-    );
-
-    const querySnapshot = await getDocs(q);
-    const reservas = querySnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-    })) as Reserva[];
-
-    reservas.sort((a, b) => {
-        const timeA = a.horariosSelecionados[a.dataReserva]?.[0] || '00:00';
-        const timeB = b.horariosSelecionados[b.dataReserva]?.[0] || '00:00';
-        if (a.dataReserva < b.dataReserva) return -1;
-        if (a.dataReserva > b.dataReserva) return 1;
-        return timeA.localeCompare(timeB);
-    });
-
-    return reservas;
-};
+import { gerarOuObterRelatorio } from '@/app/actions';
 
 const MESES = Array.from({ length: 12 }, (_, i) => ({
   value: i,
   label: format(new Date(2000, i), 'MMMM', { locale: ptBR }),
 }));
 
-const ANOS = Array.from({ length: 5 }, (_, i) => getYear(new Date()) - i);
+const ANOS = [2024, 2025];
 
 export default function GeradorRelatorio() {
     const hoje = new Date();
@@ -75,34 +41,19 @@ export default function GeradorRelatorio() {
 
         setCarregando(true);
         try {
-            const reservas = await getReservasAprovadasParaRelatorio(mesSelecionado, anoSelecionado);
-            if (reservas.length === 0) {
-                toast({
+            const resultado = await gerarOuObterRelatorio(mesSelecionado, anoSelecionado);
+            
+            if (!resultado.sucesso || !resultado.dados) {
+                 toast({
                     title: 'Nenhum dado encontrado',
-                    description: 'Não há agendamentos realizados para o período selecionado.',
+                    description: resultado.mensagem || 'Não há agendamentos realizados para o período selecionado.',
                 });
                 return;
             }
 
-            const colunas = ['Data', 'Horario', 'Estudio', 'Titulo da Gravacao', 'Responsavel', 'Setor_Departamento'];
-            const linhas = reservas.map(r => {
-                const data = r.dataReserva;
-                const horario = r.horariosSelecionados[data]?.join(', ') || '';
-                const orgao = r.tipoOrgao === 'interno' ? r.departamento : r.organizacaoExterna;
-                return [
-                    format(new Date(data + 'T00:00:00'), 'dd/MM/yyyy'),
-                    `"${horario}"`,
-                    r.estudio,
-                    `"${r.tituloGravacao.replace(/"/g, '""')}"`,
-                    `"${r.nomeCompleto.replace(/"/g, '""')}"`,
-                    `"${(orgao || '').replace(/"/g, '""')}"`
-                ].join(',');
-            });
-
-            const csvContent = "data:text/csv;charset=utf-8," + [colunas.join(','), ...linhas].join('\n');
-            const encodedUri = encodeURI(csvContent);
+            const csvContent = "data:text/csv;charset=utf-8," + encodeURI(resultado.dados);
             const link = document.createElement('a');
-            link.setAttribute('href', encodedUri);
+            link.setAttribute('href', csvContent);
             link.setAttribute('download', `relatorio_agendamentos_${MESES[mesSelecionado].label}_${anoSelecionado}.csv`);
             document.body.appendChild(link);
             link.click();

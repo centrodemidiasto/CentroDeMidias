@@ -5,6 +5,7 @@ import { adminDb } from "@/lib/firebase-admin";
 import { FieldValue } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
 import { z } from "zod";
+import { format, parseISO } from "date-fns";
 
 const DetalhesReservaSchema = z.object({
     nomeCompleto: z.string().min(3, { message: "Nome completo é obrigatório." }),
@@ -507,5 +508,74 @@ export async function cancelarReservasEmLote(
         await batch.commit();
     } catch (error: any) {
         throw new Error(`Falha ao cancelar as reservas em lote: ${error.message}`);
+    }
+}
+
+
+export async function gerarOuObterRelatorio(mes: number, ano: number): Promise<{ sucesso: boolean; dados?: string; mensagem?: string }> {
+    const docId = `${ano}-${String(mes + 1).padStart(2, '0')}`;
+    const relatorioRef = adminDb.collection('relatorios_consolidados').doc(docId);
+
+    try {
+        const doc = await relatorioRef.get();
+        if (doc.exists) {
+            return { sucesso: true, dados: doc.data()?.csvContent };
+        }
+
+        const inicioDoMesFiltro = new Date(ano, mes, 1);
+        const fimDoMesFiltro = new Date(ano, mes + 1, 0);
+
+        const inicioFormatado = format(inicioDoMesFiltro, 'yyyy-MM-dd');
+        const fimFormatado = format(fimDoMesFiltro, 'yyyy-MM-dd');
+
+        const reservasRef = adminDb.collection('reservas');
+        const q = reservasRef
+            .where('status', '==', 'aprovado')
+            .where('dataReserva', '>=', inicioFormatado)
+            .where('dataReserva', '<=', fimFormatado)
+            .orderBy('dataReserva', 'asc');
+
+        const querySnapshot = await q.get();
+        const reservas = querySnapshot.docs.map(doc => doc.data());
+
+        reservas.sort((a, b) => {
+            const timeA = a.horariosSelecionados[a.dataReserva]?.[0] || '00:00';
+            const timeB = b.horariosSelecionados[b.dataReserva]?.[0] || '00:00';
+            if (a.dataReserva < b.dataReserva) return -1;
+            if (a.dataReserva > b.dataReserva) return 1;
+            return timeA.localeCompare(timeB);
+        });
+        
+        if (reservas.length === 0) {
+            return { sucesso: false, mensagem: "Nenhum dado encontrado para o período." };
+        }
+
+        const colunas = ['Data', 'Horario', 'Estudio', 'Titulo da Gravacao', 'Responsavel', 'Setor_Departamento'];
+        const linhas = reservas.map(r => {
+            const data = r.dataReserva;
+            const horario = r.horariosSelecionados[data]?.join(', ') || '';
+            const orgao = r.tipoOrgao === 'interno' ? r.departamento : r.organizacaoExterna;
+            return [
+                format(parseISO(`${data}T00:00:00`), 'dd/MM/yyyy'),
+                `"${horario}"`,
+                r.estudio,
+                `"${(r.tituloGravacao || '').replace(/"/g, '""')}"`,
+                `"${(r.nomeCompleto || '').replace(/"/g, '""')}"`,
+                `"${(orgao || '').replace(/"/g, '""')}"`
+            ].join(',');
+        });
+
+        const csvContent = [colunas.join(','), ...linhas].join('\n');
+
+        await relatorioRef.set({
+            csvContent,
+            geradoEm: new Date(),
+        });
+
+        return { sucesso: true, dados: csvContent };
+
+    } catch (error) {
+        console.error("Erro ao gerar ou obter relatório:", error);
+        return { sucesso: false, mensagem: "Falha ao processar o relatório no servidor." };
     }
 }
