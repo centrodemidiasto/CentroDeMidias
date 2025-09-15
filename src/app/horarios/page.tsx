@@ -36,14 +36,14 @@ interface ReservaAgrupada {
 
 async function getProximasReservas(): Promise<Reserva[]> {
   const hoje = new Date();
-  const inicioDoMes = format(startOfMonth(hoje), 'yyyy-MM-dd');
+  const inicioDoPeriodo = format(hoje, 'yyyy-MM-dd');
   const fimDoMes = format(endOfMonth(hoje), 'yyyy-MM-dd');
   const reservasRef = collection(clientDb, "reservas");
   
   const q = query(
     reservasRef,
     where("status", "==", "aprovado"),
-    where("dataReserva", ">=", inicioDoMes),
+    where("dataReserva", ">=", inicioDoPeriodo),
     where("dataReserva", "<=", fimDoMes),
     orderBy("dataReserva", "asc")
   );
@@ -99,6 +99,7 @@ function agruparReservasPorData(reservas: Reserva[]): ReservaAgrupada[] {
 export default async function PaginaHorarios() {
   const proximasReservasRaw = await getProximasReservas();
   const reservasAgrupadas = agruparReservasPorData(proximasReservasRaw);
+  const mesAtual = format(new Date(), "MMMM 'de' yyyy", { locale: ptBR });
 
   return (
     <div className="bg-gray-900 text-white min-h-screen p-6 font-sans relative">
@@ -115,6 +116,7 @@ export default async function PaginaHorarios() {
         <h1 className="text-4xl font-bold tracking-tight text-blue-300">
         Próximas Gravações
         </h1>
+         <p className="text-2xl capitalize text-orange-400/90 mt-2">Agenda de {mesAtual}</p>
         <CurrentTime />
     </header>
 
