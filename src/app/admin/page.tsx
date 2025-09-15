@@ -227,7 +227,7 @@ export default function PaginaPainel() {
   }, [mesAprovadas]);
 
   const handleMudancaAccordion = (value: string) => {
-    if (value === "aprovado" && !reservasAprovadas) {
+    if (value === "aprovado") {
       buscarReservasAprovadas(true);
     } else if (value === "block-slots" && !dadosBloqueio) {
       buscarDadosBloqueio();
@@ -454,14 +454,14 @@ Caso tenha alguma dúvida, por favor, responda a este e-mail.
 Atenciosamente,
 Equipe do Centro de Mídias Educacionais.`;
     }
-
+    
     const params = new URLSearchParams({
         to: email,
-        subject: subject,
+        su: subject,
         body: body,
     });
 
-    return `mailto:?${params.toString()}`;
+    return `https://mail.google.com/mail/?view=cm&fs=1&${params.toString()}`;
   };
 
 
