@@ -29,6 +29,7 @@ export interface Reserva {
   aprovadoPor?: string;
   ultimaAlteracaoPor?: string;
   historico?: HistoricoItem[];
+  motivoCancelamento?: string;
 }
 
 export type ReservaExistente = {

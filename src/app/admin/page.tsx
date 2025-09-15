@@ -52,6 +52,7 @@ import GerenciadorPerfil from '@/components/gerenciador-perfil';
 import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
 import GeradorRelatorio from '@/components/gerador-relatorio';
+import { Textarea } from '@/components/ui/textarea';
 
 async function getReservasPendentes(): Promise<Reserva[]> {
   const reservasRef = collection(clientDb, "reservas");
@@ -141,6 +142,7 @@ export default function PaginaPainel() {
   const [editandoReserva, setEditandoReserva] = useState<Reserva | null>(null);
   const [reservaParaCancelar, setReservaParaCancelar] = useState<Reserva | null>(null);
   const [modalAberto, setModalAberto] = useState(false);
+  const [motivoCancelamento, setMotivoCancelamento] = useState("");
 
   const [reservasSelecionadasParaLote, setReservasSelecionadasParaLote] = useState<string[]>([]);
   const [confirmandoCancelamentoLote, setConfirmandoCancelamentoLote] = useState(false);
@@ -249,9 +251,14 @@ export default function PaginaPainel() {
   const handleConfirmarCancelamento = async () => {
     if (!reservaParaCancelar || !usuario) return;
 
+    if (!motivoCancelamento.trim()) {
+      toast({ title: "Erro", description: "O motivo do cancelamento é obrigatório.", variant: "destructive"});
+      return;
+    }
+
     try {
         const adminUser = { nome: usuario.displayName || usuario.email, email: usuario.email };
-        await atualizarStatusReserva(reservaParaCancelar.id, 'rejeitado', adminUser);
+        await atualizarStatusReserva(reservaParaCancelar.id, 'rejeitado', adminUser, motivoCancelamento);
         toast({
             title: "Sucesso!",
             description: `Agendamento cancelado.`,
@@ -265,14 +272,22 @@ export default function PaginaPainel() {
         });
     } finally {
         setReservaParaCancelar(null);
+        setMotivoCancelamento("");
     }
   }
 
-  const handleAtualizacaoStatus = async (id: string, status: 'aprovado' | 'rejeitado') => {
+  const handleAtualizacaoStatus = async (id: string, status: 'aprovado' | 'rejeitado', motivo?: string) => {
     if (!usuario) return;
+
+    if (status === 'rejeitado' && !motivo) {
+        const reserva = reservasPendentes.find(r => r.id === id);
+        setReservaParaCancelar(reserva || null);
+        return;
+    }
+
     try {
         const adminUser = { nome: usuario.displayName || usuario.email, email: usuario.email };
-        await atualizarStatusReserva(id, status, adminUser);
+        await atualizarStatusReserva(id, status, adminUser, motivo);
         toast({
             title: "Sucesso!",
             description: `Agendamento ${status === 'aprovado' ? 'aprovado' : 'rejeitado'}.`,
@@ -284,6 +299,11 @@ export default function PaginaPainel() {
             description: error.message || "Não foi possível atualizar o status do agendamento.",
             variant: "destructive",
         });
+    } finally {
+        if(status === 'rejeitado') {
+          setReservaParaCancelar(null);
+          setMotivoCancelamento("");
+        }
     }
   }
 
@@ -304,9 +324,14 @@ export default function PaginaPainel() {
   const handleConfirmarCancelamentoLote = async () => {
     if (reservasSelecionadasParaLote.length === 0 || !usuario) return;
     
+    if (!motivoCancelamento.trim()) {
+      toast({ title: "Erro", description: "O motivo do cancelamento é obrigatório.", variant: "destructive"});
+      return;
+    }
+
     try {
       const adminUser = { nome: usuario.displayName || usuario.email, email: usuario.email };
-      await cancelarReservasEmLote(reservasSelecionadasParaLote, adminUser);
+      await cancelarReservasEmLote(reservasSelecionadasParaLote, adminUser, motivoCancelamento);
       toast({
         title: "Sucesso!",
         description: `${reservasSelecionadasParaLote.length} agendamento(s) foram cancelado(s).`,
@@ -320,6 +345,7 @@ export default function PaginaPainel() {
       });
     } finally {
       setConfirmandoCancelamentoLote(false);
+      setMotivoCancelamento("");
     }
   };
 
@@ -447,7 +473,7 @@ Materiais: ${formatarMateriais(reserva.materiaisNecessarios)}`;
                                 <Info className="h-4 w-4" />
                                </Button>
                               <Button variant="outline" size="sm" onClick={() => handleAtualizacaoStatus(reserva.id, 'aprovado')}>Aprovar</Button>
-                              <Button variant="destructive" size="sm" onClick={() => setReservaParaCancelar(reserva)}>Rejeitar</Button>
+                              <Button variant="destructive" size="sm" onClick={() => handleAtualizacaoStatus(reserva.id, 'rejeitado')}>Rejeitar</Button>
                             </TableCell>
                         </TableRow>
                         );
@@ -465,7 +491,7 @@ Materiais: ${formatarMateriais(reserva.materiaisNecessarios)}`;
           </CardContent>
         </Card>
 
-        <Accordion type="single" collapsible onValueChange={handleMudancaAccordion} defaultValue='aprovado'>
+        <Accordion type="single" collapsible onValueChange={handleMudancaAccordion}>
             <AccordionItem value="aprovado">
                 <Card>
                     <AccordionTrigger className="p-6 w-full">
@@ -805,8 +831,15 @@ Materiais: ${formatarMateriais(reserva.materiaisNecessarios)}`;
                     Você tem certeza que deseja cancelar o agendamento de <span className="font-bold">{reservaParaCancelar?.nomeCompleto}</span> para o dia <span className="font-bold">{reservaParaCancelar && formatarDataParaExibicao(reservaParaCancelar.dataReserva)}</span>? Esta ação não pode ser desfeita.
                 </AlertDialogDescription>
                 </AlertDialogHeader>
+                <div className="py-4">
+                    <Textarea 
+                      placeholder="Digite o motivo do cancelamento aqui..."
+                      value={motivoCancelamento}
+                      onChange={(e) => setMotivoCancelamento(e.target.value)}
+                    />
+                </div>
                 <AlertDialogFooter>
-                <AlertDialogCancel onClick={() => setReservaParaCancelar(null)}>Voltar</AlertDialogCancel>
+                <AlertDialogCancel onClick={() => { setReservaParaCancelar(null); setMotivoCancelamento(""); }}>Voltar</AlertDialogCancel>
                 <AlertDialogAction onClick={handleConfirmarCancelamento} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
                     Sim, cancelar
                 </AlertDialogAction>
@@ -825,8 +858,15 @@ Materiais: ${formatarMateriais(reserva.materiaisNecessarios)}`;
                     Você tem certeza que deseja cancelar <span className="font-bold">{reservasSelecionadasParaLote.length} agendamento(s)</span>? Esta ação não pode ser desfeita.
                 </AlertDialogDescription>
                 </AlertDialogHeader>
+                 <div className="py-4">
+                    <Textarea 
+                      placeholder="Digite o motivo do cancelamento aqui..."
+                      value={motivoCancelamento}
+                      onChange={(e) => setMotivoCancelamento(e.target.value)}
+                    />
+                </div>
                 <AlertDialogFooter>
-                <AlertDialogCancel>Voltar</AlertDialogCancel>
+                <AlertDialogCancel onClick={() => { setConfirmandoCancelamentoLote(false); setMotivoCancelamento(""); }}>Voltar</AlertDialogCancel>
                 <AlertDialogAction onClick={handleConfirmarCancelamentoLote} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
                     Sim, cancelar selecionados
                 </AlertDialogAction>

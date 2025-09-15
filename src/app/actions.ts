@@ -62,7 +62,8 @@ type EstadoFormulario = {
 export async function atualizarStatusReserva(
     reservaId: string, 
     status: 'aprovado' | 'rejeitado',
-    adminUser: { nome: string | null; email: string | null; }
+    adminUser: { nome: string | null; email: string | null; },
+    motivo?: string
 ) {
     const reservaRef = adminDb.collection("reservas").doc(reservaId);
     const usuarioResponsavel = adminUser.nome || adminUser.email || 'Sistema';
@@ -80,6 +81,14 @@ export async function atualizarStatusReserva(
 
         if (status === 'aprovado') {
             dadosAtualizacao.aprovadoPor = usuarioResponsavel;
+            dadosAtualizacao.motivoCancelamento = FieldValue.delete();
+        }
+
+        if (status === 'rejeitado') {
+            if (!motivo) {
+                throw new Error("O motivo do cancelamento é obrigatório.");
+            }
+            dadosAtualizacao.motivoCancelamento = motivo;
         }
 
         await reservaRef.update(dadosAtualizacao);
@@ -486,7 +495,8 @@ export async function atualizarSenhaUsuario(estadoAnterior: EstadoFormulario, fo
 
 export async function cancelarReservasEmLote(
     reservaIds: string[],
-    adminUser: { nome: string | null; email: string | null; }
+    adminUser: { nome: string | null; email: string | null; },
+    motivo: string
 ) {
     const usuarioResponsavel = adminUser.nome || adminUser.email || 'Sistema';
     const timestamp = new Date();
@@ -496,6 +506,7 @@ export async function cancelarReservasEmLote(
         const reservaRef = adminDb.collection("reservas").doc(id);
         batch.update(reservaRef, {
             status: 'rejeitado',
+            motivoCancelamento: motivo,
             historico: FieldValue.arrayUnion({
                 acao: "Status alterado para rejeitado (em lote)",
                 usuario: usuarioResponsavel,
@@ -530,7 +541,7 @@ export async function gerarOuObterRelatorio(mes: number, ano: number): Promise<{
 
         const reservasRef = adminDb.collection('reservas');
         const q = reservasRef
-            .where('status', '==', 'aprovado')
+            .where('status', 'in', ['aprovado', 'rejeitado'])
             .where('dataReserva', '>=', inicioFormatado)
             .where('dataReserva', '<=', fimFormatado)
             .orderBy('dataReserva', 'asc');
@@ -550,18 +561,22 @@ export async function gerarOuObterRelatorio(mes: number, ano: number): Promise<{
             return { sucesso: false, mensagem: "Nenhum dado encontrado para o período." };
         }
 
-        const colunas = ['Data', 'Horario', 'Estudio', 'Titulo da Gravacao', 'Responsavel', 'Setor_Departamento'];
+        const colunas = ['Data', 'Horario', 'Estudio', 'Titulo da Gravacao', 'Responsavel', 'Setor_Departamento', 'Status', 'Motivo_Cancelamento'];
         const linhas = reservas.map(r => {
             const data = r.dataReserva;
             const horario = r.horariosSelecionados[data]?.join(', ') || '';
             const orgao = r.tipoOrgao === 'interno' ? r.departamento : r.organizacaoExterna;
+            const motivoCancelamento = r.motivoCancelamento || '';
+
             return [
                 format(parseISO(`${data}T00:00:00`), 'dd/MM/yyyy'),
                 `"${horario}"`,
                 r.estudio,
                 `"${(r.tituloGravacao || '').replace(/"/g, '""')}"`,
                 `"${(r.nomeCompleto || '').replace(/"/g, '""')}"`,
-                `"${(orgao || '').replace(/"/g, '""')}"`
+                `"${(orgao || '').replace(/"/g, '""')}"`,
+                r.status,
+                `"${motivoCancelamento.replace(/"/g, '""')}"`
             ].join(',');
         });
 
