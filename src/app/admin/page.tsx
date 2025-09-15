@@ -469,7 +469,7 @@ g) Não é permitido entrar com alimentos ou bebidas;
 
 i) Celulares devem ficar desligados ou em modo silencioso;
 
-j) Respeite o horário agendado — atrasos podem comprometer sessões seguintes.
+j) Respeite o horário agendado — atrasos podem comprometer as sessões seguintes.
 
 
 
