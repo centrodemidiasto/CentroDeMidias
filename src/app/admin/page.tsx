@@ -38,7 +38,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Button } from '@/components/ui/button';
 import { Loader2, Info, XCircle, CalendarPlus, Pencil, AlertTriangle, UserCog, History, UserCircle, Trash2, CheckSquare, Square, ChevronLeft, ChevronRight, Mail } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { format, parseISO, startOfToday, addHours, startOfMonth, endOfMonth, addMonths, isSameMonth } from 'date-fns';
+import { format, parseISO, startOfToday, addHours, startOfMonth, endOfMonth, addMonths, isSameMonth, isBefore } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import FormularioBloqueioHorarios from '@/components/formulario-bloqueio-horarios';
 import { atualizarStatusReserva, cancelarReservasEmLote } from '@/app/actions';
@@ -70,16 +70,23 @@ async function getReservasPendentes(): Promise<Reserva[]> {
 }
 
 async function getReservasAprovadas(mes: Date): Promise<Reserva[]> {
-  const inicioDoMes = format(startOfMonth(mes), 'yyyy-MM-dd');
-  const fimDoMes = format(endOfMonth(mes), 'yyyy-MM-dd');
+  const hoje = startOfToday();
+  const inicioDoMes = startOfMonth(mes);
+  
+  // Se o mês selecionado é o mês atual ou um mês passado, o início da busca é hoje.
+  // Se for um mês futuro, o início da busca é o primeiro dia daquele mês.
+  const inicioBusca = isBefore(inicioDoMes, hoje) ? hoje : inicioDoMes;
+
+  const inicioFormatado = format(inicioBusca, 'yyyy-MM-dd');
+  const fimDoMesFormatado = format(endOfMonth(mes), 'yyyy-MM-dd');
   
   const reservasRef = collection(clientDb, "reservas");
 
   const q = query(
     reservasRef,
     where("status", "==", "aprovado"),
-    where("dataReserva", ">=", inicioDoMes),
-    where("dataReserva", "<=", fimDoMes),
+    where("dataReserva", ">=", inicioFormatado),
+    where("dataReserva", "<=", fimDoMesFormatado),
     orderBy("dataReserva", "asc")
   );
   const querySnapshot = await getDocs(q);
@@ -280,7 +287,9 @@ export default function PaginaPainel() {
 
     if (status === 'rejeitado' && !motivo) {
         const reserva = reservasPendentes.find(r => r.id === id);
-        setReservaParaCancelar(reserva || null);
+        if (reserva) {
+            setReservaParaCancelar(reserva);
+        }
         return;
     }
 
@@ -598,7 +607,7 @@ Equipe do Centro de Mídias Educacionais.`;
                                             const formattedDate = formatarDataParaExibicao(date);
                                             const times = reserva.horariosSelecionados[date].join(', ');
                                             const calendarLink = criarLinkGoogleAgenda(reserva);
-                                            const emailLink = criarLinkEmail(reserva);
+                                            const emailLinkAprovado = criarLinkEmail(reserva);
                                             const organization = reserva.tipoOrgao === 'interno' ? reserva.departamento : reserva.organizacaoExterna;
                                             const cardTitle = reserva.tituloGravacao || reserva.nomeCompleto;
                                             const isSelected = reservasSelecionadasParaLote.includes(reserva.id);
@@ -642,7 +651,7 @@ Equipe do Centro de Mídias Educacionais.`;
                                                                 </Link>
                                                             </Button>
                                                              <Button asChild variant="secondary" size="sm" className="flex-1">
-                                                                <Link href={emailLink} target="_blank">
+                                                                <Link href={emailLinkAprovado} target="_blank">
                                                                     <Mail className="mr-2 h-4 w-4" />
                                                                     E-mail
                                                                 </Link>
@@ -659,7 +668,7 @@ Equipe do Centro de Mídias Educacionais.`;
                                     </div>
                                 </>
                             ) : (
-                                <p className="text-center text-muted-foreground py-8">Nenhuma gravação confirmada para este mês.</p>
+                                <p className="text-center text-muted-foreground py-8">Nenhuma gravação confirmada para este período.</p>
                             )}
                         </CardContent>
                     </AccordionContent>
@@ -892,6 +901,16 @@ Equipe do Centro de Mídias Educacionais.`;
                       value={motivoCancelamento}
                       onChange={(e) => setMotivoCancelamento(e.target.value)}
                     />
+                     {reservaParaCancelar && (
+                        <div className="mt-4">
+                             <Button asChild variant="secondary" size="sm" className="w-full">
+                                <Link href={criarLinkEmail(reservaParaCancelar, motivoCancelamento)} target="_blank">
+                                    <Mail className="mr-2 h-4 w-4" />
+                                    Notificar usuário por e-mail sobre o cancelamento
+                                </Link>
+                            </Button>
+                        </div>
+                    )}
                 </div>
                 <AlertDialogFooter>
                 <AlertDialogCancel onClick={() => { setReservaParaCancelar(null); setMotivoCancelamento(""); }}>Voltar</AlertDialogCancel>
