@@ -36,7 +36,7 @@ import {
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
-import { Loader2, Info, XCircle, CalendarPlus, Pencil, AlertTriangle, UserCog, History, UserCircle, Trash2, CheckSquare, Square, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Loader2, Info, XCircle, CalendarPlus, Pencil, AlertTriangle, UserCog, History, UserCircle, Trash2, CheckSquare, Square, ChevronLeft, ChevronRight, Mail } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO, startOfToday, addHours, startOfMonth, endOfMonth, addMonths, isSameMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -198,7 +198,7 @@ export default function PaginaPainel() {
   };
 
   const buscarReservasAprovadas = (force = false) => {
-    if (reservasAprovadas && !force) return; 
+    if (reservasAprovadas && !force && isSameMonth(mesAprovadas, new Date())) return;
     setCarregandoAprovados(true);
     setReservasSelecionadasParaLote([]);
     getReservasAprovadas(mesAprovadas).then(data => {
@@ -239,7 +239,6 @@ export default function PaginaPainel() {
       if (user) {
         setUsuario(user);
         buscarReservasPendentes(); 
-        buscarReservasAprovadas(true);
       } else {
         router.push('/login');
       }
@@ -416,6 +415,55 @@ Materiais: ${formatarMateriais(reserva.materiaisNecessarios)}`;
     return `https://www.google.com/calendar/render?${params.toString()}`;
   }
 
+  const criarLinkEmail = (reserva: Reserva, motivo?: string): string => {
+    const { email, nomeCompleto, dataReserva, horariosSelecionados, tituloGravacao } = reserva;
+    const date = Object.keys(horariosSelecionados)[0];
+    const times = horariosSelecionados[date].join(', ');
+    const formattedDate = formatarDataParaExibicao(date);
+    
+    let subject = '';
+    let body = '';
+
+    if (reserva.status === 'aprovado') {
+        subject = 'Seu agendamento no Centro de Mídias foi APROVADO';
+        body = `Olá, ${nomeCompleto}!
+
+Seu agendamento para a gravação "${tituloGravacao}" foi confirmado.
+
+Detalhes:
+Data: ${formattedDate}
+Horário(s): ${times}
+Estúdio: ${reserva.estudio}
+
+Lembre-se de chegar com 30 minutos de antecedência. Caso precise de auxílio com materiais (slides, vídeos), envie-os para centrodemidias@seduc.to.gov.br com 72h de antecedência.
+
+Para mais informações, consulte as normas de uso em nosso site.
+
+Atenciosamente,
+Equipe do Centro de Mídias Educacionais.`;
+    } else { // 'rejeitado'
+        subject = 'Seu agendamento no Centro de Mídias foi CANCELADO';
+        body = `Olá, ${nomeCompleto}.
+
+Informamos que sua solicitação de agendamento para a gravação "${tituloGravacao}" no dia ${formattedDate} foi cancelada.
+
+Motivo: ${motivo || 'Entre em contato para mais detalhes.'}
+
+Caso tenha alguma dúvida, por favor, responda a este e-mail.
+
+Atenciosamente,
+Equipe do Centro de Mídias Educacionais.`;
+    }
+
+    const params = new URLSearchParams({
+        to: email,
+        subject: subject,
+        body: body,
+    });
+
+    return `mailto:?${params.toString()}`;
+  };
+
 
   return (
     <div className="container mx-auto max-w-7xl px-4 py-12 md:px-6 md:py-16">
@@ -550,6 +598,7 @@ Materiais: ${formatarMateriais(reserva.materiaisNecessarios)}`;
                                             const formattedDate = formatarDataParaExibicao(date);
                                             const times = reserva.horariosSelecionados[date].join(', ');
                                             const calendarLink = criarLinkGoogleAgenda(reserva);
+                                            const emailLink = criarLinkEmail(reserva);
                                             const organization = reserva.tipoOrgao === 'interno' ? reserva.departamento : reserva.organizacaoExterna;
                                             const cardTitle = reserva.tituloGravacao || reserva.nomeCompleto;
                                             const isSelected = reservasSelecionadasParaLote.includes(reserva.id);
@@ -578,10 +627,10 @@ Materiais: ${formatarMateriais(reserva.materiaisNecessarios)}`;
                                                     </CardContent>
                                                     <CardFooter className="flex-col items-start gap-3">
                                                         <div className='flex gap-2 w-full'>
-                                                            <Button variant="outline" className="w-full" onClick={() => abrirModalDetalhes(reserva)}>
+                                                            <Button variant="outline" className="flex-1" onClick={() => abrirModalDetalhes(reserva)}>
                                                                 <Info className="mr-2 h-4 w-4" /> Ver
                                                             </Button>
-                                                            <Button variant="destructive" className="w-full" onClick={() => setReservaParaCancelar(reserva)}>
+                                                            <Button variant="destructive" className="flex-1" onClick={() => setReservaParaCancelar(reserva)}>
                                                                 <XCircle className="mr-2 h-4 w-4" /> Cancelar
                                                             </Button>
                                                         </div>
@@ -589,7 +638,13 @@ Materiais: ${formatarMateriais(reserva.materiaisNecessarios)}`;
                                                             <Button asChild variant="secondary" size="sm" className="flex-1">
                                                                 <Link href={calendarLink} target="_blank" rel="noopener noreferrer">
                                                                     <CalendarPlus className="mr-2 h-4 w-4" />
-                                                                    Google Agenda
+                                                                    Agenda
+                                                                </Link>
+                                                            </Button>
+                                                             <Button asChild variant="secondary" size="sm" className="flex-1">
+                                                                <Link href={emailLink} target="_blank">
+                                                                    <Mail className="mr-2 h-4 w-4" />
+                                                                    E-mail
                                                                 </Link>
                                                             </Button>
                                                             <Button variant="secondary" size="sm" className="flex-1" onClick={() => abrirModalEdicao(reserva)}>
@@ -877,3 +932,5 @@ Materiais: ${formatarMateriais(reserva.materiaisNecessarios)}`;
     </div>
   );
 }
+
+    
