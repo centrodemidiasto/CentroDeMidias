@@ -33,6 +33,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
@@ -73,8 +74,6 @@ async function getReservasAprovadas(mes: Date): Promise<Reserva[]> {
   const hoje = startOfToday();
   const inicioDoMes = startOfMonth(mes);
   
-  // Se o mês selecionado é o mês atual ou um mês passado, o início da busca é hoje.
-  // Se for um mês futuro, o início da busca é o primeiro dia daquele mês.
   const inicioBusca = isBefore(inicioDoMes, hoje) ? hoje : inicioDoMes;
 
   const inicioFormatado = format(inicioBusca, 'yyyy-MM-dd');
@@ -424,7 +423,7 @@ Materiais: ${formatarMateriais(reserva.materiaisNecessarios)}`;
     return `https://www.google.com/calendar/render?${params.toString()}`;
   }
 
-const criarLinkEmail = (reserva: Reserva, motivo?: string): string => {
+const criarLinkEmail = (reserva: Reserva, tipo: 'confirmacao' | 'cancelamento'): string => {
     const { email, nomeCompleto, dataReserva, horariosSelecionados, tituloGravacao, estudio } = reserva;
     const date = Object.keys(horariosSelecionados)[0];
     const times = horariosSelecionados[date].join(', ');
@@ -436,7 +435,7 @@ const criarLinkEmail = (reserva: Reserva, motivo?: string): string => {
     let subject = '';
     let body = '';
 
-    if (reserva.status === 'aprovado') {
+    if (tipo === 'confirmacao') {
         subject = 'Seu agendamento no Centro de Mídias foi APROVADO';
 
         if (estudio === 'Estúdio 1') {
@@ -520,7 +519,7 @@ Para acesso às normas completas de uso (envio de materiais, termos legais, rest
 Atenciosamente,
 Centro de Mídias Educacionais – Seduc TO
 Contato: centrodemidias@seduc.to.gov.br`;
-        } else {
+        } else { // Fallback para outros estúdios ou caso o nome esteja diferente
              body = `Olá, ${nomeCompleto}!
 
 Seu agendamento para a gravação "${tituloGravacao}" foi confirmado.
@@ -537,18 +536,25 @@ Para mais informações, consulte as normas de uso em nosso site.
 Atenciosamente,
 Equipe do Centro de Mídias Educacionais.`;
         }
-    } else { // 'rejeitado'
-        subject = 'Seu agendamento no Centro de Mídias foi CANCELADO';
-        body = `Olá, ${nomeCompleto}.
+    } else { // 'cancelamento'
+        subject = 'Cancelamento de Agendamento no Estúdio do Centro de Mídias';
+        body = `Olá ${nomeCompleto},
 
-Informamos que sua solicitação de agendamento para a gravação "${tituloGravacao}" no dia ${formatarDataParaExibicao(date)} foi cancelada.
+Informamos que seu agendamento para o Estúdio ${estudio}, que estava marcado para o dia ${dia} de ${mes} de ${ano}, às ${times}, foi cancelado.
 
-Motivo: ${motivo || 'Entre em contato para mais detalhes.'}
+Pedimos desculpas por qualquer inconveniente que isso possa causar.
 
-Caso tenha alguma dúvida, por favor, responda a este e-mail.
+Para realizar um novo agendamento, por favor, acesse nossa plataforma e verifique os horários disponíveis:
+👉 https://centrodemidiasto.vercel.app/agendamento
+
+Caso tenha alguma dúvida ou precise de mais informações, entre em contato conosco pelo e-mail: centrodemidias@seduc.to.gov.br.
+
+Agradecemos a sua compreensão.
 
 Atenciosamente,
-Equipe do Centro de Mídias Educacionais.`;
+
+Centro de Mídias Educacionais – Seduc TO
+Contato: centrodemidias@seduc.to.gov.br`;
     }
     
     const params = new URLSearchParams({
@@ -694,7 +700,6 @@ Equipe do Centro de Mídias Educacionais.`;
                                             const formattedDate = formatarDataParaExibicao(date);
                                             const times = reserva.horariosSelecionados[date].join(', ');
                                             const calendarLink = criarLinkGoogleAgenda(reserva);
-                                            const emailLinkAprovado = criarLinkEmail(reserva);
                                             const organization = reserva.tipoOrgao === 'interno' ? reserva.departamento : reserva.organizacaoExterna;
                                             const cardTitle = reserva.tituloGravacao || reserva.nomeCompleto;
                                             const isSelected = reservasSelecionadasParaLote.includes(reserva.id);
@@ -737,12 +742,21 @@ Equipe do Centro de Mídias Educacionais.`;
                                                                     Agenda
                                                                 </Link>
                                                             </Button>
-                                                             <Button asChild variant="secondary" size="sm" className="flex-1">
-                                                                <Link href={emailLinkAprovado} target="_blank">
-                                                                    <Mail className="mr-2 h-4 w-4" />
-                                                                    E-mail
-                                                                </Link>
-                                                            </Button>
+                                                            <DropdownMenu>
+                                                              <DropdownMenuTrigger asChild>
+                                                                <Button variant="secondary" size="sm" className="flex-1">
+                                                                    <Mail className="mr-2 h-4 w-4" /> E-mail
+                                                                </Button>
+                                                              </DropdownMenuTrigger>
+                                                              <DropdownMenuContent align="end">
+                                                                <DropdownMenuItem asChild>
+                                                                    <Link href={criarLinkEmail(reserva, 'confirmacao')} target="_blank">E-mail de Confirmação</Link>
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuItem asChild>
+                                                                    <Link href={criarLinkEmail(reserva, 'cancelamento')} target="_blank">E-mail de Cancelamento</Link>
+                                                                </DropdownMenuItem>
+                                                              </DropdownMenuContent>
+                                                            </DropdownMenu>
                                                             <Button variant="secondary" size="sm" className="flex-1" onClick={() => abrirModalEdicao(reserva)}>
                                                                 <Pencil className="mr-2 h-4 w-4" />
                                                                 Alterar
@@ -990,12 +1004,21 @@ Equipe do Centro de Mídias Educacionais.`;
                     />
                      {reservaParaCancelar && (
                         <div className="mt-4">
-                             <Button asChild variant="secondary" size="sm" className="w-full">
-                                <Link href={criarLinkEmail(reservaParaCancelar, motivoCancelamento)} target="_blank">
-                                    <Mail className="mr-2 h-4 w-4" />
-                                    Notificar usuário por e-mail sobre o cancelamento
-                                </Link>
-                            </Button>
+                            <DropdownMenu>
+                               <DropdownMenuTrigger asChild>
+                                 <Button variant="secondary" className="w-full">
+                                     <Mail className="mr-2 h-4 w-4" /> Notificar usuário por e-mail
+                                 </Button>
+                               </DropdownMenuTrigger>
+                               <DropdownMenuContent align="end" className="w-64">
+                                 <DropdownMenuItem asChild>
+                                     <Link href={criarLinkEmail(reservaParaCancelar, 'confirmacao')} target="_blank">E-mail de Confirmação</Link>
+                                 </DropdownMenuItem>
+                                 <DropdownMenuItem asChild>
+                                     <Link href={criarLinkEmail(reservaParaCancelar, 'cancelamento')} target="_blank">E-mail de Cancelamento</Link>
+                                 </DropdownMenuItem>
+                               </DropdownMenuContent>
+                             </DropdownMenu>
                         </div>
                     )}
                 </div>
