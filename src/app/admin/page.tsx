@@ -372,7 +372,7 @@ export default function PaginaPainel() {
   const formatarDataParaExibicao = (dateString: string | Date) => {
       try {
         const date = typeof dateString === 'string' ? parseISO(dateString) : dateString;
-        return format(date, "dd 'de' MMMM, yyyy", { locale: ptBR });
+        return format(date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
       } catch (error) {
         return "Data inválida";
       }
@@ -424,25 +424,111 @@ Materiais: ${formatarMateriais(reserva.materiaisNecessarios)}`;
     return `https://www.google.com/calendar/render?${params.toString()}`;
   }
 
-  const criarLinkEmail = (reserva: Reserva, motivo?: string): string => {
-    const { email, nomeCompleto, dataReserva, horariosSelecionados, tituloGravacao } = reserva;
+const criarLinkEmail = (reserva: Reserva, motivo?: string): string => {
+    const { email, nomeCompleto, dataReserva, horariosSelecionados, tituloGravacao, estudio } = reserva;
     const date = Object.keys(horariosSelecionados)[0];
     const times = horariosSelecionados[date].join(', ');
-    const formattedDate = formatarDataParaExibicao(date);
+    const parsedDate = parseISO(date);
+    const dia = format(parsedDate, 'dd');
+    const mes = format(parsedDate, 'MMMM', { locale: ptBR });
+    const ano = format(parsedDate, 'yyyy');
     
     let subject = '';
     let body = '';
 
     if (reserva.status === 'aprovado') {
         subject = 'Seu agendamento no Centro de Mídias foi APROVADO';
-        body = `Olá, ${nomeCompleto}!
+
+        if (estudio === 'Estúdio 1') {
+            body = `Olá ${nomeCompleto},
+
+Seu agendamento para o Estúdio 1 , do Centro de Mídias Educacionais, está confirmado! Seguem abaixo orientações importantes para garantir que tudo ocorra bem:
+
+📅 Data: ${dia} de ${mes}, ${ano}
+🕑 Horário(s): ${times}
+
+📅 Antes da gravação / transmissão:
+
+a) Compareça com antecedência para ajustes de áudio, iluminação e preparação do roteiro;
+
+b) Tenha sua apresentação, slides ou pauta definidos e enviados previamente, se necessário;
+
+c) Revise todo o material antes da gravação para evitar contratempos.
+
+🧰 Durante o uso:
+
+d) Somente os técnicos do CME operam câmeras, microfones e demais equipamentos;
+
+e) Não altere iluminação ou posicionamento sem orientação da equipe técnica;
+
+f) Respeite normas de silêncio e evite distrações durante a gravação;
+
+🚫 Outras regras importantes:
+
+g) Não é permitido entrar com alimentos ou bebidas;
+
+i) Celulares devem ficar desligados ou em modo silencioso;
+
+j) Respeite o horário agendado — atrasos podem comprometer sessões seguintes.
+
+
+
+Lembre-se de chegar com 30 minutos de antecedência. Caso precise de auxílio com materiais (slides, vídeos), envie-os para centrodemidias@seduc.to.gov.br com 72h de antecedência.
+
+Para mais informações, consulte as normas de uso em nosso site.
+Para ver as normas completas de uso (horários, responsabilidades, termos de imagem etc.), acesse:
+👉 https://centrodemidiasto.vercel.app/normasdeuso
+
+Atenciosamente,
+Centro de Mídias Educacionais – Seduc TO
+Contato: centrodemidias@seduc.to.gov.br`;
+        } else if (estudio === 'Estúdio 2') {
+            body = `Olá ${nomeCompleto},
+
+Seu agendamento para o Estúdio 2 do Centro de Mídias Educacionais foi aprovado! Confira abaixo orientações importantes:
+
+📅 Data: ${dia} de ${mes}, ${ano}
+🕑 Horário(s): ${times}
+
+📅 Antes da gravação / transmissão:
+
+a) Evite roupas verdes ou em tons semelhantes ao chroma. Também não use peças muito brilhantes, listradas ou com estampas miúdas;
+
+b) Chegue com antecedência para ajustes técnicos e testes de áudio, vídeo e cenário;
+
+c) Slides e materiais de apoio devem ser enviados com antecedência para análise técnica;
+
+🧰 Durante o uso:
+
+d) A operação de câmeras, iluminação e chroma key é feita exclusivamente pelos técnicos do CME;
+
+e) Evite acessórios que causem reflexos ou ruídos (brincos grandes, pulseiras barulhentas etc.);
+
+f) Maquiagem deve ser natural, sem brilho que interfira na iluminação;
+
+🚫 Outras regras importantes:
+
+g) Não é permitido entrar com alimentos ou bebidas no estúdio;
+
+h) Celulares devem ficar em modo silencioso ou desligados;
+
+i) Respeite o tempo reservado para não comprometer outras sessões.
+
+Para acesso às normas completas de uso (envio de materiais, termos legais, restrições etc.), acesse:
+👉 https://centrodemidiasto.vercel.app/normasdeuso
+
+Atenciosamente,
+Centro de Mídias Educacionais – Seduc TO
+Contato: centrodemidias@seduc.to.gov.br`;
+        } else {
+             body = `Olá, ${nomeCompleto}!
 
 Seu agendamento para a gravação "${tituloGravacao}" foi confirmado.
 
 Detalhes:
-Data: ${formattedDate}
+Data: ${formatarDataParaExibicao(date)}
 Horário(s): ${times}
-Estúdio: ${reserva.estudio}
+Estúdio: ${estudio}
 
 Lembre-se de chegar com 30 minutos de antecedência. Caso precise de auxílio com materiais (slides, vídeos), envie-os para centrodemidias@seduc.to.gov.br com 72h de antecedência.
 
@@ -450,11 +536,12 @@ Para mais informações, consulte as normas de uso em nosso site.
 
 Atenciosamente,
 Equipe do Centro de Mídias Educacionais.`;
+        }
     } else { // 'rejeitado'
         subject = 'Seu agendamento no Centro de Mídias foi CANCELADO';
         body = `Olá, ${nomeCompleto}.
 
-Informamos que sua solicitação de agendamento para a gravação "${tituloGravacao}" no dia ${formattedDate} foi cancelada.
+Informamos que sua solicitação de agendamento para a gravação "${tituloGravacao}" no dia ${formatarDataParaExibicao(date)} foi cancelada.
 
 Motivo: ${motivo || 'Entre em contato para mais detalhes.'}
 
