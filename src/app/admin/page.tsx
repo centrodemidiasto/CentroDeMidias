@@ -380,7 +380,7 @@ export default function PaginaPainel() {
 
    const formatarTimestamp = (ts: any) => {
     if (!ts) return 'Data indisponível';
-    const date = ts.toDate();
+    const date = ts instanceof Timestamp ? ts.toDate() : new Date(ts);
     return format(date, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
   }
 
