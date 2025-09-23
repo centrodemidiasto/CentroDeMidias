@@ -1,4 +1,6 @@
 
+'use client';
+
 import { adminDb } from "@/lib/firebase-admin";
 import { Reserva } from "@/lib/types";
 import { format, startOfWeek, endOfWeek, eachWeekOfInterval, startOfMonth, endOfMonth, parseISO } from "date-fns";
@@ -7,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
+import { Button } from "@/components/ui/button";
 
 interface GradeParams {
   params: {
