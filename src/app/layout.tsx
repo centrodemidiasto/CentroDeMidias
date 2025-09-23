@@ -21,6 +21,9 @@ export default function RootLayout({
 }>) {
   const pathname = usePathname();
   const isHorariosPage = pathname === '/horarios';
+  const isGradePage = pathname.startsWith('/admin/grade');
+
+  const showHeaderAndFooter = !isHorariosPage && !isGradePage;
 
   return (
     <html lang="pt-BR">
@@ -33,9 +36,9 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased flex flex-col min-h-screen">
-          {!isHorariosPage && <Header />}
+          {showHeaderAndFooter && <Header />}
           <main className="flex-1">{children}</main>
-          {!isHorariosPage && <Footer />}
+          {showHeaderAndFooter && <Footer />}
           <Toaster />
       </body>
     </html>
