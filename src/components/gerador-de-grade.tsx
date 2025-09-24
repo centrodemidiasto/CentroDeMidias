@@ -10,7 +10,7 @@ import { ptBR } from 'date-fns/locale';
 import { FileText } from 'lucide-react';
 
 const MESES = Array.from({ length: 12 }, (_, i) => ({
-  value: i,
+  value: i + 1, // Mês como 1-12
   label: format(new Date(2000, i), 'MMMM', { locale: ptBR }),
 }));
 
@@ -19,7 +19,7 @@ const currentYear = getYear(new Date());
 const ANOS = Array.from({ length: 5 }, (_, i) => currentYear + i);
 
 export default function GeradorDeGrade() {
-    const [mesSelecionado, setMesSelecionado] = useState<number>(getMonth(new Date()));
+    const [mesSelecionado, setMesSelecionado] = useState<number>(getMonth(new Date()) + 1);
     const [anoSelecionado, setAnoSelecionado] = useState<number>(getYear(new Date()));
 
     const handleGerarGrade = () => {

@@ -2,7 +2,6 @@
 import GradeHorarios from '@/components/grade-horarios';
 import { adminDb } from '@/lib/firebase-admin';
 import { Reserva } from '@/lib/types';
-import { collection, getDocs, query, where, orderBy } from 'firebase-admin/firestore';
 import { startOfMonth, endOfMonth, format } from 'date-fns';
 
 interface PaginaGradePDFProps {
@@ -19,16 +18,14 @@ async function getReservasDoMes(ano: number, mes: number): Promise<Reserva[]> {
     const inicioFormatado = format(inicioDoMes, 'yyyy-MM-dd');
     const fimFormatado = format(fimDoMes, 'yyyy-MM-dd');
 
-    const reservasRef = collection(adminDb, 'reservas');
-    const q = query(
-        reservasRef,
-        where('status', '==', 'aprovado'),
-        where('dataReserva', '>=', inicioFormatado),
-        where('dataReserva', '<=', fimFormatado),
-        orderBy('dataReserva', 'asc')
-    );
+    const reservasRef = adminDb.collection('reservas');
+    const q = reservasRef
+        .where('status', '==', 'aprovado')
+        .where('dataReserva', '>=', inicioFormatado)
+        .where('dataReserva', '<=', fimFormatado)
+        .orderBy('dataReserva', 'asc');
 
-    const snapshot = await getDocs(q);
+    const snapshot = await q.get();
     if (snapshot.empty) {
         return [];
     }
@@ -62,7 +59,7 @@ async function getReservasDoMes(ano: number, mes: number): Promise<Reserva[]> {
 
 export default async function PaginaGradePDF({ params }: PaginaGradePDFProps) {
     const ano = parseInt(params.ano, 10);
-    const mes = parseInt(params.mes, 10);
+    const mes = parseInt(params.mes, 10) - 1; // Ajuste para o índice do mês (0-11)
 
     const reservas = await getReservasDoMes(ano, mes);
 
