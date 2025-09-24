@@ -120,15 +120,13 @@ export default function GradeHorarios({ ano, mes, reservas }: GradeHorariosProps
                     }
                     .printable-header {
                         position: fixed;
-                        top: 0;
-                        left: 0;
-                        right: 0;
-                        padding: 1.5rem; /* Ajuste o padding conforme necessário */
-                        background-color: white;
-                        display: block;
+                        top: 1.5rem;
+                        left: 1.5rem;
+                        right: 1.5rem;
+                        display: block; /* Torna visível na impressão */
                     }
                     main {
-                         padding-top: 150px; /* Ajuste para não sobrepor o cabeçalho */
+                         padding-top: 120px; /* Ajuste para não sobrepor o cabeçalho */
                     }
                 }
                  .printable-header {
