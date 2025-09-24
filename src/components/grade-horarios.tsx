@@ -69,8 +69,8 @@ export default function GradeHorarios({ ano, mes, reservas }: GradeHorariosProps
                     className="object-contain"
                 />
                 <div className="text-right">
-                    <h1 className="text-3xl font-bold capitalize">Grade de Horários - {nomeMes} de {ano}</h1>
-                    <p className="text-sm text-gray-600">Documento gerado em: {format(new Date(), "dd/MM/yyyy HH:mm")}</p>
+                    <h1 className="text-3xl font-bold capitalize">Grade de Horários - ${nomeMes} de ${ano}</h1>
+                    <p className="text-sm text-gray-600">Documento gerado em: ${format(new Date(), "dd/MM/yyyy HH:mm")}</p>
                 </div>
             </header>
 
@@ -79,7 +79,7 @@ export default function GradeHorarios({ ano, mes, reservas }: GradeHorariosProps
                     semana.reservas.length > 0 && (
                         <Card key={index} className="break-inside-avoid">
                             <CardHeader>
-                                <CardTitle>{semana.label}</CardTitle>
+                                <CardTitle>${semana.label}</CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <Table>
@@ -100,14 +100,14 @@ export default function GradeHorarios({ ano, mes, reservas }: GradeHorariosProps
                                             
                                             return (
                                                 <TableRow key={reserva.id}>
-                                                    <TableCell>{dataFormatada}</TableCell>
-                                                    <TableCell>{horarios}</TableCell>
-                                                     <TableCell><Badge variant="outline">{reserva.estudio}</Badge></TableCell>
+                                                    <TableCell>${dataFormatada}</TableCell>
+                                                    <TableCell>${horarios}</TableCell>
+                                                     <TableCell><Badge variant="outline">${reserva.estudio}</Badge></TableCell>
                                                     <TableCell>
-                                                        <p className="font-semibold">{reserva.tituloGravacao}</p>
-                                                        <p className="text-xs text-gray-600">{reserva.nomeCompleto}</p>
+                                                        <p className="font-semibold">${reserva.tituloGravacao}</p>
+                                                        <p className="text-xs text-gray-600">${reserva.nomeCompleto}</p>
                                                     </TableCell>
-                                                    <TableCell>{orgao}</TableCell>
+                                                    <TableCell>${orgao}</TableCell>
                                                 </TableRow>
                                             )
                                         })}
