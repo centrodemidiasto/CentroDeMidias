@@ -128,25 +128,16 @@ export default function GradeHorarios({ ano, mes, reservas }: GradeHorariosProps
                 }
             `}</style>
             
-            <header className="flex justify-between items-center mb-8 border-b pb-4 no-print">
-                 <div className="w-48">
-                    <Image src="/img/centrologo.png" alt="Logotipo do Centro de Mídias" width={200} height={60} className="object-contain" />
-                </div>
-                <div className="text-center">
-                    <h1 className="text-2xl font-bold">Grade de Gravações - {estudioSelecionado}</h1>
-                    <h2 className="text-xl capitalize">{nomeMes} de {ano}</h2>
-                </div>
-                <div className="w-48 text-right flex flex-col gap-2">
-                     <Button onClick={() => window.print()}>
-                        <Printer className="mr-2 h-4 w-4" />
-                        Imprimir
-                    </Button>
-                    <Button variant="outline" onClick={handleTrocarEstudio}>
-                        <Repeat className="mr-2 h-4 w-4" />
-                        Alterar Estúdio
-                    </Button>
-                </div>
-            </header>
+            <div className="fixed top-4 right-4 flex flex-col gap-2 no-print">
+                 <Button onClick={() => window.print()}>
+                    <Printer className="mr-2 h-4 w-4" />
+                    Imprimir
+                </Button>
+                <Button variant="outline" onClick={handleTrocarEstudio}>
+                    <Repeat className="mr-2 h-4 w-4" />
+                    Alterar Estúdio
+                </Button>
+            </div>
 
             <main>
                 {semanasAgrupadas.length > 0 ? (
