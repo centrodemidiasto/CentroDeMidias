@@ -54,6 +54,7 @@ import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
 import GeradorRelatorio from '@/components/gerador-relatorio';
 import { Textarea } from '@/components/ui/textarea';
+import GeradorDeGrade from '@/components/gerador-de-grade';
 
 async function getReservasPendentes(): Promise<Reserva[]> {
   const reservasRef = collection(clientDb, "reservas");
@@ -377,11 +378,28 @@ export default function PaginaPainel() {
       }
   };
 
-   const formatarTimestamp = (ts: any) => {
+   const formatarTimestamp = (ts: any): string => {
     if (!ts) return 'Data indisponível';
-    const date = ts instanceof Timestamp ? ts.toDate() : new Date(ts);
-    return format(date, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
-  }
+    
+    // Se for um objeto com _seconds e _nanoseconds (de um server component), converta
+    if (ts && typeof ts === 'object' && '_seconds' in ts) {
+        const date = new Date(ts._seconds * 1000);
+        return format(date, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+    }
+    
+    // Se for um Timestamp do cliente
+    if (ts instanceof Timestamp) {
+        return format(ts.toDate(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+    }
+
+    // Se já for uma string ou Date
+    try {
+        const date = new Date(ts);
+        return format(date, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+    } catch (e) {
+        return 'Data inválida';
+    }
+}
 
   const criarLinkGoogleAgenda = (reserva: Reserva): string => {
     const date = Object.keys(reserva.horariosSelecionados)[0];
@@ -579,6 +597,7 @@ Contato: centrodemidias@seduc.to.gov.br`;
           </p>
         </div>
 
+        <GeradorDeGrade />
         <GeradorRelatorio />
 
         <Card>
@@ -1061,5 +1080,3 @@ Contato: centrodemidias@seduc.to.gov.br`;
     </div>
   );
 }
-
-    
