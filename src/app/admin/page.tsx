@@ -53,7 +53,6 @@ import GerenciadorPerfil from '@/components/gerenciador-perfil';
 import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
 import GeradorRelatorio from '@/components/gerador-relatorio';
-import GeradorGradePDF from '@/components/gerador-grade-pdf';
 import { Textarea } from '@/components/ui/textarea';
 
 async function getReservasPendentes(): Promise<Reserva[]> {
@@ -580,7 +579,6 @@ Contato: centrodemidias@seduc.to.gov.br`;
           </p>
         </div>
 
-        <GeradorGradePDF />
         <GeradorRelatorio />
 
         <Card>
