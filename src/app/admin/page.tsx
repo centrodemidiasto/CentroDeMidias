@@ -37,7 +37,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
-import { Loader2, Info, XCircle, CalendarPlus, Pencil, AlertTriangle, UserCog, History, UserCircle, Trash2, CheckSquare, Square, ChevronLeft, ChevronRight, Mail } from 'lucide-react';
+import { Loader2, Info, XCircle, CalendarPlus, Pencil, AlertTriangle, UserCog, History, UserCircle, Trash2, CheckSquare, Square, ChevronLeft, ChevronRight, Mail, FileText, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO, startOfToday, addHours, startOfMonth, endOfMonth, addMonths, isSameMonth, isBefore } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -382,19 +382,20 @@ export default function PaginaPainel() {
     if (!ts) return 'Data indisponível';
     
     // Se for um objeto com _seconds e _nanoseconds (de um server component), converta
-    if (ts && typeof ts === 'object' && '_seconds' in ts) {
-        const date = new Date(ts._seconds * 1000);
-        return format(date, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+    if (ts && typeof ts === 'object' && ('_seconds' in ts)) {
+      const date = new Date(ts._seconds * 1000);
+      return format(date, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
     }
     
-    // Se for um Timestamp do cliente
-    if (ts instanceof Timestamp) {
-        return format(ts.toDate(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+    // Se for um Timestamp do cliente ou um objeto Date
+    if (ts instanceof Timestamp || ts instanceof Date) {
+        const date = ts instanceof Timestamp ? ts.toDate() : ts;
+        return format(date, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
     }
 
-    // Se já for uma string ou Date
+    // Se já for uma string
     try {
-        const date = new Date(ts);
+        const date = parseISO(ts);
         return format(date, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
     } catch (e) {
         return 'Data inválida';
@@ -597,8 +598,43 @@ Contato: centrodemidias@seduc.to.gov.br`;
           </p>
         </div>
 
-        <GeradorDeGrade />
-        <GeradorRelatorio />
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 my-8">
+            <Dialog>
+                <DialogTrigger asChild>
+                    <Button size="lg" variant="outline" className="w-full sm:w-auto">
+                        <FileText className="mr-2 h-5 w-5" />
+                        Gerar Grade de Horários
+                    </Button>
+                </DialogTrigger>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Gerar Grade de Horários</DialogTitle>
+                        <DialogDescription>
+                            Selecione o mês e o ano para gerar uma grade de horários para impressão.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <GeradorDeGrade />
+                </DialogContent>
+            </Dialog>
+            <Dialog>
+                <DialogTrigger asChild>
+                    <Button size="lg" variant="outline" className="w-full sm:w-auto">
+                        <Download className="mr-2 h-5 w-5" />
+                        Gerar Relatório de Gravações
+                    </Button>
+                </DialogTrigger>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Gerar Relatório de Gravações</DialogTitle>
+                        <DialogDescription>
+                            Selecione o mês e o ano para gerar um relatório em formato .csv.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <GeradorRelatorio />
+                </DialogContent>
+            </Dialog>
+        </div>
+
 
         <Card>
           <CardHeader>

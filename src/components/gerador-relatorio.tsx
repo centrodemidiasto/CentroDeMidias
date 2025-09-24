@@ -3,9 +3,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Reserva } from '@/lib/types';
 import { format, getYear, getMonth, isAfter, startOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
@@ -71,51 +69,41 @@ export default function GeradorRelatorio() {
     };
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Gerar Relatório de Gravações</CardTitle>
-                <CardDescription>
-                    Selecione o mês e o ano para gerar um relatório em formato .csv das gravações realizadas.
-                </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col sm:flex-row items-center gap-4">
-                <div className="flex-1 w-full sm:w-auto">
-                    <Select value={String(mesSelecionado)} onValueChange={(v) => setMesSelecionado(Number(v))}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Selecione o mês" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {MESES.map(mes => (
-                                <SelectItem key={mes.value} value={String(mes.value)}>
-                                    {mes.label}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-                <div className="flex-1 w-full sm:w-auto">
-                    <Select value={String(anoSelecionado)} onValueChange={(v) => setAnoSelecionado(Number(v))}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Selecione o ano" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {ANOS.map(ano => (
-                                <SelectItem key={ano} value={String(ano)}>
-                                    {ano}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-                <Button onClick={handleGerarRelatorio} disabled={carregando} className="w-full sm:w-auto">
-                    {carregando ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                        <Download className="mr-2 h-4 w-4" />
-                    )}
-                    Gerar Relatório (.csv)
-                </Button>
-            </CardContent>
-        </Card>
+        <div className="flex flex-col items-center gap-4">
+            <div className="flex flex-1 w-full sm:w-auto gap-4">
+                <Select value={String(mesSelecionado)} onValueChange={(v) => setMesSelecionado(Number(v))}>
+                    <SelectTrigger>
+                        <SelectValue placeholder="Selecione o mês" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {MESES.map(mes => (
+                            <SelectItem key={mes.value} value={String(mes.value)}>
+                                {mes.label}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                <Select value={String(anoSelecionado)} onValueChange={(v) => setAnoSelecionado(Number(v))}>
+                    <SelectTrigger>
+                        <SelectValue placeholder="Selecione o ano" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {ANOS.map(ano => (
+                            <SelectItem key={ano} value={String(ano)}>
+                                {ano}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
+            <Button onClick={handleGerarRelatorio} disabled={carregando} className="w-full sm:w-auto">
+                {carregando ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                    <Download className="mr-2 h-4 w-4" />
+                )}
+                Gerar Relatório (.csv)
+            </Button>
+        </div>
     );
 }
