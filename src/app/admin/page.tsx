@@ -930,7 +930,11 @@ Contato: centrodemidias@seduc.to.gov.br`;
                                 </div>
                             )}
                             <div className="grid grid-cols-[150px_1fr] items-center gap-4">
-                                <span className="font-semibold text-right">Data:</span>
+                                <span className="font-semibold text-right">Data da Solicitação:</span>
+                                <span>{formatarTimestamp(reservaSelecionada.criadoEm)}</span>
+                            </div>
+                            <div className="grid grid-cols-[150px_1fr] items-center gap-4">
+                                <span className="font-semibold text-right">Data da Gravação:</span>
                                 <span>{formatarDataParaExibicao(Object.keys(reservaSelecionada.horariosSelecionados)[0])}</span>
                             </div>
                             <div className="grid grid-cols-[150px_1fr] items-center gap-4">
