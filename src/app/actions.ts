@@ -70,6 +70,12 @@ export async function atualizarStatusReserva(
     const timestamp = new Date();
 
     try {
+        const docReserva = await reservaRef.get();
+        if (!docReserva.exists) {
+            throw new Error("Reserva não encontrada.");
+        }
+        const dadosReserva = docReserva.data();
+
         const dadosAtualizacao: any = { 
             status,
             historico: FieldValue.arrayUnion({
@@ -92,6 +98,30 @@ export async function atualizarStatusReserva(
         }
 
         await reservaRef.update(dadosAtualizacao);
+        
+        // Enviar para o Webhook de atualização de status
+        const webhookUrl = process.env.WH_APP;
+        if (webhookUrl && dadosReserva) {
+            try {
+                const payload = {
+                    ...dadosReserva,
+                    criadoEm: dadosReserva.criadoEm.toDate(), // Converte Timestamp para Date
+                    status: status, // Envia o novo status
+                    motivoCancelamento: motivo || null,
+                    id: reservaId
+                };
+
+                await fetch(webhookUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+            } catch (webhookError) {
+                console.error("Falha ao enviar webhook de atualização:", webhookError);
+                // Não bloqueia o sucesso, mas registra o erro
+            }
+        }
+
 
     } catch (error: any) {
         throw new Error(`Falha ao atualizar o status da reserva: ${error.message}`);
@@ -156,6 +186,7 @@ export async function handleSolicitacaoReserva(
             try {
                 const payload = {
                     nomeSolicitante: novaReserva.nomeCompleto,
+                    telefone: (novaReserva.telefone || '').replace(/[^\d]/g, ''),
                     dataGravacao: novaReserva.dataReserva,
                     estudio: novaReserva.estudio,
                     horarios: novaReserva.horariosSelecionados[dataReserva].join(', '),
