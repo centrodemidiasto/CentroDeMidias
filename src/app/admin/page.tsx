@@ -653,7 +653,7 @@ Contato: centrodemidias@seduc.to.gov.br`;
                 <TableHeader>
                     <TableRow>
                     <TableHead>Solicitante</TableHead>
-                    <TableHead>Data</TableHead>
+                    <TableHead>Data da Gravação</TableHead>
                     <TableHead>Estúdio</TableHead>
                     <TableHead>Horários</TableHead>
                     <TableHead>Modalidade</TableHead>

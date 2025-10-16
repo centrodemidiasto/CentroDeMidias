@@ -135,7 +135,7 @@ export async function handleSolicitacaoReserva(
         
         const dataReserva = Object.keys(horariosSelecionados)[0]; // Formato YYYY-MM-DD
         const timestamp = new Date();
-        await adminDb.collection("reservas").add({
+        const novaReserva = {
             ...dados,
             horariosSelecionados,
             dataReserva: dataReserva,
@@ -146,7 +146,33 @@ export async function handleSolicitacaoReserva(
                 usuario: dados.email,
                 data: timestamp
             })
-        });
+        };
+
+        await adminDb.collection("reservas").add(novaReserva);
+
+        // Enviar para o Webhook
+        const webhookUrl = process.env.WH_RESERVA;
+        if (webhookUrl) {
+            try {
+                const payload = {
+                    nomeSolicitante: novaReserva.nomeCompleto,
+                    dataGravacao: novaReserva.dataReserva,
+                    estudio: novaReserva.estudio,
+                    horarios: novaReserva.horariosSelecionados[dataReserva].join(', '),
+                    modalidade: novaReserva.modalidadesReserva,
+                };
+
+                await fetch(webhookUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+            } catch (webhookError) {
+                console.error("Falha ao enviar webhook:", webhookError);
+                // Não bloqueia o sucesso da reserva, mas registra o erro
+            }
+        }
+
         return { sucesso: true, mensagem: "Seu agendamento foi solicitado com sucesso e está pendente de aprovação!" };
         
     } catch (error) {
