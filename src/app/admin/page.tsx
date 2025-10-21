@@ -402,46 +402,6 @@ export default function PaginaPainel() {
     }
 }
 
-  const criarLinkGoogleAgenda = (reserva: Reserva): string => {
-    const date = Object.keys(reserva.horariosSelecionados)[0];
-    const startTimeStr = reserva.horariosSelecionados[date]?.[0];
-    const endTimeStr = reserva.horariosSelecionados[date]?.[reserva.horariosSelecionados[date].length - 1];
-
-    if (!date || !startTimeStr || !endTimeStr) return '';
-
-    const startDateTime = parseISO(`${date}T${startTimeStr}:00`);
-    const endDateTime = addHours(parseISO(`${date}T${endTimeStr}:00`), 1);
-
-    const formatarParaGoogle = (d: Date) => format(d, "yyyyMMdd'T'HHmmss");
-
-    const dates = `${formatarParaGoogle(startDateTime)}/${formatarParaGoogle(endDateTime)}`;
-    const text = `Gravação: ${reserva.tituloGravacao || reserva.nomeCompleto} [${reserva.estudio}] - ${reserva.modalidadesReserva}`;
-    
-    const orgao = reserva.tipoOrgao === 'interno' ? reserva.departamento : reserva.organizacaoExterna;
-    
-    const formatarDetalhe = (value: any) => (value ? value : '-');
-    const formatarMateriais = (value: any) => (value && value.toLowerCase() !== 'nenhum' ? value : '-');
-
-    const details = `Agendamento no Centro de Mídias.
-Estúdio: ${formatarDetalhe(reserva.estudio)}
-Solicitante: ${formatarDetalhe(reserva.nomeCompleto)}
-Órgão: ${formatarDetalhe(orgao)}
-Modalidade: ${formatarDetalhe(reserva.modalidadesReserva)}
-Participantes: ${formatarDetalhe(reserva.numeroParticipantes)}
-Mesas: ${formatarDetalhe(reserva.numeroMesas)}
-Cadeiras: ${formatarDetalhe(reserva.numeroCadeiras)}
-Materiais: ${formatarMateriais(reserva.materiaisNecessarios)}`;
-
-    const params = new URLSearchParams({
-        action: 'TEMPLATE',
-        text,
-        details,
-        location: 'Centro de Mídias Educacionais - Palmas, TO',
-    });
-
-    return `https://www.google.com/calendar/render?${params.toString()}`;
-  }
-
 const criarLinkEmail = (reserva: Reserva, tipo: 'confirmacao' | 'cancelamento'): string => {
     const { email, nomeCompleto, dataReserva, horariosSelecionados, tituloGravacao, estudio } = reserva;
     const date = Object.keys(horariosSelecionados)[0];
@@ -754,7 +714,6 @@ Contato: centrodemidias@seduc.to.gov.br`;
                                             const date = Object.keys(reserva.horariosSelecionados)[0];
                                             const formattedDate = formatarDataParaExibicao(date);
                                             const times = reserva.horariosSelecionados[date].join(', ');
-                                            const calendarLink = criarLinkGoogleAgenda(reserva);
                                             const organization = reserva.tipoOrgao === 'interno' ? reserva.departamento : reserva.organizacaoExterna;
                                             const cardTitle = reserva.tituloGravacao || reserva.nomeCompleto;
                                             const isSelected = reservasSelecionadasParaLote.includes(reserva.id);
@@ -791,12 +750,6 @@ Contato: centrodemidias@seduc.to.gov.br`;
                                                             </Button>
                                                         </div>
                                                         <div className='flex gap-2 w-full'>
-                                                            <Button asChild variant="secondary" size="sm" className="flex-1">
-                                                                <Link href={calendarLink} target="_blank" rel="noopener noreferrer">
-                                                                    <CalendarPlus className="mr-2 h-4 w-4" />
-                                                                    Agenda
-                                                                </Link>
-                                                            </Button>
                                                             <DropdownMenu>
                                                               <DropdownMenuTrigger asChild>
                                                                 <Button variant="secondary" size="sm" className="flex-1">
