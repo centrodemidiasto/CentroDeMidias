@@ -624,6 +624,12 @@ export async function gerarOuObterRelatorio(mes: number, ano: number): Promise<{
             const horario = r.horariosSelecionados[data]?.join(', ') || '';
             const orgao = r.tipoOrgao === 'interno' ? r.departamento : r.organizacaoExterna;
             const motivoCancelamento = r.motivoCancelamento || '';
+            let statusRelatorio = r.status;
+            if (r.status === 'aprovado') {
+                statusRelatorio = 'Gravação Realizada';
+            } else if (r.status === 'rejeitado') {
+                statusRelatorio = 'Gravação não realizada';
+            }
 
             return [
                 format(parseISO(`${data}T00:00:00`), 'dd/MM/yyyy'),
@@ -632,7 +638,7 @@ export async function gerarOuObterRelatorio(mes: number, ano: number): Promise<{
                 `"${(r.tituloGravacao || '').replace(/"/g, '""')}"`,
                 `"${(r.nomeCompleto || '').replace(/"/g, '""')}"`,
                 `"${(orgao || '').replace(/"/g, '""')}"`,
-                r.status,
+                statusRelatorio,
                 `"${motivoCancelamento.replace(/"/g, '""')}"`
             ].join(',');
         });
