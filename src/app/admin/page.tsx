@@ -36,7 +36,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
-import { Loader2, Info, XCircle, Pencil, AlertTriangle, UserCog, History, UserCircle, Trash2, CheckSquare, Square, ChevronLeft, ChevronRight, Mail, FileText, Download } from 'lucide-react';
+import { Loader2, Info, XCircle, Pencil, AlertTriangle, UserCog, History, UserCircle, Trash2, CheckSquare, Square, ChevronLeft, ChevronRight, Mail, FileText, Download, Clapperboard } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO, startOfToday, startOfMonth, endOfMonth, addMonths, isSameMonth, isBefore } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -936,10 +936,51 @@ Contato: centrodemidias@seduc.to.gov.br`;
                                 </div>
                             )}
 
+                            {reservaSelecionada.entregaMaterial && (
+                                <Accordion type="single" collapsible className="w-full col-span-2">
+                                    <AccordionItem value="item-1">
+                                        <AccordionTrigger className="text-base">
+                                            <div className='flex items-center gap-2'>
+                                                <Clapperboard className="h-5 w-5" />
+                                                Ver Detalhes da Edição
+                                            </div>
+                                        </AccordionTrigger>
+                                        <AccordionContent>
+                                            <div className="grid gap-4 py-4 text-sm pl-2">
+                                                <div className="grid grid-cols-[150px_1fr] items-center gap-4">
+                                                    <span className="font-semibold text-right">Entrega:</span>
+                                                    <span>{reservaSelecionada.entregaMaterial}</span>
+                                                </div>
+                                                <div className="grid grid-cols-[150px_1fr] items-center gap-4">
+                                                    <span className="font-semibold text-right">Formato:</span>
+                                                    <span>{reservaSelecionada.formatoVideo}</span>
+                                                </div>
+                                                <div className="grid grid-cols-[150px_1fr] items-center gap-4">
+                                                    <span className="font-semibold text-right">Plataforma:</span>
+                                                    <span>{reservaSelecionada.plataformaVideo === 'Outros' ? reservaSelecionada.plataformaVideoOutro : reservaSelecionada.plataformaVideo}</span>
+                                                </div>
+                                                {reservaSelecionada.participantes && reservaSelecionada.participantes.length > 0 && (
+                                                     <div className="grid grid-cols-[150px_1fr] items-start gap-4">
+                                                        <span className="font-semibold text-right pt-2">Participantes:</span>
+                                                        <div className="text-xs space-y-2 text-muted-foreground border rounded-md p-2 bg-muted/50">
+                                                            {reservaSelecionada.participantes.map((p, index) => (
+                                                                <p key={index}>
+                                                                <span className="font-semibold text-card-foreground">{p.nome || 'N/A'}</span> - {p.funcao || 'N/A'}
+                                                                </p>
+                                                            ))}
+                                                        </div>
+                                                     </div>
+                                                )}
+                                            </div>
+                                        </AccordionContent>
+                                    </AccordionItem>
+                                </Accordion>
+                            )}
+
                              {(reservaSelecionada.aprovadoPor || reservaSelecionada.ultimaAlteracaoPor) && (
                                 <>
-                                    <Separator className="my-4" />
-                                     <div className="flex items-center gap-2 text-muted-foreground">
+                                    <Separator className="my-4 col-span-2" />
+                                     <div className="flex items-center gap-2 text-muted-foreground col-span-2">
                                         <History className="h-4 w-4" />
                                         <h3 className="font-semibold text-base text-card-foreground">Histórico de Alterações</h3>
                                     </div>
