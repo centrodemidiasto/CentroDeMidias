@@ -234,9 +234,7 @@ export default function PaginaPainel() {
   }, [mesAprovadas]);
 
   const handleMudancaAccordion = (value: string) => {
-    if (value === "aprovado") {
-      buscarReservasAprovadas(true);
-    } else if (value === "block-slots" && !dadosBloqueio) {
+    if (value === "block-slots" && !dadosBloqueio) {
       buscarDadosBloqueio();
     }
   };
@@ -656,7 +654,7 @@ Contato: centrodemidias@seduc.to.gov.br`;
           </CardContent>
         </Card>
 
-        <Accordion type="single" collapsible>
+        <Accordion type="single" collapsible onValueChange={handleMudancaAccordion}>
             <AccordionItem value="aprovado">
                 <Card>
                     <AccordionTrigger className="p-6 w-full">
@@ -1073,3 +1071,5 @@ Contato: centrodemidias@seduc.to.gov.br`;
     </div>
   );
 }
+
+    
