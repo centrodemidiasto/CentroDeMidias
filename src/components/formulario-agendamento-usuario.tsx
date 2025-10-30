@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm, useFieldArray, FormProvider } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -123,8 +123,8 @@ export default function FormularioAgendamentoUsuario({ horariosSelecionados, est
     const tipoOrgao = watch('tipoOrgao');
     const modalidadeReserva = watch('modalidadesReserva');
     const plataformaVideo = watch('plataformaVideo');
-
-    useState(() => {
+    
+    useEffect(() => {
         const num = isNaN(numeroParticipantes) ? 0 : numeroParticipantes;
         const currentCount = fields.length;
         if (num > currentCount) {

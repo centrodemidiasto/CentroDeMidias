@@ -454,11 +454,11 @@ export default function FormularioAgendamento() {
             <DialogContent className="sm:max-w-[625px]">
                 {usuario ? (
                     <>
-                    <DialogHeader>
-                        <DialogTitle className="font-headline">Agendamento Simplificado</DialogTitle>
-                        <DialogDescription>Agendamento para o {estudioSelecionado}.</DialogDescription>
-                    </DialogHeader>
-                    <FormularioReservaAdmin horariosSelecionados={horariosSelecionados} estudio={estudioSelecionado!} onSucessoReserva={onSucessoReserva}/>
+                        <DialogHeader>
+                            <DialogTitle className="font-headline">Agendamento Simplificado</DialogTitle>
+                            <DialogDescription>Agendamento para o {estudioSelecionado}.</DialogDescription>
+                        </DialogHeader>
+                        <FormularioReservaAdmin horariosSelecionados={horariosSelecionados} estudio={estudioSelecionado!} onSucessoReserva={onSucessoReserva}/>
                     </>
                 ) : (
                     <FormularioAgendamentoUsuario 
