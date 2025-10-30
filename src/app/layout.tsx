@@ -22,8 +22,9 @@ export default function RootLayout({
   const pathname = usePathname();
   const isHorariosPage = pathname === '/horarios';
   const isGradePage = pathname.startsWith('/admin/grade');
+  const isManifestoPage = pathname.startsWith('/admin/manifesto');
 
-  const showHeaderAndFooter = !isHorariosPage && !isGradePage;
+  const showHeaderAndFooter = !isHorariosPage && !isGradePage && !isManifestoPage;
 
   return (
     <html lang="pt-BR">
