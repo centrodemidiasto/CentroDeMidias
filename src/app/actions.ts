@@ -25,7 +25,17 @@ const DetalhesReservaSchema = z.object({
     termosDeUso: z.literal(true, {
         errorMap: () => ({ message: "Você deve aceitar as normas de uso para continuar." }),
     }),
-    estudio: z.string() // Adicionado para identificar o estúdio
+    estudio: z.string(),
+    // Campos da segunda etapa
+    entregaMaterial: z.string({ required_error: "Selecione como deseja receber o material." }),
+    formatoVideo: z.string({ required_error: "Selecione o formato do vídeo." }),
+    plataformaVideo: z.string({ required_error: "Selecione a plataforma de destino." }),
+    plataformaVideoOutro: z.string().optional(),
+    participantes: z.array(z.object({
+        nome: z.string().optional(),
+        funcao: z.string().optional()
+    })).optional(),
+
 }).superRefine((data, ctx) => {
     if (data.tipoOrgao === 'interno' && (!data.departamento || data.departamento.trim().length === 0)) {
         ctx.addIssue({
@@ -39,6 +49,13 @@ const DetalhesReservaSchema = z.object({
             code: z.ZodIssueCode.custom,
             message: "Nome do órgão é obrigatório.",
             path: ["organizacaoExterna"],
+        });
+    }
+    if (data.plataformaVideo === 'Outros' && (!data.plataformaVideoOutro || data.plataformaVideoOutro.trim().length === 0)) {
+         ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Especifique a plataforma.",
+            path: ["plataformaVideoOutro"],
         });
     }
 });
@@ -135,16 +152,37 @@ export async function handleSolicitacaoReserva(
     formData: FormData
 ): Promise<EstadoFormulario> {
     
-    const rawData = Object.fromEntries(formData.entries());
+    let rawData = Object.fromEntries(formData.entries());
+
+    // Processar campos de participantes
+    const participantes: { nome?: string; funcao?: string }[] = [];
+    const numeroParticipantes = parseInt(String(rawData.numeroParticipantes) || '0', 10);
+    if (numeroParticipantes > 0) {
+        for (let i = 0; i < numeroParticipantes; i++) {
+            participantes.push({
+                nome: String(rawData[`participantes[${i}].nome`]),
+                funcao: String(rawData[`participantes[${i}].funcao`])
+            });
+        }
+    }
+    
+    // Remover campos brutos do array do rawData e adicionar o array processado
+    Object.keys(rawData).forEach(key => {
+        if (key.startsWith('participantes[')) {
+            delete rawData[key];
+        }
+    });
+
     const parsedData = {
       ...rawData,
       termosDeUso: rawData.termosDeUso === 'on',
+      participantes: participantes,
     };
-
+    
     const dadosParseados = DetalhesReservaSchema.safeParse(parsedData);
 
     if (!dadosParseados.success) {
-        const mensagensErro = dadosParseados.error.errors.map(e => `- ${e.message}`).join("\n");
+        const mensagensErro = dadosParseados.error.errors.map(e => `- ${e.path.join('.')}: ${e.message}`).join("\n");
         return { sucesso: false, mensagem: `Por favor, corrija os seguintes erros:\n${mensagensErro}` };
     }
 

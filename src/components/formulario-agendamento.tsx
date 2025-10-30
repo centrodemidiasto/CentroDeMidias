@@ -21,7 +21,6 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { ChevronLeft, ChevronRight, Loader2, Info, CalendarX2, CalendarPlus, Repeat } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import FormularioDetalhesReserva from "./formulario-detalhes-reserva";
 import FormularioReservaAdmin from "./formulario-reserva-admin";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
 import { collection, getDocs, query, where } from "firebase/firestore";
@@ -33,6 +32,8 @@ import LegendaCalendario from "./legenda-calendario";
 import FormularioAgendamentoEspecial from "./formulario-agendamento-especial";
 import FormularioAgendamentoRecorrente from "./formulario-agendamento-recorrente";
 import { Reserva } from "@/lib/types";
+import FormularioAgendamentoUsuario from "./formulario-agendamento-usuario";
+
 
 export type HorariosSelecionados = {
   [key: string]: string[];
@@ -451,19 +452,21 @@ export default function FormularioAgendamento() {
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[625px]">
-              <DialogHeader>
-                <DialogTitle className="font-headline">
-                    {usuario ? "Agendamento Simplificado" : "Informações para o agendamento"}
-                </DialogTitle>
-                <DialogDescription>
-                    Agendamento para o {estudioSelecionado}.
-                </DialogDescription>
-              </DialogHeader>
-              {usuario ? (
-                 <FormularioReservaAdmin horariosSelecionados={horariosSelecionados} estudio={estudioSelecionado!} onSucessoReserva={onSucessoReserva}/>
-              ) : (
-                 <FormularioDetalhesReserva horariosSelecionados={horariosSelecionados} estudio={estudioSelecionado!} onSucessoReserva={onSucessoReserva}/>
-              )}
+                {usuario ? (
+                    <>
+                    <DialogHeader>
+                        <DialogTitle className="font-headline">Agendamento Simplificado</DialogTitle>
+                        <DialogDescription>Agendamento para o {estudioSelecionado}.</DialogDescription>
+                    </DialogHeader>
+                    <FormularioReservaAdmin horariosSelecionados={horariosSelecionados} estudio={estudioSelecionado!} onSucessoReserva={onSucessoReserva}/>
+                    </>
+                ) : (
+                    <FormularioAgendamentoUsuario 
+                        horariosSelecionados={horariosSelecionados} 
+                        estudio={estudioSelecionado!} 
+                        onSucessoReserva={onSucessoReserva}
+                    />
+                )}
             </DialogContent>
           </Dialog>
         </CardFooter>

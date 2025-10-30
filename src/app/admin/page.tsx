@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -37,17 +36,17 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
-import { Loader2, Info, XCircle, CalendarPlus, Pencil, AlertTriangle, UserCog, History, UserCircle, Trash2, CheckSquare, Square, ChevronLeft, ChevronRight, Mail, FileText, Download } from 'lucide-react';
+import { Loader2, Info, XCircle, Pencil, AlertTriangle, UserCog, History, UserCircle, Trash2, CheckSquare, Square, ChevronLeft, ChevronRight, Mail, FileText, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { format, parseISO, startOfToday, addHours, startOfMonth, endOfMonth, addMonths, isSameMonth, isBefore } from 'date-fns';
+import { format, parseISO, startOfToday, startOfMonth, endOfMonth, addMonths, isSameMonth, isBefore } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import FormularioBloqueioHorarios from '@/components/formulario-bloqueio-horarios';
 import { atualizarStatusReserva, cancelarReservasEmLote } from '@/app/actions';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import FormularioEdicaoReserva from '@/components/formulario-edicao-reserva';
-import { Reserva, ReservaExistente } from '@/lib/types';
-import { BloqueioManual } from '@/components/formulario-bloqueio-horarios';
+import { Reserva } from '@/lib/types';
+import { ReservaExistente, BloqueioManual } from '@/components/formulario-agendamento';
 import GerenciadorUsuarios from '@/components/gerenciador-usuarios';
 import GerenciadorPerfil from '@/components/gerenciador-perfil';
 import { Separator } from '@/components/ui/separator';
@@ -235,7 +234,7 @@ export default function PaginaPainel() {
 
   const handleMudancaAccordion = (value: string) => {
     if (value === "block-slots" && !dadosBloqueio) {
-      buscarDadosBloqueio();
+      buscarDadosBloqueio(true);
     }
   };
 

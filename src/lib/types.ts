@@ -30,6 +30,12 @@ export interface Reserva {
   ultimaAlteracaoPor?: string;
   historico?: HistoricoItem[];
   motivoCancelamento?: string;
+  // Campos de edição
+  entregaMaterial?: string;
+  formatoVideo?: string;
+  plataformaVideo?: string;
+  plataformaVideoOutro?: string;
+  participantes?: { nome?: string; funcao?: string }[];
 }
 
 export type ReservaExistente = {
