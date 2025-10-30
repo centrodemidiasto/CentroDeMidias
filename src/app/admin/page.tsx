@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -767,6 +768,12 @@ Contato: centrodemidias@seduc.to.gov.br`;
                                                                 Alterar
                                                             </Button>
                                                         </div>
+                                                        <Button variant="secondary" size="sm" className="w-full" asChild>
+                                                          <Link href={`/admin/manifesto/${reserva.id}`} target="_blank">
+                                                            <Download className="mr-2 h-4 w-4" />
+                                                            Baixar Manifesto
+                                                          </Link>
+                                                        </Button>
                                                     </CardFooter>
                                                 </Card>
                                             );
