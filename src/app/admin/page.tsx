@@ -1,11 +1,9 @@
-
-
 'use client';
 
 import { useEffect, useState } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth, db as clientDb } from '@/lib/firebase';
-import { collection, getDocs, query, where, orderBy, doc, Timestamp } from 'firebase/firestore';
+import { collection, getDocs, query, where, orderBy, Timestamp } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import {
   Card,
@@ -55,6 +53,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import GeradorRelatorio from '@/components/gerador-relatorio';
 import { Textarea } from '@/components/ui/textarea';
 import GeradorDeGrade from '@/components/gerador-de-grade';
+import { formatarIntervalosHorarios } from '@/lib/utils';
 
 async function getReservasPendentes(): Promise<Reserva[]> {
   const reservasRef = collection(clientDb, "reservas");
@@ -403,7 +402,7 @@ export default function PaginaPainel() {
 const criarLinkEmail = (reserva: Reserva, tipo: 'confirmacao' | 'cancelamento'): string => {
     const { email, nomeCompleto, dataReserva, horariosSelecionados, tituloGravacao, estudio } = reserva;
     const date = Object.keys(horariosSelecionados)[0];
-    const times = horariosSelecionados[date].join(', ');
+    const times = formatarIntervalosHorarios(horariosSelecionados[date]);
     const parsedDate = parseISO(date);
     const dia = format(parsedDate, 'dd');
     const mes = format(parsedDate, 'MMMM', { locale: ptBR });
@@ -623,7 +622,7 @@ Contato: centrodemidias@seduc.to.gov.br`;
                     reservasPendentes.map((reserva) => {
                         const date = Object.keys(reserva.horariosSelecionados)[0];
                         const formattedDate = formatarDataParaExibicao(date);
-                        const times = reserva.horariosSelecionados[date].join(', ');
+                        const times = formatarIntervalosHorarios(reserva.horariosSelecionados[date]);
                         return (
                         <TableRow key={reserva.id}>
                             <TableCell className="font-medium">{reserva.nomeCompleto}<br/><span className="text-xs text-muted-foreground">{reserva.email}</span></TableCell>
@@ -711,7 +710,7 @@ Contato: centrodemidias@seduc.to.gov.br`;
                                         {reservasAprovadas.map((reserva) => {
                                             const date = Object.keys(reserva.horariosSelecionados)[0];
                                             const formattedDate = formatarDataParaExibicao(date);
-                                            const times = reserva.horariosSelecionados[date].join(', ');
+                                            const times = formatarIntervalosHorarios(reserva.horariosSelecionados[date]);
                                             const organization = reserva.tipoOrgao === 'interno' ? reserva.departamento : reserva.organizacaoExterna;
                                             const cardTitle = reserva.tituloGravacao || reserva.nomeCompleto;
                                             const isSelected = reservasSelecionadasParaLote.includes(reserva.id);
@@ -896,7 +895,7 @@ Contato: centrodemidias@seduc.to.gov.br`;
                             </div>
                             <div className="grid grid-cols-[150px_1fr] items-center gap-4">
                                 <span className="font-semibold text-right">Horários:</span>
-                                <span>{Object.values(reservaSelecionada.horariosSelecionados)[0].join(', ')}</span>
+                                <span>{formatarIntervalosHorarios(Object.values(reservaSelecionada.horariosSelecionados)[0])}</span>
                             </div>
                             <div className="grid grid-cols-[150px_1fr] items-center gap-4">
                                 <span className="font-semibold text-right">Órgão:</span>
@@ -1118,5 +1117,3 @@ Contato: centrodemidias@seduc.to.gov.br`;
     </div>
   );
 }
-
-    

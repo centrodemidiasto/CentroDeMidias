@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Reserva } from "@/lib/types";
@@ -7,6 +6,7 @@ import { ptBR } from 'date-fns/locale';
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Printer } from "lucide-react";
+import { formatarIntervalosHorarios } from "@/lib/utils";
 
 interface ManifestoContentProps {
     reserva: Reserva;
@@ -72,7 +72,7 @@ export default function ManifestoContent({ reserva }: ManifestoContentProps) {
                         <InfoItem label="Título da Gravação" value={reserva.tituloGravacao} />
                         <InfoItem label="Estúdio" value={reserva.estudio} />
                         <InfoItem label="Data da Gravação" value={format(dataGravacao, "eeee, dd 'de' MMMM 'de' yyyy", { locale: ptBR })} />
-                        <InfoItem label="Horários" value={reserva.horariosSelecionados[reserva.dataReserva].join(' - ')} />
+                        <InfoItem label="Horários" value={formatarIntervalosHorarios(reserva.horariosSelecionados[reserva.dataReserva])} />
                         <InfoItem label="Modalidade" value={reserva.modalidadesReserva} />
                     </div>
                 </section>

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from "react";
@@ -121,11 +120,8 @@ export default function FormularioAgendamentoEspecial({
                             className="rounded-md border"
                             initialFocus
                             modifiers={{ com_selecao: diasComSelecaoAtual }}
-                            modifiersStyles={{
-                                com_selecao: { 
-                                    color: 'hsl(var(--primary-foreground))',
-                                    backgroundColor: 'hsl(var(--primary))'
-                                },
+                            modifiersClassNames={{
+                                com_selecao: "bg-primary text-primary-foreground hover:bg-primary/90",
                             }}
                         />
                         <div className="flex flex-col gap-2 mt-4 p-2 border rounded-md">
@@ -233,5 +229,3 @@ export default function FormularioAgendamentoEspecial({
         </TooltipProvider>
     );
 }
-
-    

@@ -1,11 +1,12 @@
-
 "use server";
 
 import { adminDb } from "@/lib/firebase-admin";
-import { FieldValue } from 'firebase-admin/firestore';
-import { getAuth } from 'firebase-admin/auth';
+import { FieldValue } from "firebase-admin/firestore";
+import { getAuth } from "firebase-admin/auth";
 import { z } from "zod";
 import { format, parseISO } from "date-fns";
+import { sendEmail } from "@/lib/mail";
+import { formatarIntervalosHorarios } from "@/lib/utils";
 
 const DetalhesReservaSchema = z.object({
     nomeCompleto: z.string().min(3, { message: "Nome completo é obrigatório." }),
@@ -65,7 +66,7 @@ const ReservaAdminSchema = z.object({
     nomeCompleto: z.string().min(3, { message: "Nome do responsável é obrigatório." }),
     departamento: z.string().min(2, { message: "Setor/Departamento é obrigatório." }),
     modalidadesReserva: z.string({ required_error: "Selecione uma modalidade." }),
-    estudio: z.string() // Adicionado para identificar o estúdio
+    estudio: z.string()
 });
 
 
@@ -116,29 +117,50 @@ export async function atualizarStatusReserva(
 
         await reservaRef.update(dadosAtualizacao);
         
-        // Enviar para o Webhook de atualização de status
-        const webhookUrl = process.env.WH_APP;
-        if (webhookUrl && dadosReserva) {
-            try {
-                const payload = {
-                    ...dadosReserva,
-                    criadoEm: dadosReserva.criadoEm.toDate(), // Converte Timestamp para Date
-                    status: status, // Envia o novo status
-                    motivoCancelamento: motivo || null,
-                    id: reservaId
-                };
+        // Notificação por E-mail automática após a decisão
+        if (dadosReserva && dadosReserva.email) {
+            const dataReserva = dadosReserva.dataReserva;
+            const horarios = formatarIntervalosHorarios(dadosReserva.horariosSelecionados[dataReserva]);
+            const dataFormatada = format(parseISO(dataReserva), 'dd/MM/yyyy');
+            
+            const subject = status === 'aprovado' 
+                ? 'Agendamento CONFIRMADO - Centro de Mídias' 
+                : 'Agendamento REJEITADO - Centro de Mídias';
+            
+            const statusLabel = status === 'aprovado' ? 'APROVADO' : 'REJEITADO';
+            
+            const html = `
+                <div style="font-family: sans-serif; line-height: 1.6; color: #333;">
+                    <h2>Olá, ${dadosReserva.nomeCompleto}!</h2>
+                    <p>O status do seu agendamento para a gravação "<strong>${dadosReserva.tituloGravacao}</strong>" foi atualizado para: <strong style="color: ${status === 'aprovado' ? '#28a745' : '#dc3545'};">${statusLabel}</strong>.</p>
+                    
+                    <h3>Detalhes do Agendamento:</h3>
+                    <ul>
+                        <li><strong>Data:</strong> ${dataFormatada}</li>
+                        <li><strong>Horário:</strong> ${horarios}</li>
+                        <li><strong>Estúdio:</strong> ${dadosReserva.estudio}</li>
+                    </ul>
+                    
+                    ${status === 'rejeitado' ? `
+                        <div style="background-color: #f8d7da; border: 1px solid #f5c6cb; padding: 15px; border-radius: 5px;">
+                            <p style="margin: 0; color: #721c24;"><strong>Motivo do Indeferimento:</strong> ${motivo}</p>
+                        </div>
+                        <p>Caso tenha dúvidas, você pode entrar em contato conosco respondendo a este e-mail.</p>
+                    ` : `
+                        <p><strong>Orientações Importantes:</strong></p>
+                        <ul>
+                            <li>Chegue com pelo menos 30 minutos de antecedência.</li>
+                            <li>Traga seus materiais de apoio em pendrive (se aplicável).</li>
+                            <li>Revise as normas de uso no nosso site.</li>
+                        </ul>
+                    `}
+                    
+                    <p>Atenciosamente,<br><strong>Equipe do Centro de Mídias Educacionais</strong></p>
+                </div>
+            `;
 
-                await fetch(webhookUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload),
-                });
-            } catch (webhookError) {
-                console.error("Falha ao enviar webhook de atualização:", webhookError);
-                // Não bloqueia o sucesso, mas registra o erro
-            }
+            await sendEmail({ to: dadosReserva.email, subject, html });
         }
-
 
     } catch (error: any) {
         throw new Error(`Falha ao atualizar o status da reserva: ${error.message}`);
@@ -166,7 +188,6 @@ export async function handleSolicitacaoReserva(
         }
     }
     
-    // Remover campos brutos do array do rawData e adicionar o array processado
     Object.keys(rawData).forEach(key => {
         if (key.startsWith('participantes[')) {
             delete rawData[key];
@@ -193,15 +214,7 @@ export async function handleSolicitacaoReserva(
     }
 
     try {
-        const datasSelecionadas = Object.entries(horariosSelecionados).flatMap(([data, horarios]) =>
-            (horarios as string[]).map(horario => new Date(`${data}T${horario}:00`).toISOString())
-        );
-
-        if (datasSelecionadas.length === 0) {
-            return { sucesso: false, mensagem: "Por favor, selecione ao menos um horário." };
-        }
-        
-        const dataReserva = Object.keys(horariosSelecionados)[0]; // Formato YYYY-MM-DD
+        const dataReserva = Object.keys(horariosSelecionados)[0];
         const timestamp = new Date();
         const novaReserva = {
             ...dados,
@@ -216,36 +229,71 @@ export async function handleSolicitacaoReserva(
             })
         };
 
-        await adminDb.collection("reservas").add(novaReserva);
+        const docRef = await adminDb.collection("reservas").add(novaReserva);
 
-        // Enviar para o Webhook
-        const webhookUrl = process.env.WH_RESERVA;
-        if (webhookUrl) {
-            try {
-                const payload = {
-                    nomeSolicitante: novaReserva.nomeCompleto,
-                    telefone: (novaReserva.telefone || '').replace(/[^\d]/g, ''),
-                    dataGravacao: novaReserva.dataReserva,
-                    estudio: novaReserva.estudio,
-                    horarios: novaReserva.horariosSelecionados[dataReserva].join(', '),
-                    modalidade: novaReserva.modalidadesReserva,
-                };
+        // --- Notificações por E-mail (Substituindo Webhooks) ---
+        const baseAdminUrl = 'https://centrodemidiasto.vercel.app/admin';
+        const dataFormatada = format(parseISO(dataReserva), 'dd/MM/yyyy');
+        const horariosFormatados = formatarIntervalosHorarios(novaReserva.horariosSelecionados[dataReserva]);
 
-                await fetch(webhookUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload),
-                });
-            } catch (webhookError) {
-                console.error("Falha ao enviar webhook:", webhookError);
-                // Não bloqueia o sucesso da reserva, mas registra o erro
-            }
-        }
+        // 1. Notificação para o Usuário (Confirmação de recebimento)
+        const userSubject = 'Solicitação de Agendamento Recebida - Centro de Mídias';
+        const userHtml = `
+            <div style="font-family: sans-serif; color: #333;">
+                <h2>Olá, ${novaReserva.nomeCompleto}!</h2>
+                <p>Recebemos com sucesso sua solicitação de agendamento para uso dos nossos estúdios.</p>
+                <p>Sua solicitação encontra-se agora com o status: <strong>PENDENTE DE APROVAÇÃO</strong>.</p>
+                
+                <h3>Dados da Solicitação:</h3>
+                <ul>
+                    <li><strong>Título da Gravação:</strong> ${novaReserva.tituloGravacao}</li>
+                    <li><strong>Data:</strong> ${dataFormatada}</li>
+                    <li><strong>Horários:</strong> ${horariosFormatados}</li>
+                    <li><strong>Estúdio:</strong> ${novaReserva.estudio}</li>
+                </ul>
+                
+                <p>Nossa equipe analisará os detalhes em breve e você receberá uma nova notificação por e-mail com a decisão final.</p>
+                <p>Atenciosamente,<br><strong>Equipe do Centro de Mídias Educacionais</strong></p>
+            </div>
+        `;
+
+        // 2. Notificação para a Equipe Interna (Aprovação necessária)
+        const adminSubject = `NOVA RESERVA PENDENTE: ${novaReserva.nomeCompleto} - ${dataFormatada}`;
+        const orgaoSolicitante = novaReserva.tipoOrgao === 'interno' ? novaReserva.departamento : novaReserva.organizacaoExterna;
+        
+        const adminHtml = `
+            <div style="font-family: sans-serif; color: #333;">
+                <h2 style="color: #0056b3;">Nova Solicitação de Agendamento</h2>
+                <p>Há uma nova solicitação no sistema que aguarda sua avaliação.</p>
+                
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                    <tr style="background-color: #f2f2f2;"><td style="padding: 8px; border: 1px solid #ddd;"><strong>Solicitante:</strong></td><td style="padding: 8px; border: 1px solid #ddd;">${novaReserva.nomeCompleto}</td></tr>
+                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><strong>Órgão/Setor:</strong></td><td style="padding: 8px; border: 1px solid #ddd;">${orgaoSolicitante}</td></tr>
+                    <tr style="background-color: #f2f2f2;"><td style="padding: 8px; border: 1px solid #ddd;"><strong>Título:</strong></td><td style="padding: 8px; border: 1px solid #ddd;">${novaReserva.tituloGravacao}</td></tr>
+                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><strong>Data:</strong></td><td style="padding: 8px; border: 1px solid #ddd;">${dataFormatada}</td></tr>
+                    <tr style="background-color: #f2f2f2;"><td style="padding: 8px; border: 1px solid #ddd;"><strong>Horários:</strong></td><td style="padding: 8px; border: 1px solid #ddd;">${horariosFormatados}</td></tr>
+                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><strong>Estúdio:</strong></td><td style="padding: 8px; border: 1px solid #ddd;">${novaReserva.estudio}</td></tr>
+                </table>
+                
+                <p>Para visualizar todos os detalhes e realizar a aprovação ou rejeição, acesse o painel:</p>
+                <p><a href="${baseAdminUrl}" style="display: inline-block; padding: 12px 25px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">ACESSAR PAINEL ADMINISTRATIVO</a></p>
+                
+                <hr>
+                <p style="font-size: 12px; color: #777;">Este é um e-mail automático gerado pelo Sistema de Agendamento CME.</p>
+            </div>
+        `;
+
+        // Disparo assíncrono dos e-mails
+        await Promise.all([
+            sendEmail({ to: novaReserva.email, subject: userSubject, html: userHtml }),
+            sendEmail({ to: 'centrodemidias@seduc.to.gov.br', subject: adminSubject, html: adminHtml })
+        ]);
 
         return { sucesso: true, mensagem: "Seu agendamento foi solicitado com sucesso e está pendente de aprovação!" };
         
     } catch (error) {
-        return { sucesso: false, mensagem: "Ocorreu um erro inesperado. Tente novamente." };
+        console.error("Erro ao processar solicitação de reserva:", error);
+        return { sucesso: false, mensagem: "Ocorreu um erro inesperado ao salvar sua solicitação. Tente novamente." };
     }
 }
 
@@ -276,11 +324,11 @@ export async function handleSolicitacaoReservaAdmin(
        await adminDb.collection("reservas").add({
             ...dados,
             tipoOrgao: 'interno',
-            email: 'centrodemidias@seduc.to.gov.br', // Adiciona email padrão para reservas admin
+            email: 'centrodemidias@seduc.to.gov.br', 
             horariosSelecionados,
             dataReserva: dataReserva, 
             criadoEm: timestamp,
-            status: "aprovado", // Reservas admin são auto-aprovadas
+            status: "aprovado", 
             aprovadoPor: 'Sistema (Admin)',
             historico: FieldValue.arrayUnion({
                 acao: "Agendamento rápido criado e aprovado",
@@ -442,8 +490,6 @@ export async function handleUpdateReserva(
     }
 }
 
-// --- Funções de Gerenciamento de Usuários ---
-
 const NovoUsuarioSchema = z.object({
   nome: z.string().min(3, "Nome é obrigatório"),
   email: z.string().email("E-mail inválido"),
@@ -515,7 +561,6 @@ export async function listarUsuarios(): Promise<EstadoFormulario> {
                     nome = userDoc.data()?.nome || '';
                 }
             } catch (dbError) {
-                // se não encontrar o usuário no firestore, continua com o nome vazio
             }
         }
         return {
@@ -659,7 +704,7 @@ export async function gerarOuObterRelatorio(mes: number, ano: number): Promise<{
         const colunas = ['Data', 'Horario', 'Estudio', 'Titulo da Gravacao', 'Responsavel', 'Setor_Departamento', 'Status', 'Motivo_Cancelamento'];
         const linhas = reservas.map(r => {
             const data = r.dataReserva;
-            const horario = r.horariosSelecionados[data]?.join(', ') || '';
+            const horario = formatarIntervalosHorarios(r.horariosSelecionados[data]);
             const orgao = r.tipoOrgao === 'interno' ? r.departamento : r.organizacaoExterna;
             const motivoCancelamento = r.motivoCancelamento || '';
             let statusRelatorio = r.status;

@@ -1,8 +1,7 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { db as clientDb } from "@/lib/firebase";
 import { collection, getDocs, query, where, orderBy, Timestamp } from "firebase/firestore";
-import { format, parseISO, startOfToday, isToday, isTomorrow, addDays, startOfMonth, endOfMonth } from 'date-fns';
+import { format, parseISO, isToday, isTomorrow, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Clock, User, Building, Video, Tv, FileText } from "lucide-react";
 import CurrentTime from "@/components/current-time";
@@ -10,6 +9,7 @@ import Image from "next/image";
 import RefreshButton from "@/components/refresh-button";
 import { Badge } from "@/components/ui/badge";
 import AutoScrollController from "@/components/auto-scroll-controller";
+import { formatarIntervalosHorarios } from "@/lib/utils";
 
 export const revalidate = 60; // Revalida a cada 60 segundos
 export const dynamic = 'force-dynamic';
@@ -136,7 +136,7 @@ export default async function PaginaHorarios() {
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {reservas.map((reserva) => {
-                    const times = reserva.horariosSelecionados[reserva.dataReserva].join(' - ');
+                    const times = formatarIntervalosHorarios(reserva.horariosSelecionados[reserva.dataReserva]);
                     const organization = reserva.tipoOrgao === 'interno' ? reserva.departamento : reserva.organizacaoExterna;
     
                     return(
@@ -154,23 +154,23 @@ export default async function PaginaHorarios() {
                                     <Building className="w-5 h-5" /> {organization}
                                 </CardDescription>
                             </CardHeader>
-                            <CardContent className="p-4 pt-2 flex-grow grid grid-cols-[1fr_auto] gap-4 items-end">
-                                <div className="space-y-2">
-                                {reserva.tituloGravacao && (
-                                    <div className="flex items-center gap-2 text-base text-gray-300">
-                                        <FileText className="w-5 h-5 text-orange-400/80"/>
-                                        <span className="text-base">{reserva.tituloGravacao}</span>
+                            <CardContent className="p-4 pt-2 flex-grow flex flex-col justify-between">
+                                <div className="space-y-2 mb-4">
+                                    {reserva.tituloGravacao && (
+                                        <div className="flex items-start gap-2 text-base text-gray-300">
+                                            <FileText className="w-5 h-5 mt-0.5 text-orange-400/80 shrink-0"/>
+                                            <span className="text-base font-medium">{reserva.tituloGravacao}</span>
+                                        </div>
+                                    )}
+                                    <div className="flex items-center gap-2 text-gray-300">
+                                        <Video className="w-5 h-5 text-orange-400 shrink-0"/>
+                                        <span className="text-sm">{reserva.modalidadesReserva}</span>
                                     </div>
-                                )}
-                                <div className="flex items-center gap-2 text-lg text-gray-300">
-                                    <Video className="w-5 h-5 text-orange-400"/>
-                                    <span className="text-base">{reserva.modalidadesReserva}</span>
                                 </div>
-                                </div>
-                                <div className="text-right">
-                                    <div className="text-4xl font-bold text-blue-300 flex items-center gap-2">
-                                        <Clock className="w-8 h-8"/>
-                                        <span>{times}</span>
+                                <div className="mt-auto border-t border-gray-700 pt-3">
+                                    <div className="text-2xl font-bold text-blue-300 flex items-center gap-2">
+                                        <Clock className="w-6 h-6 shrink-0"/>
+                                        <span className="leading-tight">{times}</span>
                                     </div>
                                 </div>
                             </CardContent>
