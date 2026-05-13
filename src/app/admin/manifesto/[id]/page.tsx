@@ -1,4 +1,6 @@
 
+export const dynamic = 'force-dynamic';
+
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { Reserva } from '@/lib/types';
 import { notFound } from 'next/navigation';

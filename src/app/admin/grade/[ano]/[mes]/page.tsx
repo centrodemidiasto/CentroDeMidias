@@ -1,4 +1,6 @@
 
+export const dynamic = 'force-dynamic';
+
 import GradeHorarios from '@/components/grade-horarios';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { Reserva } from '@/lib/types';
