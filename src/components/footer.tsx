@@ -6,7 +6,7 @@ import { Youtube, Instagram } from "lucide-react";
 export default function Footer() {
   return (
     <footer className="border-t bg-background">
-      <div className="container flex flex-col items-center justify-center gap-6 py-8">
+      <div className="container mx-auto flex flex-col items-center justify-center gap-6 py-8">
         <div className="flex flex-col items-center gap-4">
           <Link href="/" className="flex items-center space-x-2">
              <Image
