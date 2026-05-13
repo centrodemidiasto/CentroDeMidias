@@ -1,10 +1,8 @@
 
-import { Timestamp } from "firebase/firestore";
-
 export interface HistoricoItem {
     acao: string;
     usuario: string;
-    data: Timestamp | Date;
+    data: string | Date;
 }
 
 export interface Reserva {
@@ -23,7 +21,7 @@ export interface Reserva {
   numeroCadeiras?: number;
   horariosSelecionados: Record<string, string[]>;
   status: 'pendente' | 'aprovado' | 'rejeitado';
-  criadoEm: Timestamp | Date;
+  criadoEm: string | Date;
   dataReserva: string; // YYYY-MM-DD
   estudio: string;
   aprovadoPor?: string;

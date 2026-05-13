@@ -1,6 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { db as clientDb } from "@/lib/firebase";
-import { collection, getDocs, query, where, orderBy, Timestamp } from "firebase/firestore";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { format, parseISO, isToday, isTomorrow, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Clock, User, Building, Video, Tv, FileText } from "lucide-react";
@@ -11,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import AutoScrollController from "@/components/auto-scroll-controller";
 import { formatarIntervalosHorarios } from "@/lib/utils";
 
-export const revalidate = 60; // Revalida a cada 60 segundos
+export const revalidate = 60;
 export const dynamic = 'force-dynamic';
 
 interface Reserva {
@@ -24,8 +23,7 @@ interface Reserva {
   modalidadesReserva: string;
   horariosSelecionados: Record<string, string[]>;
   status: 'pendente' | 'aprovado' | 'rejeitado';
-  criadoEm: Timestamp;
-  dataReserva: string; // YYYY-MM-DD
+  dataReserva: string;
   estudio: string;
 }
 
@@ -38,23 +36,32 @@ async function getProximasReservas(): Promise<Reserva[]> {
   const hoje = new Date();
   const inicioDoPeriodo = format(hoje, 'yyyy-MM-dd');
   const fimDoMes = format(endOfMonth(hoje), 'yyyy-MM-dd');
-  const reservasRef = collection(clientDb, "reservas");
-  
-  const q = query(
-    reservasRef,
-    where("status", "==", "aprovado"),
-    where("dataReserva", ">=", inicioDoPeriodo),
-    where("dataReserva", "<=", fimDoMes),
-    orderBy("dataReserva", "asc")
-  );
-  
-  const querySnapshot = await getDocs(q);
-  const dadosReservas = querySnapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  })) as Reserva[];
 
-  dadosReservas.sort((a, b) => {
+  const { data, error } = await supabaseAdmin
+    .from('reservas')
+    .select('id, nome_completo, titulo_gravacao, tipo_orgao, departamento, organizacao_externa, modalidades_reserva, horarios_selecionados, status, data_reserva, estudio')
+    .eq('status', 'aprovado')
+    .gte('data_reserva', inicioDoPeriodo)
+    .lte('data_reserva', fimDoMes)
+    .order('data_reserva', { ascending: true });
+
+  if (error) throw error;
+
+  const reservas: Reserva[] = (data || []).map((row: any) => ({
+    id: row.id,
+    nomeCompleto: row.nome_completo,
+    tituloGravacao: row.titulo_gravacao,
+    tipoOrgao: row.tipo_orgao,
+    departamento: row.departamento,
+    organizacaoExterna: row.organizacao_externa,
+    modalidadesReserva: row.modalidades_reserva,
+    horariosSelecionados: row.horarios_selecionados,
+    status: row.status,
+    dataReserva: row.data_reserva,
+    estudio: row.estudio,
+  }));
+
+  reservas.sort((a, b) => {
     const timeA = a.horariosSelecionados[a.dataReserva]?.[0] || '00:00';
     const timeB = b.horariosSelecionados[b.dataReserva]?.[0] || '00:00';
     if (a.dataReserva < b.dataReserva) return -1;
@@ -68,7 +75,7 @@ async function getProximasReservas(): Promise<Reserva[]> {
     return timeA.localeCompare(timeB);
   });
 
-  return dadosReservas;
+  return reservas;
 }
 
 
@@ -87,9 +94,7 @@ function agruparReservasPorData(reservas: Reserva[]): ReservaAgrupada[] {
     const agrupado: Record<string, Reserva[]> = {};
     reservas.forEach(reserva => {
         const data = reserva.dataReserva;
-        if (!agrupado[data]) {
-            agrupado[data] = [];
-        }
+        if (!agrupado[data]) agrupado[data] = [];
         agrupado[data].push(reserva);
     });
     return Object.entries(agrupado).map(([data, reservas]) => ({ data, reservas }));
@@ -138,7 +143,7 @@ export default async function PaginaHorarios() {
                 {reservas.map((reserva) => {
                     const times = formatarIntervalosHorarios(reserva.horariosSelecionados[reserva.dataReserva]);
                     const organization = reserva.tipoOrgao === 'interno' ? reserva.departamento : reserva.organizacaoExterna;
-    
+
                     return(
                         <Card key={reserva.id} className="bg-gray-800 border-blue-500/50 shadow-lg rounded-lg overflow-hidden flex flex-col">
                             <CardHeader className="p-4 pb-2">

@@ -11,7 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { atualizarNomeUsuario, atualizarSenhaUsuario } from '@/app/actions';
-import { User } from 'firebase/auth';
+import type { User } from '@supabase/supabase-js';
 import { Loader2 } from 'lucide-react';
 import { Separator } from './ui/separator';
 
@@ -37,8 +37,8 @@ export default function GerenciadorPerfil({ usuario }: GerenciadorPerfilProps) {
   const formNome = useForm<z.infer<typeof AtualizarNomeSchema>>({
     resolver: zodResolver(AtualizarNomeSchema),
     defaultValues: {
-      nome: usuario?.displayName || '',
-      uid: usuario?.uid,
+      nome: usuario?.user_metadata?.nome || '',
+      uid: usuario?.id,
     },
   });
 
@@ -46,7 +46,7 @@ export default function GerenciadorPerfil({ usuario }: GerenciadorPerfilProps) {
     resolver: zodResolver(AtualizarSenhaSchema),
     defaultValues: {
       senha: '',
-      uid: usuario?.uid,
+      uid: usuario?.id,
     },
   });
 
@@ -56,11 +56,13 @@ export default function GerenciadorPerfil({ usuario }: GerenciadorPerfilProps) {
     Object.entries(data).forEach(([key, value]) => formData.append(key, value));
 
     const resultado = await atualizarNomeUsuario(null, formData);
-    toast({
-      title: resultado.sucesso ? "Sucesso!" : "Erro",
-      description: resultado.mensagem,
-      variant: resultado.sucesso ? "default" : "destructive",
-    });
+    if (resultado) {
+      toast({
+        title: resultado.sucesso ? "Sucesso!" : "Erro",
+        description: resultado.mensagem,
+        variant: resultado.sucesso ? "default" : "destructive",
+      });
+    }
     setEnviandoNome(false);
   };
 
@@ -70,13 +72,15 @@ export default function GerenciadorPerfil({ usuario }: GerenciadorPerfilProps) {
     Object.entries(data).forEach(([key, value]) => formData.append(key, value));
 
     const resultado = await atualizarSenhaUsuario(null, formData);
-    toast({
-      title: resultado.sucesso ? "Sucesso!" : "Erro",
-      description: resultado.mensagem,
-      variant: resultado.sucesso ? "default" : "destructive",
-    });
-    if (resultado.sucesso) {
-      formSenha.reset({ senha: '', uid: usuario?.uid });
+    if (resultado) {
+      toast({
+        title: resultado.sucesso ? "Sucesso!" : "Erro",
+        description: resultado.mensagem,
+        variant: resultado.sucesso ? "default" : "destructive",
+      });
+      if (resultado.sucesso) {
+        formSenha.reset({ senha: '', uid: usuario?.id });
+      }
     }
     setEnviandoSenha(false);
   };

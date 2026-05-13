@@ -23,35 +23,21 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import FormularioReservaAdmin from "./formulario-reserva-admin";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
-import { collection, getDocs, query, where } from "firebase/firestore";
-import { db, auth } from "@/lib/firebase";
-import { onAuthStateChanged, User } from "firebase/auth";
+import { createClient } from "@/lib/supabase";
+import type { User } from "@supabase/supabase-js";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
 import LegendaCalendario from "./legenda-calendario";
 import FormularioAgendamentoEspecial from "./formulario-agendamento-especial";
 import FormularioAgendamentoRecorrente from "./formulario-agendamento-recorrente";
-import { Reserva } from "@/lib/types";
+import { Reserva, BloqueioManual, ReservaExistente } from "@/lib/types";
 import FormularioAgendamentoUsuario from "./formulario-agendamento-usuario";
 
+export type { BloqueioManual, ReservaExistente };
 
 export type HorariosSelecionados = {
   [key: string]: string[];
 };
-
-export type ReservaExistente = {
-    id: string;
-    data: string;
-    horarios: string[];
-    status: 'pendente' | 'aprovado' | 'rejeitado';
-    estudio: string;
-}
-
-export type BloqueioManual = {
-    data: string;
-    horarios: string[];
-    estudio: string;
-}
 
 export const SLOTS_DE_TEMPO = ["09:00", "10:00", "11:00", "12:00", "14:00", "15:00", "16:00", "17:00", "18:00"];
 const DIAS_MIN_ANTECEDENCIA = 7;
@@ -59,34 +45,29 @@ const MAX_SEMANAS_ANTECEDENCIA = 8;
 const ESTUDIOS = ["Estúdio 1", "Estúdio 2"];
 
 async function getReservasExistentes(): Promise<ReservaExistente[]> {
-  const reservasRef = collection(db, "reservas");
-  const q = query(
-    reservasRef,
-    where("status", "in", ["pendente", "aprovado"])
-  );
-  const querySnapshot = await getDocs(q);
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('reservas')
+    .select('id, horarios_selecionados, status, estudio')
+    .in('status', ['pendente', 'aprovado']);
+
+  if (error) throw error;
+
   const slotsReservados: ReservaExistente[] = [];
-  querySnapshot.forEach((doc) => {
-      const data = doc.data() as Reserva;
-      const horarios = data.horariosSelecionados as Record<string, string[]>;
-      const status = data.status as 'pendente' | 'aprovado';
-      const estudio = data.estudio as string;
-      for (const data in horarios) {
-          slotsReservados.push({ id: doc.id, data, horarios: horarios[data], status, estudio });
-      }
+  (data || []).forEach((row: any) => {
+    const horarios = row.horarios_selecionados as Record<string, string[]>;
+    for (const data in horarios) {
+      slotsReservados.push({ id: row.id, data, horarios: horarios[data], status: row.status, estudio: row.estudio });
+    }
   });
   return slotsReservados;
 }
 
 async function getBloqueiosManuais(): Promise<BloqueioManual[]> {
-    const bloqueiosRef = collection(db, "horariosBloqueados");
-    const querySnapshot = await getDocs(bloqueiosRef);
-    const bloqueios: BloqueioManual[] = [];
-    querySnapshot.forEach(doc => {
-        const data = doc.data();
-        bloqueios.push({ data: data.data, horarios: data.horarios, estudio: data.estudio });
-    });
-    return bloqueios;
+  const supabase = createClient();
+  const { data, error } = await supabase.from('horarios_bloqueados').select('id, data, horarios, estudio');
+  if (error) throw error;
+  return (data || []).map((row: any) => ({ id: row.id, data: row.data, horarios: row.horarios, estudio: row.estudio }));
 }
 
 const getHorarioQuebradoAnterior = (horario: string): string => {
@@ -122,10 +103,17 @@ export default function FormularioAgendamento() {
   
   useEffect(() => {
     setClienteRenderizou(true);
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUsuario(user);
+    const supabase = createClient();
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUsuario(session?.user ?? null);
     });
-    return () => unsubscribe();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUsuario(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const primeiraDataAgendavel = usuario ? hoje : primeiraDataAgendavelInicial;

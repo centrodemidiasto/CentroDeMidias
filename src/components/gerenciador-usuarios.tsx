@@ -38,9 +38,9 @@ export default function GerenciadorUsuarios() {
   const carregarUsuarios = async () => {
     setCarregando(true);
     const resultado = await listarUsuarios();
-    if (resultado.sucesso) {
+    if (resultado?.sucesso) {
       setUsuarios(resultado.dados || []);
-    } else {
+    } else if (resultado) {
       toast({ title: "Erro", description: resultado.mensagem, variant: "destructive" });
     }
     setCarregando(false);
@@ -56,29 +56,32 @@ export default function GerenciadorUsuarios() {
     Object.entries(data).forEach(([key, value]) => formData.append(key, value));
     
     const resultado = await criarNovoUsuario(null, formData);
-    toast({
-      title: resultado.sucesso ? "Sucesso!" : "Erro",
-      description: resultado.mensagem,
-      variant: resultado.sucesso ? "default" : "destructive",
-    });
-
-    if (resultado.sucesso) {
-      setModalNovoUsuarioAberto(false);
-      form.reset();
-      await carregarUsuarios();
+    if (resultado) {
+      toast({
+        title: resultado.sucesso ? "Sucesso!" : "Erro",
+        description: resultado.mensagem,
+        variant: resultado.sucesso ? "default" : "destructive",
+      });
+      if (resultado.sucesso) {
+        setModalNovoUsuarioAberto(false);
+        form.reset();
+        await carregarUsuarios();
+      }
     }
     setEnviando(false);
   };
 
   const handleMudarStatus = async (uid: string, disabled: boolean) => {
     const resultado = await atualizarStatusUsuario(uid, disabled);
-    toast({
-      title: resultado.sucesso ? "Sucesso!" : "Erro",
-      description: resultado.mensagem,
-      variant: resultado.sucesso ? "default" : "destructive",
-    });
-    if (resultado.sucesso) {
-      await carregarUsuarios();
+    if (resultado) {
+      toast({
+        title: resultado.sucesso ? "Sucesso!" : "Erro",
+        description: resultado.mensagem,
+        variant: resultado.sucesso ? "default" : "destructive",
+      });
+      if (resultado.sucesso) {
+        await carregarUsuarios();
+      }
     }
   };
 

@@ -16,8 +16,7 @@ import { CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { collection, getDocs, writeBatch, doc, query, where } from "firebase/firestore";
-import { db as clientDb } from "@/lib/firebase";
+import { createClient } from "@/lib/supabase";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import LegendaCalendarioAdmin from "./legenda-calendario-admin";
 import { ReservaExistente, BloqueioManual } from "@/lib/types";
@@ -48,9 +47,14 @@ export default function FormularioBloqueioHorarios({ reservasIniciais, bloqueios
   const { toast } = useToast();
   
   const buscarBloqueiosManuais = async () => {
-    const bloqueiosRef = collection(clientDb, "horariosBloqueados");
-    const querySnapshot = await getDocs(bloqueiosRef);
-    const novosBloqueios = querySnapshot.docs.map(doc => ({ ...doc.data() }) as BloqueioManual);
+    const supabase = createClient();
+    const { data } = await supabase.from('horarios_bloqueados').select('*');
+    const novosBloqueios = (data || []).map((row: any) => ({
+      id: row.id,
+      data: row.data,
+      horarios: row.horarios,
+      estudio: row.estudio,
+    })) as BloqueioManual[];
     setBloqueiosManuais(novosBloqueios);
   }
 
@@ -98,63 +102,56 @@ export default function FormularioBloqueioHorarios({ reservasIniciais, bloqueios
 
   const handleSalvarMudancas = async () => {
     setEnviando(true);
+    const supabase = createClient();
     try {
-      const batch = writeBatch(clientDb);
-      const bloqueiosRef = collection(clientDb, 'horariosBloqueados');
-      
-      const mudancas: { data: string, estudio: string, horarios: string[] }[] = [];
+      const mudancasAgrupadas: Record<string, { paraBloquear: string[], paraDesbloquear: string[] }> = {};
+
       for (const chave in horariosSelecionados) {
-          const [data, estudio] = chave.split('_');
-          mudancas.push({ data, estudio, horarios: horariosSelecionados[chave] });
+        const [data, estudio] = chave.split('_');
+        const key = `${data}_${estudio}`;
+        if (!mudancasAgrupadas[key]) {
+          mudancasAgrupadas[key] = { paraBloquear: [], paraDesbloquear: [] };
+        }
+        horariosSelecionados[chave].forEach(horario => {
+          const estaBloqueado = bloqueiosManuais.some(b => b.data === data && b.estudio === estudio && b.horarios.includes(horario));
+          if (estaBloqueado) {
+            mudancasAgrupadas[key].paraDesbloquear.push(horario);
+          } else {
+            mudancasAgrupadas[key].paraBloquear.push(horario);
+          }
+        });
       }
 
-      // Agrupar mudanças por data e estudio
-      const mudancasAgrupadas: Record<string, { paraBloquear: string[], paraDesbloquear: string[] }> = {};
-      mudancas.forEach(({ data, estudio, horarios }) => {
-          horarios.forEach(horario => {
-            const key = `${data}_${estudio}`;
-            if (!mudancasAgrupadas[key]) {
-                mudancasAgrupadas[key] = { paraBloquear: [], paraDesbloquear: [] };
-            }
-            const estaBloqueadoAtualmente = bloqueiosManuais.some(b => b.data === data && b.estudio === estudio && b.horarios.includes(horario));
-            if (estaBloqueadoAtualmente) {
-                mudancasAgrupadas[key].paraDesbloquear.push(horario);
-            } else {
-                mudancasAgrupadas[key].paraBloquear.push(horario);
-            }
-          });
-      });
-      
       const promises = Object.keys(mudancasAgrupadas).map(async key => {
         const [data, estudio] = key.split('_');
         const { paraBloquear, paraDesbloquear } = mudancasAgrupadas[key];
-        
-        const q = query(bloqueiosRef, where("data", "==", data), where("estudio", "==", estudio));
-        const snapshot = await getDocs(q);
-        
-        if (snapshot.empty) {
+
+        const { data: existente } = await supabase
+          .from('horarios_bloqueados')
+          .select('id, horarios')
+          .eq('data', data)
+          .eq('estudio', estudio)
+          .maybeSingle();
+
+        if (!existente) {
           if (paraBloquear.length > 0) {
-            batch.set(doc(bloqueiosRef), { data, estudio, horarios: paraBloquear.sort() });
+            await supabase.from('horarios_bloqueados').insert({ data, estudio, horarios: paraBloquear.sort() });
           }
         } else {
-          const docRef = snapshot.docs[0].ref;
-          const docData = snapshot.docs[0].data();
-          const horariosExistentes: string[] = docData.horarios || [];
-          
+          const horariosExistentes: string[] = existente.horarios || [];
           let horariosFinais = [...horariosExistentes, ...paraBloquear];
           horariosFinais = horariosFinais.filter(h => !paraDesbloquear.includes(h));
           horariosFinais = [...new Set(horariosFinais)].sort();
-          
+
           if (horariosFinais.length > 0) {
-            batch.update(docRef, { horarios: horariosFinais });
+            await supabase.from('horarios_bloqueados').update({ horarios: horariosFinais }).eq('id', existente.id);
           } else {
-            batch.delete(docRef);
+            await supabase.from('horarios_bloqueados').delete().eq('id', existente.id);
           }
         }
       });
 
       await Promise.all(promises);
-      await batch.commit();
 
       toast({
         title: "Sucesso!",

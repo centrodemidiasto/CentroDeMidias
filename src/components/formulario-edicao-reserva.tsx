@@ -12,14 +12,13 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { handleUpdateReserva } from '@/app/actions';
-import { Reserva, ReservaExistente } from '@/lib/types';
-import { BloqueioManual } from './formulario-bloqueio-horarios';
+import { Reserva, ReservaExistente, BloqueioManual } from '@/lib/types';
 import { Calendar } from './ui/calendar';
 import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { User } from 'firebase/auth';
+import type { User } from '@supabase/supabase-js';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 
 const EdicaoReservaSchema = z.object({
@@ -146,7 +145,8 @@ export default function FormularioEdicaoReserva({ reserva, reservasExistentes, b
         const chaveData = format(dataSelecionada!, 'yyyy-MM-dd');
         const novosHorariosSelecionados = { [chaveData]: horariosSelecionados };
 
-        const resultado = await handleUpdateReserva(reserva.id, novosHorariosSelecionados, { nome: adminUser.displayName, email: adminUser.email }, null, formData);
+        const nome = adminUser.user_metadata?.nome || adminUser.email || null;
+        const resultado = await handleUpdateReserva(reserva.id, novosHorariosSelecionados, { nome, email: adminUser.email ?? null }, null, formData);
         
         if (resultado && resultado.mensagem) {
             const variant = resultado.sucesso ? 'default' : 'destructive';

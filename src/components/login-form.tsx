@@ -18,8 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { createClient } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 
 const formSchema = z.object({
@@ -42,16 +41,22 @@ export default function LoginForm() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setLoading(true);
+    const supabase = createClient();
     try {
-      await signInWithEmailAndPassword(auth, values.email, values.password);
+      const { error } = await supabase.auth.signInWithPassword({
+        email: values.email,
+        password: values.password,
+      });
+      if (error) throw error;
       toast({
         title: "Login bem-sucedido!",
         description: "Você será redirecionado para o painel.",
       });
       router.push("/admin");
+      router.refresh();
     } catch (error: any) {
       let message = "Ocorreu um erro durante o login.";
-      if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
+      if (error.message?.includes('Invalid login credentials') || error.message?.includes('invalid_credentials')) {
         message = "E-mail ou senha inválidos.";
       }
       toast({
@@ -106,8 +111,6 @@ export default function LoginForm() {
             </Form>
         </CardContent>
     </Card>
-    
+
   );
 }
-
-    

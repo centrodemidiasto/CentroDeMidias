@@ -1,9 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { onAuthStateChanged, User } from 'firebase/auth';
-import { auth, db as clientDb } from '@/lib/firebase';
-import { collection, getDocs, query, where, orderBy, Timestamp } from 'firebase/firestore';
+import type { User } from '@supabase/supabase-js';
+import { createClient } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import {
   Card,
@@ -55,45 +54,68 @@ import { Textarea } from '@/components/ui/textarea';
 import GeradorDeGrade from '@/components/gerador-de-grade';
 import { formatarIntervalosHorarios } from '@/lib/utils';
 
+function mapRowToReserva(row: any): Reserva {
+  return {
+    id: row.id,
+    nomeCompleto: row.nome_completo,
+    email: row.email,
+    telefone: row.telefone,
+    tituloGravacao: row.titulo_gravacao,
+    tipoOrgao: row.tipo_orgao,
+    departamento: row.departamento,
+    organizacaoExterna: row.organizacao_externa,
+    modalidadesReserva: row.modalidades_reserva,
+    materiaisNecessarios: row.materiais_necessarios,
+    numeroParticipantes: row.numero_participantes,
+    numeroMesas: row.numero_mesas,
+    numeroCadeiras: row.numero_cadeiras,
+    horariosSelecionados: row.horarios_selecionados,
+    status: row.status,
+    criadoEm: row.criado_em,
+    dataReserva: row.data_reserva,
+    estudio: row.estudio,
+    aprovadoPor: row.aprovado_por,
+    ultimaAlteracaoPor: row.ultima_alteracao_por,
+    historico: row.historico,
+    motivoCancelamento: row.motivo_cancelamento,
+    entregaMaterial: row.entrega_material,
+    formatoVideo: row.formato_video,
+    plataformaVideo: row.plataforma_video,
+    plataformaVideoOutro: row.plataforma_video_outro,
+    participantes: row.participantes,
+  };
+}
+
 async function getReservasPendentes(): Promise<Reserva[]> {
-  const reservasRef = collection(clientDb, "reservas");
-  const q = query(
-    reservasRef,
-    where("status", "==", "pendente"),
-    orderBy("criadoEm", "desc")
-  );
-  const querySnapshot = await getDocs(q);
-  const reservas = querySnapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  })) as Reserva[];
-  return reservas;
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('reservas')
+    .select('*')
+    .eq('status', 'pendente')
+    .order('criado_em', { ascending: false });
+  if (error) throw error;
+  return (data || []).map(mapRowToReserva);
 }
 
 async function getReservasAprovadas(mes: Date): Promise<Reserva[]> {
+  const supabase = createClient();
   const hoje = startOfToday();
   const inicioDoMes = startOfMonth(mes);
-  
   const inicioBusca = isBefore(inicioDoMes, hoje) ? hoje : inicioDoMes;
-
   const inicioFormatado = format(inicioBusca, 'yyyy-MM-dd');
   const fimDoMesFormatado = format(endOfMonth(mes), 'yyyy-MM-dd');
-  
-  const reservasRef = collection(clientDb, "reservas");
 
-  const q = query(
-    reservasRef,
-    where("status", "==", "aprovado"),
-    where("dataReserva", ">=", inicioFormatado),
-    where("dataReserva", "<=", fimDoMesFormatado),
-    orderBy("dataReserva", "asc")
-  );
-  const querySnapshot = await getDocs(q);
-  const reservas = querySnapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  })) as Reserva[];
+  const { data, error } = await supabase
+    .from('reservas')
+    .select('*')
+    .eq('status', 'aprovado')
+    .gte('data_reserva', inicioFormatado)
+    .lte('data_reserva', fimDoMesFormatado)
+    .order('data_reserva', { ascending: true });
 
+  if (error) throw error;
+
+  const reservas = (data || []).map(mapRowToReserva);
   reservas.sort((a, b) => {
     const timeA = a.horariosSelecionados[a.dataReserva]?.[0] || '00:00';
     const timeB = b.horariosSelecionados[b.dataReserva]?.[0] || '00:00';
@@ -101,49 +123,54 @@ async function getReservasAprovadas(mes: Date): Promise<Reserva[]> {
     if (a.dataReserva > b.dataReserva) return 1;
     return timeA.localeCompare(timeB);
   });
-  
+
   return reservas;
 }
 
 async function getReservasParaBloqueio(): Promise<ReservaExistente[]> {
-  const reservasRef = collection(clientDb, "reservas");
-  const q = query(
-    reservasRef,
-    where("status", "in", ["pendente", "aprovado"])
-  );
-  const querySnapshot = await getDocs(q);
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('reservas')
+    .select('id, horarios_selecionados, status, estudio')
+    .in('status', ['pendente', 'aprovado']);
+
+  if (error) throw error;
+
   const slotsReservados: ReservaExistente[] = [];
-  querySnapshot.forEach((doc) => {
-      const data = doc.data() as Reserva;
-      const slots = data.horariosSelecionados as Record<string, string[]>;
-      const status = data.status as 'pendente' | 'aprovado';
-      const estudio = data.estudio;
-      for (const data in slots) {
-          slotsReservados.push({ id: doc.id, data, horarios: slots[data], status, estudio });
-      }
+  (data || []).forEach((row) => {
+    const slots = row.horarios_selecionados as Record<string, string[]>;
+    for (const data in slots) {
+      slotsReservados.push({ id: row.id, data, horarios: slots[data], status: row.status, estudio: row.estudio });
+    }
   });
   return slotsReservados;
 }
 
 async function getBloqueiosManuais(): Promise<BloqueioManual[]> {
-    const bloqueiosRef = collection(clientDb, "horariosBloqueados");
-    const querySnapshot = await getDocs(bloqueiosRef);
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as BloqueioManual);
+  const supabase = createClient();
+  const { data, error } = await supabase.from('horarios_bloqueados').select('*');
+  if (error) throw error;
+  return (data || []).map((row) => ({
+    id: row.id,
+    data: row.data,
+    horarios: row.horarios,
+    estudio: row.estudio,
+  }));
 }
 
 
 export default function PaginaPainel() {
   const [usuario, setUsuario] = useState<User | null>(null);
   const [carregamentoInicial, setCarregamentoInicial] = useState(true);
-  
+
   const [reservasPendentes, setReservasPendentes] = useState<Reserva[]>([]);
   const [reservasAprovadas, setReservasAprovadas] = useState<Reserva[] | null>(null);
   const [dadosBloqueio, setDadosBloqueio] = useState<{ reserved: ReservaExistente[], manual: BloqueioManual[] } | null>(null);
-  
+
   const [carregandoPendentes, setCarregandoPendentes] = useState(true);
   const [carregandoAprovados, setCarregandoAprovados] = useState(false);
   const [carregandoBloqueio, setCarregandoBloqueio] = useState(false);
-  
+
   const [reservaSelecionada, setReservaSelecionada] = useState<Reserva | null>(null);
   const [editandoReserva, setEditandoReserva] = useState<Reserva | null>(null);
   const [reservaParaCancelar, setReservaParaCancelar] = useState<Reserva | null>(null);
@@ -156,7 +183,7 @@ export default function PaginaPainel() {
 
   const router = useRouter();
   const { toast } = useToast();
-  
+
   const emailsAdmin = ["dtie@seduc.to.gov.br", "centrodemidias@seduc.to.gov.br"];
   const podeGerenciarUsuarios = usuario && emailsAdmin.includes(usuario.email || '');
 
@@ -217,7 +244,7 @@ export default function PaginaPainel() {
   };
 
   const buscarDadosBloqueio = (force = false) => {
-    if (dadosBloqueio && !force) return; 
+    if (dadosBloqueio && !force) return;
     setCarregandoBloqueio(true);
     Promise.all([getReservasParaBloqueio(), getBloqueiosManuais()]).then(([reserved, manual]) => {
         setDadosBloqueio({ reserved, manual });
@@ -239,16 +266,26 @@ export default function PaginaPainel() {
   };
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setUsuario(user);
-        buscarReservasPendentes(); 
+    const supabase = createClient();
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUsuario(session.user);
+        buscarReservasPendentes();
       } else {
         router.push('/login');
       }
     });
 
-    return () => unsubscribe();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setUsuario(session.user);
+      } else {
+        router.push('/login');
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, [router]);
 
   const handleConfirmarCancelamento = async () => {
@@ -260,19 +297,13 @@ export default function PaginaPainel() {
     }
 
     try {
-        const adminUser = { nome: usuario.displayName || usuario.email, email: usuario.email };
+        const nome = usuario.user_metadata?.nome || usuario.email;
+        const adminUser = { nome, email: usuario.email ?? null };
         await atualizarStatusReserva(reservaParaCancelar.id, 'rejeitado', adminUser, motivoCancelamento);
-        toast({
-            title: "Sucesso!",
-            description: `Agendamento cancelado.`,
-        });
+        toast({ title: "Sucesso!", description: `Agendamento cancelado.` });
         buscarTodasReservas();
     } catch (error: any) {
-        toast({
-            title: "Erro",
-            description: error.message || "Não foi possível cancelar o agendamento.",
-            variant: "destructive",
-        });
+        toast({ title: "Erro", description: error.message || "Não foi possível cancelar o agendamento.", variant: "destructive" });
     } finally {
         setReservaParaCancelar(null);
         setMotivoCancelamento("");
@@ -284,28 +315,20 @@ export default function PaginaPainel() {
 
     if (status === 'rejeitado' && !motivo) {
         const reserva = reservasPendentes.find(r => r.id === id);
-        if (reserva) {
-            setReservaParaCancelar(reserva);
-        }
+        if (reserva) setReservaParaCancelar(reserva);
         return;
     }
 
     try {
-        const adminUser = { nome: usuario.displayName || usuario.email, email: usuario.email };
+        const nome = usuario.user_metadata?.nome || usuario.email;
+        const adminUser = { nome, email: usuario.email ?? null };
         await atualizarStatusReserva(id, status, adminUser, motivo);
-        toast({
-            title: "Sucesso!",
-            description: `Agendamento ${status === 'aprovado' ? 'aprovado' : 'rejeitado'}.`,
-        });
+        toast({ title: "Sucesso!", description: `Agendamento ${status === 'aprovado' ? 'aprovado' : 'rejeitado'}.` });
         buscarTodasReservas();
     } catch (error: any) {
-        toast({
-            title: "Erro",
-            description: error.message || "Não foi possível atualizar o status do agendamento.",
-            variant: "destructive",
-        });
+        toast({ title: "Erro", description: error.message || "Não foi possível atualizar o status.", variant: "destructive" });
     } finally {
-        if(status === 'rejeitado') {
+        if (status === 'rejeitado') {
           setReservaParaCancelar(null);
           setMotivoCancelamento("");
         }
@@ -328,26 +351,20 @@ export default function PaginaPainel() {
 
   const handleConfirmarCancelamentoLote = async () => {
     if (reservasSelecionadasParaLote.length === 0 || !usuario) return;
-    
+
     if (!motivoCancelamento.trim()) {
       toast({ title: "Erro", description: "O motivo do cancelamento é obrigatório.", variant: "destructive"});
       return;
     }
 
     try {
-      const adminUser = { nome: usuario.displayName || usuario.email, email: usuario.email };
+      const nome = usuario.user_metadata?.nome || usuario.email;
+      const adminUser = { nome, email: usuario.email ?? null };
       await cancelarReservasEmLote(reservasSelecionadasParaLote, adminUser, motivoCancelamento);
-      toast({
-        title: "Sucesso!",
-        description: `${reservasSelecionadasParaLote.length} agendamento(s) foram cancelado(s).`,
-      });
-      buscarTodasReservas(); // Isso já vai limpar a seleção
+      toast({ title: "Sucesso!", description: `${reservasSelecionadasParaLote.length} agendamento(s) foram cancelado(s).` });
+      buscarTodasReservas();
     } catch (error: any) {
-       toast({
-        title: "Erro",
-        description: error.message || "Não foi possível cancelar os agendamentos.",
-        variant: "destructive",
-      });
+       toast({ title: "Erro", description: error.message || "Não foi possível cancelar os agendamentos.", variant: "destructive" });
     } finally {
       setConfirmandoCancelamentoLote(false);
       setMotivoCancelamento("");
@@ -362,10 +379,8 @@ export default function PaginaPainel() {
     );
   }
 
-  if (!usuario) {
-    return null;
-  }
-  
+  if (!usuario) return null;
+
   const formatarDataParaExibicao = (dateString: string | Date) => {
       try {
         const date = typeof dateString === 'string' ? parseISO(dateString) : dateString;
@@ -377,27 +392,13 @@ export default function PaginaPainel() {
 
    const formatarTimestamp = (ts: any): string => {
     if (!ts) return 'Data indisponível';
-    
-    // Se for um objeto com _seconds e _nanoseconds (de um server component), converta
-    if (ts && typeof ts === 'object' && ('_seconds' in ts)) {
-      const date = new Date(ts._seconds * 1000);
-      return format(date, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
-    }
-    
-    // Se for um Timestamp do cliente ou um objeto Date
-    if (ts instanceof Timestamp || ts instanceof Date) {
-        const date = ts instanceof Timestamp ? ts.toDate() : ts;
-        return format(date, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
-    }
-
-    // Se já for uma string
     try {
-        const date = parseISO(ts);
-        return format(date, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+      const date = typeof ts === 'string' ? new Date(ts) : ts;
+      return format(date, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
     } catch (e) {
-        return 'Data inválida';
+      return 'Data inválida';
     }
-}
+  }
 
 const criarLinkEmail = (reserva: Reserva, tipo: 'confirmacao' | 'cancelamento'): string => {
     const { email, nomeCompleto, dataReserva, horariosSelecionados, tituloGravacao, estudio } = reserva;
@@ -407,7 +408,7 @@ const criarLinkEmail = (reserva: Reserva, tipo: 'confirmacao' | 'cancelamento'):
     const dia = format(parsedDate, 'dd');
     const mes = format(parsedDate, 'MMMM', { locale: ptBR });
     const ano = format(parsedDate, 'yyyy');
-    
+
     let subject = '';
     let body = '';
 
@@ -415,130 +416,18 @@ const criarLinkEmail = (reserva: Reserva, tipo: 'confirmacao' | 'cancelamento'):
         subject = 'Seu agendamento no Centro de Mídias foi APROVADO';
 
         if (estudio === 'Estúdio 1') {
-            body = `Olá ${nomeCompleto},
-
-Seu agendamento para o Estúdio 1 , do Centro de Mídias Educacionais, está confirmado! Seguem abaixo orientações importantes para garantir que tudo ocorra bem:
-
-📅 Data: ${dia} de ${mes}, ${ano}
-🕑 Horário(s): ${times}
-
-📅 Antes da gravação / transmissão:
-
-a) Compareça com antecedência para ajustes de áudio, iluminação e preparação do roteiro;
-
-b) Tenha sua apresentação, slides ou pauta definidos e enviados previamente, se necessário;
-
-c) Revise todo o material antes da gravação para evitar contratempos.
-
-🧰 Durante o uso:
-
-d) Somente os técnicos do CME operam câmeras, microfones e demais equipamentos;
-
-e) Não altere iluminação ou posicionamento sem orientação da equipe técnica;
-
-f) Respeite normas de silêncio e evite distrações durante a gravação;
-
-🚫 Outras regras importantes:
-
-g) Não é permitido entrar com alimentos ou bebidas;
-
-i) Celulares devem ficar desligados ou em modo silencioso;
-
-j) Respeite o horário agendado — atrasos podem comprometer as sessões seguintes.
-
-
-
-Lembre-se de chegar com 30 minutos de antecedência. Caso precise de auxílio com materiais (slides, vídeos), envie-os para centrodemidias@seduc.to.gov.br com 72h de antecedência.
-
-Para mais informações, consulte as normas de uso em nosso site.
-Para ver as normas completas de uso (horários, responsabilidades, termos de imagem etc.), acesse:
-👉 https://centrodemidiasto.vercel.app/normasdeuso
-
-Atenciosamente,
-Centro de Mídias Educacionais – Seduc TO
-Contato: centrodemidias@seduc.to.gov.br`;
+            body = `Olá ${nomeCompleto},\n\nSeu agendamento para o Estúdio 1 , do Centro de Mídias Educacionais, está confirmado! Seguem abaixo orientações importantes para garantir que tudo ocorra bem:\n\n📅 Data: ${dia} de ${mes}, ${ano}\n🕑 Horário(s): ${times}\n\n📅 Antes da gravação / transmissão:\n\na) Compareça com antecedência para ajustes de áudio, iluminação e preparação do roteiro;\n\nb) Tenha sua apresentação, slides ou pauta definidos e enviados previamente, se necessário;\n\nc) Revise todo o material antes da gravação para evitar contratempos.\n\n🧰 Durante o uso:\n\nd) Somente os técnicos do CME operam câmeras, microfones e demais equipamentos;\n\ne) Não altere iluminação ou posicionamento sem orientação da equipe técnica;\n\nf) Respeite normas de silêncio e evite distrações durante a gravação;\n\n🚫 Outras regras importantes:\n\ng) Não é permitido entrar com alimentos ou bebidas;\n\ni) Celulares devem ficar desligados ou em modo silencioso;\n\nj) Respeite o horário agendado — atrasos podem comprometer as sessões seguintes.\n\n\n\nLembre-se de chegar com 30 minutos de antecedência. Caso precise de auxílio com materiais (slides, vídeos), envie-os para centrodemidias@seduc.to.gov.br com 72h de antecedência.\n\nPara mais informações, consulte as normas de uso em nosso site.\nPara ver as normas completas de uso (horários, responsabilidades, termos de imagem etc.), acesse:\n👉 https://centrodemidiasto.vercel.app/normasdeuso\n\nAtenciosamente,\nCentro de Mídias Educacionais – Seduc TO\nContato: centrodemidias@seduc.to.gov.br`;
         } else if (estudio === 'Estúdio 2') {
-            body = `Olá ${nomeCompleto},
-
-Seu agendamento para o Estúdio 2 do Centro de Mídias Educacionais foi aprovado! Confira abaixo orientações importantes:
-
-📅 Data: ${dia} de ${mes}, ${ano}
-🕑 Horário(s): ${times}
-
-📅 Antes da gravação / transmissão:
-
-a) Evite roupas verdes ou em tons semelhantes ao chroma. Também não use peças muito brilhantes, listradas ou com estampas miúdas;
-
-b) Chegue com antecedência para ajustes técnicos e testes de áudio, vídeo e cenário;
-
-c) Slides e materiais de apoio devem ser enviados com antecedência para análise técnica;
-
-🧰 Durante o uso:
-
-d) A operação de câmeras, iluminação e chroma key é feita exclusivamente pelos técnicos do CME;
-
-e) Evite acessórios que causem reflexos ou ruídos (brincos grandes, pulseiras barulhentas etc.);
-
-f) Maquiagem deve ser natural, sem brilho que interfira na iluminação;
-
-🚫 Outras regras importantes:
-
-g) Não é permitido entrar com alimentos ou bebidas no estúdio;
-
-h) Celulares devem ficar em modo silencioso ou desligados;
-
-i) Respeite o tempo reservado para não comprometer outras sessões.
-
-Para acesso às normas completas de uso (envio de materiais, termos legais, restrições etc.), acesse:
-👉 https://centrodemidiasto.vercel.app/normasdeuso
-
-Atenciosamente,
-Centro de Mídias Educacionais – Seduc TO
-Contato: centrodemidias@seduc.to.gov.br`;
-        } else { // Fallback para outros estúdios ou caso o nome esteja diferente
-             body = `Olá, ${nomeCompleto}!
-
-Seu agendamento para a gravação "${tituloGravacao}" foi confirmado.
-
-Detalhes:
-Data: ${formatarDataParaExibicao(date)}
-Horário(s): ${times}
-Estúdio: ${estudio}
-
-Lembre-se de chegar com 30 minutos de antecedência. Caso precise de auxílio com materiais (slides, vídeos), envie-os para centrodemidias@seduc.to.gov.br com 72h de antecedência.
-
-Para mais informações, consulte as normas de uso em nosso site.
-
-Atenciosamente,
-Equipe do Centro de Mídias Educacionais.`;
+            body = `Olá ${nomeCompleto},\n\nSeu agendamento para o Estúdio 2 do Centro de Mídias Educacionais foi aprovado! Confira abaixo orientações importantes:\n\n📅 Data: ${dia} de ${mes}, ${ano}\n🕑 Horário(s): ${times}\n\n📅 Antes da gravação / transmissão:\n\na) Evite roupas verdes ou em tons semelhantes ao chroma. Também não use peças muito brilhantes, listradas ou com estampas miúdas;\n\nb) Chegue com antecedência para ajustes técnicos e testes de áudio, vídeo e cenário;\n\nc) Slides e materiais de apoio devem ser enviados com antecedência para análise técnica;\n\n🧰 Durante o uso:\n\nd) A operação de câmeras, iluminação e chroma key é feita exclusivamente pelos técnicos do CME;\n\ne) Evite acessórios que causem reflexos ou ruídos (brincos grandes, pulseiras barulhentas etc.);\n\nf) Maquiagem deve ser natural, sem brilho que interfira na iluminação;\n\n🚫 Outras regras importantes:\n\ng) Não é permitido entrar com alimentos ou bebidas no estúdio;\n\nh) Celulares devem ficar em modo silencioso ou desligados;\n\ni) Respeite o tempo reservado para não comprometer outras sessões.\n\nPara acesso às normas completas de uso (envio de materiais, termos legais, restrições etc.), acesse:\n👉 https://centrodemidiasto.vercel.app/normasdeuso\n\nAtenciosamente,\nCentro de Mídias Educacionais – Seduc TO\nContato: centrodemidias@seduc.to.gov.br`;
+        } else {
+             body = `Olá, ${nomeCompleto}!\n\nSeu agendamento para a gravação "${tituloGravacao}" foi confirmado.\n\nDetalhes:\nData: ${formatarDataParaExibicao(date)}\nHorário(s): ${times}\nEstúdio: ${estudio}\n\nLembre-se de chegar com 30 minutos de antecedência. Caso precise de auxílio com materiais (slides, vídeos), envie-os para centrodemidias@seduc.to.gov.br com 72h de antecedência.\n\nPara mais informações, consulte as normas de uso em nosso site.\n\nAtenciosamente,\nEquipe do Centro de Mídias Educacionais.`;
         }
-    } else { // 'cancelamento'
+    } else {
         subject = 'Cancelamento de Agendamento no Estúdio do Centro de Mídias';
-        body = `Olá ${nomeCompleto},
-
-Informamos que seu agendamento para o Estúdio ${estudio}, que estava marcado para o dia ${dia} de ${mes} de ${ano}, às ${times}, foi cancelado.
-
-Pedimos desculpas por qualquer inconveniente que isso possa causar.
-
-Para realizar um novo agendamento, por favor, acesse nossa plataforma e verifique os horários disponíveis:
-👉 https://centrodemidiasto.vercel.app/agendamento
-
-Caso tenha alguma dúvida ou precise de mais informações, entre em contato conosco pelo e-mail: centrodemidias@seduc.to.gov.br.
-
-Agradecemos a sua compreensão.
-
-Atenciosamente,
-
-Centro de Mídias Educacionais – Seduc TO
-Contato: centrodemidias@seduc.to.gov.br`;
+        body = `Olá ${nomeCompleto},\n\nInformamos que seu agendamento para o Estúdio ${estudio}, que estava marcado para o dia ${dia} de ${mes} de ${ano}, às ${times}, foi cancelado.\n\nPedimos desculpas por qualquer inconveniente que isso possa causar.\n\nPara realizar um novo agendamento, por favor, acesse nossa plataforma e verifique os horários disponíveis:\n👉 https://centrodemidiasto.vercel.app/agendamento\n\nCaso tenha alguma dúvida ou precise de mais informações, entre em contato conosco pelo e-mail: centrodemidias@seduc.to.gov.br.\n\nAgradecemos a sua compreensão.\n\nAtenciosamente,\n\nCentro de Mídias Educacionais – Seduc TO\nContato: centrodemidias@seduc.to.gov.br`;
     }
-    
-    const params = new URLSearchParams({
-        to: email,
-        su: subject,
-        body: body,
-    });
 
+    const params = new URLSearchParams({ to: email, su: subject, body });
     return `https://mail.google.com/mail/?view=cm&fs=1&${params.toString()}`;
   };
 
@@ -667,11 +556,7 @@ Contato: centrodemidias@seduc.to.gov.br`;
                     <AccordionContent>
                         <CardContent>
                             <div className="flex justify-center items-center gap-4 mb-6">
-                                <Button
-                                    variant="outline"
-                                    size="icon"
-                                    onClick={() => setMesAprovadas(prev => addMonths(prev, -1))}
-                                >
+                                <Button variant="outline" size="icon" onClick={() => setMesAprovadas(prev => addMonths(prev, -1))}>
                                     <ChevronLeft className="h-4 w-4" />
                                 </Button>
                                 <h3 className="text-xl font-semibold text-center capitalize w-64">
@@ -801,7 +686,7 @@ Contato: centrodemidias@seduc.to.gov.br`;
                                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                                  </div>
                             ) : dadosBloqueio ? (
-                                <FormularioBloqueioHorarios 
+                                <FormularioBloqueioHorarios
                                     reservasIniciais={dadosBloqueio.reserved}
                                     bloqueiosManuaisIniciais={dadosBloqueio.manual}
                                 />
@@ -812,7 +697,7 @@ Contato: centrodemidias@seduc.to.gov.br`;
                     </AccordionContent>
                 </Card>
             </AccordionItem>
-            
+
             <AccordionItem value="my-profile">
                 <Card>
                     <AccordionTrigger className="p-6">
@@ -831,7 +716,7 @@ Contato: centrodemidias@seduc.to.gov.br`;
                     </AccordionContent>
                 </Card>
             </AccordionItem>
-            
+
             {podeGerenciarUsuarios && (
               <AccordionItem value="manage-users">
                   <Card>
@@ -854,7 +739,7 @@ Contato: centrodemidias@seduc.to.gov.br`;
             )}
         </Accordion>
       </div>
-      
+
        <Dialog open={modalAberto} onOpenChange={(isOpen) => !isOpen && fecharModal()}>
             <DialogContent className="sm:max-w-[800px]">
                 {reservaSelecionada && (
@@ -1005,7 +890,7 @@ Contato: centrodemidias@seduc.to.gov.br`;
                                     <span>{reservaSelecionada.ultimaAlteracaoPor}</span>
                                 </div>
                             )}
-                            
+
                             {reservaSelecionada.historico && reservaSelecionada.historico.length > 0 && (
                                  <div className="grid grid-cols-[150px_1fr] items-start gap-4">
                                     <span className="font-semibold text-right pt-2">Registro:</span>
@@ -1053,7 +938,7 @@ Contato: centrodemidias@seduc.to.gov.br`;
                 </AlertDialogDescription>
                 </AlertDialogHeader>
                 <div className="py-4">
-                    <Textarea 
+                    <Textarea
                       placeholder="Digite o motivo do cancelamento aqui..."
                       value={motivoCancelamento}
                       onChange={(e) => setMotivoCancelamento(e.target.value)}
@@ -1099,7 +984,7 @@ Contato: centrodemidias@seduc.to.gov.br`;
                 </AlertDialogDescription>
                 </AlertDialogHeader>
                  <div className="py-4">
-                    <Textarea 
+                    <Textarea
                       placeholder="Digite o motivo do cancelamento aqui..."
                       value={motivoCancelamento}
                       onChange={(e) => setMotivoCancelamento(e.target.value)}

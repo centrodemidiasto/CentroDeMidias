@@ -9,8 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
-import { onAuthStateChanged, signOut, User } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import type { User } from "@supabase/supabase-js";
+import { createClient } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 
 const navLinks = [
@@ -30,21 +30,31 @@ export default function Header() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
+    const supabase = createClient();
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
       setLoading(false);
     });
-    return () => unsubscribe();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const handleSignOut = async () => {
+    const supabase = createClient();
     try {
-      await signOut(auth);
+      await supabase.auth.signOut();
       toast({
         title: "Logout bem-sucedido!",
         description: "Você foi desconectado com segurança.",
       });
       router.push('/');
+      router.refresh();
     } catch (error) {
       toast({
         title: "Erro",
