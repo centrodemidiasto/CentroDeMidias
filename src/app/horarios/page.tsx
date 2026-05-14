@@ -9,6 +9,7 @@ import RefreshButton from "@/components/refresh-button";
 import { Badge } from "@/components/ui/badge";
 import AutoScrollController from "@/components/auto-scroll-controller";
 import { formatarIntervalosHorarios } from "@/lib/utils";
+import HorariosRealtime from "@/components/horarios-realtime";
 
 export const revalidate = 60;
 export const dynamic = 'force-dynamic';
@@ -108,6 +109,7 @@ export default async function PaginaHorarios() {
 
   return (
     <div className="bg-gray-900 text-white min-h-screen p-6 font-sans relative">
+    <HorariosRealtime />
     <header className="text-center mb-8 flex flex-col items-center">
         <div className="mb-2">
             <Image
